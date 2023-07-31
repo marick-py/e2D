@@ -1,4 +1,5 @@
 import pygame as pg
+from e2D import *
 
 KEY_MODE_PRESSED = 0
 KEY_MODE_JUST_PRESSED = 1

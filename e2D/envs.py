@@ -1,5 +1,4 @@
 from .utils import *
-from e2D import *
 import pygame as pg
 
 """  CODE EXAMPLE FOR RootEnv
