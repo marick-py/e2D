@@ -104,9 +104,6 @@ class Env:
 rootEnv = RootEnv(Env())
 while not rootEnv.quit:
     rootEnv.frame()
-"""
-
-
 ```
 
 ## License
