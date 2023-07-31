@@ -10,4 +10,4 @@ with open("setup.cfg", "w") as config_file:
     cfg.write(config_file)
 
 os.system("python -m build")
-os.system("python -m twine upload --repository --skip-existing -u marick-py pypi dist/*")
+os.system("python -m twine upload -u marick-py --skip-existing --repository pypi dist/*")
