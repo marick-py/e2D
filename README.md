@@ -1,6 +1,3 @@
-# e2D
-Python library for 2D games. Streamlines dev with keyboard/mouse input, vector calculations, color manipulation, and collision detection. Simplify game creation and unleash creativity!
-
 <p align="center">
   <img src="e2D_logo.png" alt="e2D Logo">
 </p>
