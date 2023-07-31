@@ -14,7 +14,7 @@ class Env:
     def update(self) -> None:
         pass
 
-rootEnv = RootEnv(Env())
+(rootEnv:=RootEnv()).init(Env())
 while not rootEnv.quit:
     rootEnv.frame()
 """
@@ -24,7 +24,7 @@ pg.font.init()
 myfont = pg.font.SysFont("Arial", 32)
 
 class RootEnv:
-    def __init__(self, env, screen_size:V2=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
+    def __init__(self, screen_size:V2=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
         self.quit = False
         self.screen_size = screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync)
@@ -33,7 +33,9 @@ class RootEnv:
         self.clock = pg.time.Clock()
         self.keyboard = Keyboard(self)
         self.mouse = Mouse(self)
-        self.env = env
+    
+    def init(self, sub_env) -> None:
+        self.env = sub_env
     
     def clear(self) -> None:
         self.screen.fill((0,0,0))

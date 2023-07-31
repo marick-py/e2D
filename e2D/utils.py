@@ -17,6 +17,7 @@ class Mouse:
         self.pressed :list= [False, False, False]
         self.just_pressed :list= [False, False, False]
         self.just_released :list= [False, False, False]
+        self.update()
     
     def update(self) -> None:
         self.position = V2(*pg.mouse.get_pos()) # type: ignore
@@ -37,6 +38,7 @@ class Keyboard:
         self.pressed :list= [False for _ in SCANCODES_NUMS]
         self.just_pressed :list= [False for _ in range(len(self.pressed))]
         self.just_released :list= [False for _ in range(len(self.pressed))]
+        self.update()
     
     def update(self) -> None:
         last_pressed = self.pressed.copy()

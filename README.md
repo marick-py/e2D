@@ -101,7 +101,7 @@ class Env:
     def update(self) -> None:
         pass
 
-rootEnv = RootEnv(Env())
+(rootEnv:=RootEnv()).init(Env())
 while not rootEnv.quit:
     rootEnv.frame()
 ```
