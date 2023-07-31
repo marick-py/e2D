@@ -21,6 +21,9 @@ You can install e2D using pip:
 ```bash
 pip install e2D
 ```
+```bash
+pip3 install e2D
+```
 
 ## Getting Started
 
@@ -78,4 +81,3 @@ e2D is developed and maintained by [marick-py](https://github.com/marick-py).
 For inquiries, you can reach me at [ricomari2006@gmail.com](mailto:ricomari2006@gmail.com).
 
 Happy coding with e2D! 🚀
-```
