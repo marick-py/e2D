@@ -20,10 +20,10 @@ e2D is a Python utility library designed to simplify 2D game development and gra
 You can install e2D using pip:
 
 ```bash
-pip install e2Dpy
+pip install e2D
 ```
 ```bash
-pip3 install e2Dpy
+pip3 install e2D
 ```
 
 ## Getting Started
