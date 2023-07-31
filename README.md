@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="e2D_logo.png" alt="e2D Logo">
+  <img src="e2D_logo.png" alt="e2D Logo" width="400" height="300">
 </p>
 
 # e2D: Python Utility Library for 2D Game Development and Graphics
