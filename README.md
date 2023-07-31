@@ -2,7 +2,8 @@
   <img src="e2D_logo.png" alt="e2D Logo" width="400" height="300">
 </p>
 
-# e2D: Python Utility Library for 2D Game Development and Graphics
+# e2D
+## Python Utility Library for 2D Game Development and Graphics
 
 e2D is a Python utility library designed to simplify 2D game development and graphics tasks. With e2D, developers can focus on the creative aspects of their games while enjoying the convenience of ready-to-use tools and functions.
 
