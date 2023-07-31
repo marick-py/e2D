@@ -1,7 +1,6 @@
 import numpy as _np
 import math as _mt
 import random as _rnd
-import pygame as pg
 
 PI = _mt.pi
 HALF_PI = PI/2
@@ -12,64 +11,11 @@ DEFAULT_MOUSE_BUTTON_MODE = 0
 OVER_MOUSE_BUTTON_MODE = 1
 CLICKED_MOUSE_BUTTON_MOVE = 2
 
-KEY_MODE_PRESSED = 0
-KEY_MODE_JUST_PRESSED = 1
-KEY_MODE_JUST_RELEASED = 2
-
 CALLBACK_MODE_ON_PRESSED = 0
 CALLBACK_MODE_ON_RELEASED = 1
 
-SCANCODES = {"":0,"backspace":8,"tab":9,"return":13,"escape":27,"space":32,"!":33,"\"":34,"#":35,"$":36,"%":37,"&":38,"'":39,"(":40,")":41,"*":42,"+":43,",":44,"-":45,".":46,"/":47,"0":48,"1":49,"2":50,"3":51,"4":52,"5":53,"6":54,"7":55,"8":56,"9":57,":":58,";":59,"<":60,"=":61,">":62,"?":63,"@":64,"[":91,"\\":92,"]":93,"^":94,"_":95,"`":96,"a":97,"b":98,"c":99,"d":100,"e":101,"f":102,"g":103,"h":104,"i":105,"j":106,"k":107,"l":108,"m":109,"n":110,"o":111,"p":112,"q":113,"r":114,"s":115,"t":116,"u":117,"v":118,"w":119,"x":120,"y":121,"z":122,"delete":127,"caps lock":1073741881,"f1":1073741882,"f2":1073741883,"f3":1073741884,"f4":1073741885,"f5":1073741886,"f6":1073741887,"f7":1073741888,"f8":1073741889,"f9":1073741890,"f10":1073741891,"f11":1073741892,"f12":1073741893,"print screen":1073741894,"scroll lock":1073741895,"break":1073741896,"insert":1073741897,"home":1073741898,"page up":1073741899,"end":1073741901,"page down":1073741902,"right":1073741903,"left":1073741904,"down":1073741905,"up":1073741906,"numlock":1073741907,"[/]":1073741908,"[*]":1073741909,"[-]":1073741910,"[+]":1073741911,"enter":1073741912,"[1]":1073741913,"[2]":1073741914,"[3]":1073741915,"[4]":1073741916,"[5]":1073741917,"[6]":1073741918,"[7]":1073741919,"[8]":1073741920,"[9]":1073741921,"[0]":1073741922,"[.]":1073741923,"power":1073741926,"equals":1073741927,"f13":1073741928,"f14":1073741929,"f15":1073741930,"help":1073741941,"menu":1073741942,"sys req":1073741978,"clear":1073741980,"euro":1073742004,"CurrencySubUnit":1073742005,"left ctrl":1073742048,"left shift":1073742049,"left alt":1073742050,"left meta":1073742051,"right ctrl":1073742052,"right shift":1073742053,"right alt":1073742054,"right meta":1073742055,"alt gr":1073742081,"AC Back":1073742094}
-SCANCODES_NUMS = [i for i in SCANCODES.values()]
-
 NUM_TYPE = int|float
 ARRAY_TYPE = list|tuple
-
-class Mouse:
-    """
-    # Need the pygame module to be imported as pg.
-    """
-    def __init__(self, parent) -> None:
-        self.parent = parent
-        self.pressed :list= [False, False, False]
-        self.just_pressed :list= [False, False, False]
-        self.just_released :list= [False, False, False]
-    
-    def update(self) -> None:
-        self.position = V2(*pg.mouse.get_pos()) # type: ignore
-        last_pressed = self.pressed.copy()
-        self.pressed = list(pg.mouse.get_pressed()) # type: ignore
-        self.just_pressed = [self.pressed[i] and not last_pressed[i] for i in range(3)]
-        self.just_released = [not self.pressed[i] and last_pressed[i] for i in range(3)]
-    
-    def draw(self) -> None:
-        pg.draw.circle(self.parent.screen, (110, 0, 0), self.position(), 10) # type: ignore
-
-class Keyboard:
-    """
-    # Need the pygame module to be imported as pg.
-    """
-    def __init__(self, parent) -> None:
-        self.parent = parent
-        self.pressed :list= [False for _ in SCANCODES_NUMS]
-        self.just_pressed :list= [False for _ in range(len(self.pressed))]
-        self.just_released :list= [False for _ in range(len(self.pressed))]
-    
-    def update(self) -> None:
-        last_pressed = self.pressed.copy()
-        self.pressed :list= [pg.key.get_pressed()[i] for i in SCANCODES_NUMS] # type: ignore
-        self.just_pressed = [self.pressed[i] and not last_pressed[i] for i in range(len(SCANCODES_NUMS))]
-        self.just_released = [not self.pressed[i] and last_pressed[i] for i in range(len(SCANCODES_NUMS))]
-    
-    def get_key(self, scan_code, mode=KEY_MODE_PRESSED) -> bool:
-        ll = self.pressed
-        if mode == KEY_MODE_PRESSED:
-            ll = self.pressed
-        elif mode == KEY_MODE_JUST_PRESSED:
-            ll = self.just_pressed
-        elif mode == KEY_MODE_JUST_RELEASED:
-            ll = self.just_released
-        return ll[SCANCODES_NUMS.index(scan_code)]
 
 class Vector2D:
     def __init__(self, x:NUM_TYPE=0, y:NUM_TYPE=0) -> None:
@@ -1010,6 +956,13 @@ import uuid
 pg.init()
 pg.font.init()
 myfont = pg.font.SysFont("Arial", 32)
+
+DEFAULT_MOUSE_BUTTON_MODE = 0
+OVER_MOUSE_BUTTON_MODE = 1
+CLICKED_MOUSE_BUTTON_MOVE = 2
+
+CALLBACK_MODE_ON_PRESSED = 0
+CALLBACK_MODE_ON_RELEASED = 1
 
 class Button:
     def_side_border = .85
