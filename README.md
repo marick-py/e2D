@@ -41,12 +41,36 @@ To get started with e2D, follow these steps:
 Here are some examples to demonstrate how to use e2D:
 
 ```python
-# Example 1: Handling Keyboard Input
-from e2D import Keyboard
+# Example 0: Easy To Understand and Fast Math Implementation
+from e2D import *
+
+v1 = V2(10, -50)
+
+# able to operate a Vector2D and a int/float
+v1 *= 10 + 10
+
+# able to operate a Vector2D and a list/tuple
+v1 += [PI, 4.35]
+
+list_v1 = v1()
+tuple_v1 = v1(return_tuple=True)
+
+abs_v1 = abs(v1)
+square_root_v1 = abs_v1 ** .5
+rounded_v1 = round(square_root_v1)
+
+# Example 1: Handling Keyboard And Mouse Input in Pygame
+from e2D.utils import Keyboard, Mouse
 
 keyboard = Keyboard()
 if keyboard.get_key("space"):
     print("Space key is pressed!")
+
+mouse = Mouse()
+print(mouse.get_position())
+# V2(x,y)
+print(mouse.just_pressed)
+# [bool, bool, bool]
 
 # Example 2: Vector Calculations
 from e2D import Vector2D
@@ -63,6 +87,26 @@ starting_color = rgb(255, 0, 0)
 final_color = rgb(0, 0, 255)
 intermediate_color = color_fade(starting_color, final_color, 0.5)
 print("Intermediate Color:", intermediate_color)
+
+# Example 4: Use Default Pygame Env just like this:
+from e2D.envs import *
+
+class Env:
+    def __init__(self) -> None:
+        pass
+
+    def draw(self) -> None:
+        pg.draw.circle(rootEnv.screen, (255,127,0), rootEnv.mouse.position(), 10)
+
+    def update(self) -> None:
+        pass
+
+rootEnv = RootEnv(Env())
+while not rootEnv.quit:
+    rootEnv.frame()
+"""
+
+
 ```
 
 ## License

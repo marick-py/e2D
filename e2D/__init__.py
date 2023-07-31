@@ -504,8 +504,8 @@ class Vector2D:
     def __repr__(self) -> str:
         return f"x:{self.x}\ty:{self.y}"
 
-    def __call__(self, need_tuple=False) -> list|tuple:
-        return (self.x, self.y) if need_tuple else [self.x, self.y]
+    def __call__(self, return_tuple=False) -> list|tuple:
+        return (self.x, self.y) if return_tuple else [self.x, self.y]
 
     def __truediv__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
         object = self.__normalize__(object)
