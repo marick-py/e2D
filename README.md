@@ -1,7 +1,6 @@
 # e2D
 Python library for 2D games. Streamlines dev with keyboard/mouse input, vector calculations, color manipulation, and collision detection. Simplify game creation and unleash creativity!
 
-```markdown
 <p align="center">
   <img src="e2D_logo.png" alt="e2D Logo">
 </p>
@@ -75,13 +74,11 @@ Contributions are welcome! If you find any bugs or have suggestions for improvem
 
 ## Credits
 
-e2D is developed and maintained by [Your Name](https://github.com/yourusername).
+e2D is developed and maintained by [marick-py](https://github.com/marick-py).
 
 ## Contact
 
-For inquiries, you can reach me at [your.email@example.com](mailto:your.email@example.com).
+For inquiries, you can reach me at [ricomari2006@gmail.com](mailto:ricomari2006@gmail.com).
 
 Happy coding with e2D! 🚀
 ```
-
-Make sure to replace `[yourusername]` with your actual GitHub username and `[Your Name]` with your name or preferred attribution. Now the README.md includes the pip installation instructions for the "e2D" package, making it easy for users to install your library and get started quickly.
