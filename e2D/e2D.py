@@ -1,6 +1,7 @@
 import numpy as _np
 import math as _mt
 import random as _rnd
+import pygame as pg
 
 PI = _mt.pi
 HALF_PI = PI/2
