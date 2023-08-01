@@ -81,7 +81,44 @@ class Vector2D:
         object = self.__normalize__(object)
         return _mt.atan2(object.y - self.y, object.x - self.x)
 
-    def point_from_degs(self, rad:int|float, radius:int|float) -> "Vector2D|V2":
+    def point_from_degs(self, degs:int|float, radius:int|float) -> "Vector2D|V2":
+        """
+        # Calculate a new Vector2D point from the current point based on an angle in degs and a radius.
+
+        # Parameters:
+            rad (int|float): The angle in degs.
+            radius (int|float): The distance from the current point.
+
+        # Returns:
+            Vector2D: A new Vector2D point calculated from the current point.
+
+        # Example:
+            point1 = Vector2D(0, 0)
+
+            angle = 45
+
+            distance = 5
+
+            new_point = point1.point_from_degs(angle, distance)
+
+            print(new_point.x, new_point.y)
+
+            This will calculate a new point 5 units away from point1 at a 45-degree angle.
+
+        # Explanation:
+            The function calculates a new Vector2D point based on an angle in degs (degs) and a distance (radius)
+            from the current Vector2D point.
+
+            It computes the new x and y coordinates of the point using the trigonometric functions `cos` and `sin`
+            to determine the horizontal and vertical components of the new point.
+
+            The result is returned as a new Vector2D point with the calculated coordinates.
+        """
+        x = radius * _mt.cos(_mt.radians(degs)) + self.x
+        y = radius * _mt.sin(_mt.radians(degs)) + self.y
+        return Vector2D(x, y)
+    
+    def point_from_rads(self, rad:int|float, radius:int|float) -> "Vector2D|V2":
         """
         # Calculate a new Vector2D point from the current point based on an angle in radians and a radius.
 
