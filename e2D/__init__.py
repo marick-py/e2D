@@ -13,7 +13,7 @@ class Vector2D:
         self.x = x
         self.y = y
 
-    def distance_to(self, object:"float|int|Vector2D|list|tuple", squared:bool=True) -> int|float:
+    def distance_to(self, object:"float|int|Vector2D|V2|list|tuple", squared:bool=True) -> int|float:
         """
         # Calculate the distance between the current Vector2D object and another object.
 
@@ -51,7 +51,7 @@ class Vector2D:
         d = (self.x - object.x)**2 + (self.y - object.y)**2
         return (d**(1/2) if squared else d)
 
-    def angle_to(self, object:"float|int|Vector2D|list|tuple") -> int|float:
+    def angle_to(self, object:"float|int|Vector2D|V2|list|tuple") -> int|float:
         """
         # Calculate the angle between the current Vector2D object and another object.
 
@@ -81,7 +81,7 @@ class Vector2D:
         object = self.__normalize__(object)
         return _mt.atan2(object.y - self.y, object.x - self.x)
 
-    def point_from_degs(self, rad:int|float, radius:int|float) -> "Vector2D":
+    def point_from_degs(self, rad:int|float, radius:int|float) -> "Vector2D|V2":
         """
         # Calculate a new Vector2D point from the current point based on an angle in radians and a radius.
 
@@ -118,7 +118,7 @@ class Vector2D:
         y = radius * _mt.sin(rad) + self.y
         return Vector2D(x, y)
 
-    def copy(self) -> "Vector2D":
+    def copy(self) -> "Vector2D|V2":
         """
         # Create a copy of the current Vector2D object.
 
@@ -141,7 +141,7 @@ class Vector2D:
         """
         return Vector2D(self.x, self.y)
 
-    def absolute_round(self, n=1) -> "Vector2D":
+    def absolute_round(self, n=1) -> "Vector2D|V2":
         """
         # Perform an "absolute round" operation on the Vector2D object.
 
@@ -183,7 +183,7 @@ class Vector2D:
         s_abs = abs(self)
         return self.no_zero_div_error(s_abs, "zero") * n
 
-    def floor(self, n:int|float=1) -> "Vector2D":
+    def floor(self, n:int|float=1) -> "Vector2D|V2":
         """
         # Round down the components of the Vector2D object to the nearest integer or the specified numeric value.
 
@@ -223,7 +223,7 @@ class Vector2D:
         """
         return self.__floor__(n)
 
-    def ceil(self, n:int|float=1) -> "Vector2D":
+    def ceil(self, n:int|float=1) -> "Vector2D|V2":
         """
         # Round up the components of the Vector2D object to the nearest integer or the specified numeric value.
 
@@ -263,7 +263,7 @@ class Vector2D:
         """
         return self.__ceil__(n)
 
-    def randomize(start:"int|float|Vector2D|None"=None, end:"int|float|Vector2D|None"=None) -> "Vector2D": #type: ignore
+    def randomize(start:"int|float|Vector2D|V2|None"=None, end:"int|float|Vector2D|V2|None"=None) -> "Vector2D|V2": #type: ignore
         """
         # Generate a random Vector2D point within the specified range.
 
@@ -298,11 +298,11 @@ class Vector2D:
             It then generates random x and y coordinates in the range [0, 1) using the `random()` function from the `random` module.
             These random values are then scaled by (end - start) and added to the start point to obtain the final random Vector2D point.
         """
-        if not isinstance(start, Vector2D):
+        if not isinstance(start, Vector2D|V2):
             if type(start) in int|float: start = Vector2D(start, start) #type: ignore
             elif type(start) == None: start = Vector2D(0,0)
             else: raise Exception(f"\nArg start must be in [Vector2D, int, float, tuple, list] not a [{type(start)}]\n")
-        if not isinstance(end, Vector2D):
+        if not isinstance(end, Vector2D|V2):
             if type(end) in int|float: end = Vector2D(end, end) #type: ignore
             elif type(end) == None: end = Vector2D(1,1)
             else: raise Exception(f"\nArg end must be in [Vector2D, int, float, tuple, list] not a [{type(end)}]\n")
@@ -341,7 +341,7 @@ class Vector2D:
         return sum(list(objects) + [self]) / (len(objects)+1)
 
     # Vector2D(x,y) | [(Vector2D(x1,y1), Vector2D(x2,y2)), (Vector2D(x3,y3), Vector2D(x4,y4))]
-    def inter_points(self:"Vector2D", self_final_point:"Vector2D", lines:list[tuple["Vector2D", "Vector2D"]], sort:bool=False, return_empty:bool=False) -> list["Vector2D|None"]:
+    def inter_points(self:"Vector2D|V2", self_final_point:"Vector2D|V2", lines:list[tuple["Vector2D|V2", "Vector2D|V2"]], sort:bool=False, return_empty:bool=False) -> list["Vector2D|V2|None"]:
         """
         # Calculate the intersection points between a ray and a list of line segments.
 
@@ -398,7 +398,7 @@ class Vector2D:
             collisions.sort(key=lambda x: self.distance_to(x, False)) #type: ignore
         return collisions
 
-    def normalize(self, max:int|float=1, min:int|float=0) -> "Vector2D":
+    def normalize(self, max:int|float=1, min:int|float=0) -> "Vector2D|V2":
         """
         # Normalize the Vector2D object to a new magnitude defined by max while preserving its direction.
 
@@ -430,7 +430,7 @@ class Vector2D:
         """
         return Vector2D(min, min).point_from_degs(Vector2D(min, min).angle_to(self), max) if Vector2D(min, min).distance_to(self) != 0 else VectorZero.copy()
 
-    def no_zero_div_error(self:"Vector2D", n:"int|float|Vector2D", error_mode:str="zero") -> "Vector2D":
+    def no_zero_div_error(self:"Vector2D|V2", n:"int|float|Vector2D|V2", error_mode:str="zero") -> "Vector2D|V2":
         """
         # Handle division between the Vector2D object and a numeric value or another Vector2D object.
 
@@ -478,7 +478,7 @@ class Vector2D:
                 return Vector2D(0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan), 0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan))
             else:
                 return self / n
-        elif isinstance(n, Vector2D):
+        elif isinstance(n, Vector2D|V2):
             return Vector2D((0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan)) if n.x == 0 else self.x / n.x, (0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan)) if n.y == 0 else self.y / n.y)
         else:
             raise Exception(f"\nArg n must be in [Vector2D, int, float, tuple, list] not a [{type(n)}]\n")
@@ -486,19 +486,19 @@ class Vector2D:
     def __str__(self) -> str:
         return f"{self.x}, {self.y}"
 
-    def __sub__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __sub__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x - object.x, self.y - object.y)
 
-    def __add__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __add__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x + object.x, self.y + object.y)
 
-    def __mod__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __mod__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x % object.x, self.y % object.y)
 
-    def __radd__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __radd__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         return self.__add__(object)
 
     def __repr__(self) -> str:
@@ -507,35 +507,35 @@ class Vector2D:
     def __call__(self, return_tuple=False) -> list|tuple:
         return (self.x, self.y) if return_tuple else [self.x, self.y]
 
-    def __truediv__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __truediv__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x / object.x, self.y / object.y)
 
-    def __floordiv__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __floordiv__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x // object.x, self.y // object.y)
     
-    def __abs__(self) -> "Vector2D":
+    def __abs__(self) -> "Vector2D|V2":
         return Vector2D(abs(self.x), abs(self.y))
 
-    def __round__(self, n:int|float=1) -> "Vector2D":
+    def __round__(self, n:int|float=1) -> "Vector2D|V2":
         return Vector2D(round(self.x / n) * n, round(self.y / n) * n)
 
-    def __floor__(self, n:int|float=1) -> "Vector2D":
+    def __floor__(self, n:int|float=1) -> "Vector2D|V2":
         return Vector2D(_mt.floor(self.x / n) * n, _mt.floor(self.y / n) * n)
 
-    def __ceil__(self, n:int|float=1) -> "Vector2D":
+    def __ceil__(self, n:int|float=1) -> "Vector2D|V2":
         return Vector2D(_mt.ceil(self.x / n) * n, _mt.ceil(self.y / n) * n)
 
-    def __mul__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __mul__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x * object.x, self.y * object.y)
 
-    def __pow__(self, object:"float|int|Vector2D|list|tuple") -> "Vector2D":
+    def __pow__(self, object:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         object = self.__normalize__(object)
         return Vector2D(self.x ** object.x, self.y ** object.y)
     
-    def __float__(self) -> "Vector2D":
+    def __float__(self) -> "Vector2D|V2":
         return Vector2D(float(self.x), float(self.y))
 
     def __getitem__(self, n) -> int|float:
@@ -546,7 +546,7 @@ class Vector2D:
         else:
             raise IndexError("V2 has only x,y...")
     
-    def __normalize__(self, object) -> "Vector2D":
+    def __normalize__(self, object) -> "Vector2D|V2":
         if not isinstance(object, Vector2D):
             if isinstance(object, int|float):
                 return Vector2D(object, object)
@@ -715,7 +715,7 @@ def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd:bool=True) ->
     distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
     return (distance ** .5) if sqrd else distance
 
-def avg_position(*objects:"Vector2D") -> Vector2D:
+def avg_position(*objects:"Vector2D|V2") -> Vector2D|V2:
     """
     # Calculate the average position for a variable number of Vector2D objects.
 
@@ -747,7 +747,7 @@ def avg_position(*objects:"Vector2D") -> Vector2D:
     """
     return sum(list(objects)) / (len(objects)) # type: ignore
 
-def get_points(position:Vector2D, size:Vector2D, rotation:int|float=0, pos_in_middle:bool=True, return_list:bool=False, clockwise_return:bool=False) -> tuple["Vector2D", "Vector2D", "Vector2D", "Vector2D"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
+def get_points(position:Vector2D|V2, size:Vector2D|V2, rotation:int|float=0, pos_in_middle:bool=True, return_list:bool=False, clockwise_return:bool=False) -> tuple["Vector2D|V2", "Vector2D|V2", "Vector2D|V2", "Vector2D|V2"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
     """
     # Generate points for a rectangle based on the given parameters.
 
@@ -804,7 +804,7 @@ def get_points(position:Vector2D, size:Vector2D, rotation:int|float=0, pos_in_mi
     points = (A, B, C, D) if not clockwise_return else (A, B, D, C)
     return points if not return_list else tuple(x() for x in points)
 
-def get_lines(position:Vector2D, size:Vector2D, rotation:int|float=0, pos_in_middle:bool=True) -> list[list]:
+def get_lines(position:Vector2D|V2, size:Vector2D|V2, rotation:int|float=0, pos_in_middle:bool=True) -> list[list]:
     """
     # Generate lines representing the sides of a rectangle based on the given parameters.
 
@@ -843,7 +843,7 @@ def get_lines(position:Vector2D, size:Vector2D, rotation:int|float=0, pos_in_mid
     A, B, C, D = get_points(position, size, rotation, pos_in_middle)
     return [[A, B], [A, C], [C, D], [D, B]]
 
-def distance_line_point(line_point_a:Vector2D, line_point_b:Vector2D, point_c:Vector2D)  -> float:
+def distance_line_point(line_point_a:Vector2D|V2, line_point_b:Vector2D|V2, point_c:Vector2D|V2)  -> float:
     """
     # Calculate the distance between a line segment and a point.
 
