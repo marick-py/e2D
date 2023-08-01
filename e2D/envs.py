@@ -24,7 +24,7 @@ pg.font.init()
 myfont = pg.font.SysFont("Arial", 32)
 
 class RootEnv:
-    def __init__(self, screen_size:V2=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
+    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
         self.quit = False
         self.screen_size = screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync)
