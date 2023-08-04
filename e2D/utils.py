@@ -9,9 +9,6 @@ SCANCODES = {"":0,"backspace":8,"tab":9,"return":13,"escape":27,"space":32,"!":3
 SCANCODES_NUMS = [i for i in SCANCODES.values()]
 
 class Mouse:
-    """
-    # Need the pygame module to be imported as pg.
-    """
     def __init__(self, parent) -> None:
         self.parent = parent
         self.pressed :list= [False, False, False]
@@ -30,28 +27,52 @@ class Mouse:
         pg.draw.circle(self.parent.screen, (110, 0, 0), self.position(), 10) # type: ignore
 
 class Keyboard:
-    """
-    # Need the pygame module to be imported as pg.
-    """
     def __init__(self, parent) -> None:
         self.parent = parent
-        self.pressed :list= [False for _ in SCANCODES_NUMS]
-        self.just_pressed :list= [False for _ in range(len(self.pressed))]
-        self.just_released :list= [False for _ in range(len(self.pressed))]
+        self.__pressed__ :list= [False for _ in SCANCODES_NUMS]
+        self.__just_pressed__ :list= [False for _ in range(len(self.__pressed__))]
+        self.__just_released__ :list= [False for _ in range(len(self.__pressed__))]
         self.update()
     
     def update(self) -> None:
-        last_pressed = self.pressed.copy()
-        self.pressed :list= [pg.key.get_pressed()[i] for i in SCANCODES_NUMS] # type: ignore
-        self.just_pressed = [self.pressed[i] and not last_pressed[i] for i in range(len(SCANCODES_NUMS))]
-        self.just_released = [not self.pressed[i] and last_pressed[i] for i in range(len(SCANCODES_NUMS))]
+        last_pressed = self.__pressed__.copy()
+        self.__pressed__ :list= [pg.key.get_pressed()[i] for i in SCANCODES_NUMS] # type: ignore
+        self.__just_pressed__ = [self.__pressed__[i] and not last_pressed[i] for i in range(len(SCANCODES_NUMS))]
+        self.__just_released__ = [not self.__pressed__[i] and last_pressed[i] for i in range(len(SCANCODES_NUMS))]
     
-    def get_key(self, scan_code, mode=KEY_MODE_PRESSED) -> bool:
-        ll = self.pressed
+    def get_key(self, scan_code:int, mode=KEY_MODE_PRESSED) -> bool:
+        """
+        # Check Key State
+
+        ## Parameters:
+            scan_code (int): The pygame code value of the key to check (e.g., pg.K_SPACE, pg.K_a, pg.K_LEFT, pg.K_RIGHT, etc.).
+            mode (int): The mode to check the key state: KEY_MODE_PRESSED, KEY_MODE_JUST_PRESSED, or KEY_MODE_JUST_RELEASED. Default is KEY_MODE_PRESSED.
+
+        ## Returns:
+            bool: True if the specified key condition is met; otherwise, False.
+
+        ## Example:
+            keyboard = Keyboard(parent_object)
+            keyboard.update()
+            if keyboard.get_key(pg.KEY_SPACE, mode=KEY_MODE_JUST_PRESSED):
+                print("Space key has just been pressed!")
+
+        ## Explanation:
+            The 'get_key' method is used to check the state of a specific key.
+
+            It takes the 'scan_code' parameter, which represents the name of the key to check (e.g., pg.K_SPACE, pg.K_a, pg.K_LEFT, pg.K_RIGHT, etc.).
+
+            The 'mode' parameter can be used to specify whether to check for 'KEY_MODE_PRESSED' (key is currently pressed), 'KEY_MODE_JUST_PRESSED' (key has just been pressed in the current frame), or 'KEY_MODE_JUST_RELEASED' (key has just been released in the current frame).
+
+            The method returns True if the specified condition is met; otherwise, it returns False.
+
+            Example usage is shown in the "Example" section above.
+        """
+        ll = self.__pressed__
         if mode == KEY_MODE_PRESSED:
-            ll = self.pressed
+            ll = self.__pressed__
         elif mode == KEY_MODE_JUST_PRESSED:
-            ll = self.just_pressed
+            ll = self.__just_pressed__
         elif mode == KEY_MODE_JUST_RELEASED:
-            ll = self.just_released
+            ll = self.__just_released__
         return ll[SCANCODES_NUMS.index(scan_code)]
