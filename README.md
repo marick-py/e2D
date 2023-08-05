@@ -175,17 +175,17 @@ from e2D.envs import *
 
 class Game:
     def __init__(self):
-        self.position = (100, 100)
-        self.velocity = (5, 2)
+        self.position = V2(100, 100)
+        self.velocity = V2(5, 2)
 
     def update(self):
         self.position = (self.position[0] + self.velocity[0], self.position[1] + self.velocity[1])
 
     def draw(self):
-        rootEnv.print("Game Position: {}".format(self.position), (10, 10))
+        rootEnv.print("Game Position: {}".format(self.position), V2(10, 10))
 
 # Create a RootEnv with a screen size of 800x600 and target FPS of 60
-rootEnv = RootEnv(screen_size=(800, 600), target_fps=60)
+rootEnv = RootEnv(screen_size=V2(800, 600), target_fps=60)
 
 # Initialize the game with the Game class
 game = Game()
@@ -204,7 +204,7 @@ from e2D.envs import *
 
 class Game:
     def __init__(self):
-        self.position = (100, 100)
+        self.position = V2(100, 100)
 
     def update(self):
         # Move the position based on arrow key presses
@@ -223,10 +223,10 @@ class Game:
         mouse = rootEnv.mouse
         if mouse.just_pressed[0]:
             pg.draw.circle(rootEnv.screen, (255,127,0), rootEnv.mouse.position(), 10)
-        rootEnv.print("Game Position: {}".format(self.position), (10, 10))
+        rootEnv.print("Game Position: {}".format(self.position), V2(10, 10))
 
 # Create a RootEnv with a screen size of 800x600 and target FPS of 60
-rootEnv = RootEnv(screen_size=(800, 600), target_fps=60)
+rootEnv = RootEnv(screen_size=V2(800, 600), target_fps=60)
 
 # Initialize the game with the Game class
 game = Game()
