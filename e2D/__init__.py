@@ -722,18 +722,6 @@ class Vector2D:
         sin_angle = _mt.sin(angle)
         return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
 
-    def __eq__(self, other:"float|int|Vector2D|V2|list|tuple") -> bool:
-        other = self.__normalize__(other)
-        return self.x == other.x and self.y == other.y
-
-    def __ne__(self, other:"float|int|Vector2D|V2|list|tuple") -> bool:
-        return not self.__eq__(other)
-
-#######################################################################################################################################
-#######################################################################################################################################
-#######################################################################################################################################
-#######################################################################################################################################
-
     def no_zero_div_error(self:"Vector2D|V2", n:"int|float|Vector2D|V2", error_mode:str="zero") -> "Vector2D|V2":
         """
         # Handle division between the Vector2D other and a numeric value or another Vector2D other.
@@ -842,6 +830,15 @@ class Vector2D:
         self.x /= other.x
         self.y /= other.y
         return self
+
+    def __eq__(self, other) -> bool:
+        if not isinstance(other, Vector2D|V2|list|tuple):
+            return False
+        other = self.__normalize__(other)
+        return self.x == other.x and self.y == other.y
+
+    def __ne__(self, other) -> bool:
+        return not self.__eq__(other)
 
     def __abs__(self:"V2|Vector2D") -> "Vector2D|V2":
         return Vector2D(abs(self.x), abs(self.y))
