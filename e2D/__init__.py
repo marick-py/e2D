@@ -271,84 +271,10 @@ class Vector2D:
         s_abs = abs(self)
         return self.no_zero_div_error(s_abs, "zero") * n
 
-    def floor(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
-        """
-        # Round down the components of the Vector2D other to the nearest integer or the specified numeric value.
-
-        ## Parameters:
-            n (int|float, optional): The numeric value to round down the components. Default is 1.
-
-        ## Returns:
-            Vector2D: A new Vector2D other with the components rounded down to the nearest integer or the specified numeric value.
-
-        ## Example:
-            vector1 = Vector2D(3.3, 4.7)
-
-            result1 = vector1.floor()
-
-            print(result1.x, result1.y)
-
-            vector2 = Vector2D(-2.8, 1.1)
-
-            result2 = vector2.floor(2)
-
-            print(result2.x, result2.y)
-
-        ## Explanation:
-            The function rounds down the components of the Vector2D other to the nearest integer or the specified numeric value.
-
-            If the provided numeric value (n) is positive, the components of the resulting Vector2D other will be rounded down to
-            the nearest multiple of the provided numeric value.
-
-            If the provided numeric value (n) is negative, the function behaves the same as when n is positive.
-
-            If the provided numeric value (n) is 0, the function returns a Vector2D other with zeros for both components.
-
-            If the provided numeric value (n) is not an integer, it will be converted to an integer before performing the rounding.
-
-            Note: The floor operation always moves the components toward negative infinity, regardless of whether the original
-            components are positive or negative.
-        """
+    def floor(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         return self.__floor__(n)
 
-    def ceil(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
-        """
-        # Round up the components of the Vector2D other to the nearest integer or the specified numeric value.
-
-        ## Parameters:
-            n (int|float, optional): The numeric value to round up the components. Default is 1.
-
-        ## Returns:
-            Vector2D: A new Vector2D other with the components rounded up to the nearest integer or the specified numeric value.
-
-        ## Example:
-            vector1 = Vector2D(3.3, 4.7)
-
-            result1 = vector1.ceil()
-
-            print(result1.x, result1.y)
-
-            vector2 = Vector2D(-2.8, 1.1)
-
-            result2 = vector2.ceil(2)
-
-            print(result2.x, result2.y)
-
-        ## Explanation:
-            The function rounds up the components of the Vector2D other to the nearest integer or the specified numeric value.
-
-            If the provided numeric value (n) is positive, the components of the resulting Vector2D other will be rounded up to
-            the nearest multiple of the provided numeric value.
-
-            If the provided numeric value (n) is negative, the function behaves the same as when n is positive.
-
-            If the provided numeric value (n) is 0, the function returns a Vector2D other with zeros for both components.
-
-            If the provided numeric value (n) is not an integer, it will be converted to an integer before performing the rounding.
-
-            Note: The ceil operation always moves the components toward positive infinity, regardless of whether the original
-            components are positive or negative.
-        """
+    def ceil(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         return self.__ceil__(n)
 
     def randomize(start:"int|float|Vector2D|V2|None"=None, end:"int|float|Vector2D|V2|None"=None) -> "Vector2D|V2": #type: ignore
@@ -846,11 +772,13 @@ class Vector2D:
     def __round__(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
         return Vector2D(round(self.x / n) * n, round(self.y / n) * n)
 
-    def __floor__(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
-        return Vector2D(_mt.floor(self.x / n) * n, _mt.floor(self.y / n) * n)
+    def __floor__(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
+        n = self.__normalize__(n)
+        return Vector2D(_mt.floor(self.x / n.x) * n.x, _mt.floor(self.y / n.y) * n.y)
 
-    def __ceil__(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
-        return Vector2D(_mt.ceil(self.x / n) * n, _mt.ceil(self.y / n) * n)
+    def __ceil__(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
+        n = self.__normalize__(n)
+        return Vector2D(_mt.ceil(self.x / n.x) * n.x, _mt.ceil(self.y / n.y) * n.y)
 
     def __mul__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         other = self.__normalize__(other)
