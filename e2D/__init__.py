@@ -769,8 +769,9 @@ class Vector2D:
     def __abs__(self:"V2|Vector2D") -> "Vector2D|V2":
         return Vector2D(abs(self.x), abs(self.y))
 
-    def __round__(self:"V2|Vector2D", n:int|float=1) -> "Vector2D|V2":
-        return Vector2D(round(self.x / n) * n, round(self.y / n) * n)
+    def __round__(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
+        n = self.__normalize__(n)
+        return Vector2D(round(self.x / n.x) * n.x, round(self.y / n.y) * n.y)
 
     def __floor__(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         n = self.__normalize__(n)
