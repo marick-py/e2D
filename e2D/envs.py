@@ -21,18 +21,22 @@ while not rootEnv.quit:
 
 pg.init()
 pg.font.init()
-myfont = pg.font.SysFont("Arial", 32)
+font_arial_16 = pg.font.SysFont("Arial", 16)
+font_arial_32 = pg.font.SysFont("Arial", 32)
+font_arial_64 = pg.font.SysFont("Arial", 64)
+my_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
 class RootEnv:
     def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
         self.quit = False
-        self.screen_size = screen_size
+        self.screen_size :V2|Vector2D= screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync)
         self.target_fps = target_fps
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
         self.keyboard = Keyboard(self)
         self.mouse = Mouse(self)
+        self.events :list= []
     
     def init(self, sub_env) -> None:
         self.env = sub_env
@@ -40,8 +44,8 @@ class RootEnv:
     def clear(self) -> None:
         self.screen.fill((0,0,0))
     
-    def print(self, text, position, color=(255,255,255)) -> None:
-        text_box = myfont.render(text, True, color)
+    def print(self, text, position, color=(255,255,255), font:pg.font.Font=font_arial_32) -> None:
+        text_box = font.render(text, True, color)
         self.screen.blit(text_box, position())
 
     def draw(self) -> None:
@@ -61,7 +65,8 @@ class RootEnv:
         self.update()
         self.draw()
 
-        for event in pg.event.get():
+        self.events = pg.event.get()
+        for event in self.events:
             if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_x):
                 self.quit = True
 
