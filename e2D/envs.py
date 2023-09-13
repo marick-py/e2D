@@ -44,11 +44,14 @@ class RootEnv:
     def clear(self) -> None:
         self.screen.fill((0,0,0))
     
-    def print(self, text, position, color=(255,255,255), font:pg.font.Font=font_arial_32) -> None:
+    def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), center_x:bool=False, center_y:bool=False, font:pg.font.Font=font_arial_32) -> None:
         text_box = font.render(text, True, color)
+        w,h = text_box.get_size()
+        if center_x: position.x -= w / 2
+        if center_y: position.y -= h / 2
         self.screen.blit(text_box, position())
 
-    def draw(self) -> None:
+    def __draw__(self) -> None:
         self.clock.tick(self.target_fps)
         self.clear()
         if self.show_fps: self.print(str(round(self.clock.get_fps(),2)), self.screen_size * .01)
@@ -56,14 +59,14 @@ class RootEnv:
         self.env.draw()
         pg.display.update()
     
-    def update(self) -> None:
+    def __update__(self) -> None:
         self.mouse.update()
         self.keyboard.update()
         self.env.update()
 
     def frame(self) -> None:
-        self.update()
-        self.draw()
+        self.__update__()
+        self.__draw__()
 
         self.events = pg.event.get()
         for event in self.events:
