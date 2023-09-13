@@ -840,10 +840,10 @@ V2inf = Vector2D(float('inf'), float('inf'))
 V2z = VectorZero = Vector2D()
 V2one = Vector2D(1, 1)
 
-def rgb(r:int|float, g:int|float, b:int|float) -> tuple[int|float, int|float, int|float]:
+def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)
 
-def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_index:int|float) -> tuple:
+def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_index:int|float) -> tuple[float, float, float]:
     """
     # Calculate the color at a specific index of a color fade between two given colors.
 
@@ -875,7 +875,7 @@ def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_i
     """
     return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3))
 
-def weighted_color_fade(colors_dict:dict) -> tuple:
+def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
     """
     # Calculate the weighted color based on a dictionary of colors and their corresponding weights.
 
