@@ -182,7 +182,7 @@ class Game:
         self.position = (self.position[0] + self.velocity[0], self.position[1] + self.velocity[1])
 
     def draw(self):
-        rootEnv.print("Game Position: {}".format(self.position), V2(10, 10))
+        rootEnv.print("Game Position: {}".format(self.position), rootEnv.screen_size * .5, center_y=True, center_x=True)
 
 # Create a RootEnv with a screen size of 800x600 and target FPS of 60
 rootEnv = RootEnv(screen_size=V2(800, 600), target_fps=60)
