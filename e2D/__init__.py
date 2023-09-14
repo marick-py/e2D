@@ -843,6 +843,33 @@ V2one = Vector2D(1, 1)
 def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)
 
+def color_lerp(current_c:list|tuple, final_c:list|tuple, step:int|float=.1) -> tuple[float, float, float]:
+    """
+    # Linearly interpolate between two colors.
+
+    ## Parameters:
+        current_c (tuple or list): The RGB values of the current color as a tuple or list.
+        final_c (tuple or list): The RGB values of the target color as a tuple or list.
+        step (int or float): The interpolation step, ranging from 0.0 (current color) to 1.0 (target color).
+
+    ## Returns:
+        tuple: The RGB values of the interpolated color as a tuple.
+
+    ## Example:
+        current_c = (255, 0, 0)
+
+        final_c = (0, 0, 255)
+
+        step = 0.5
+
+        interpolated_color = color_lerp(current_c, final_c, step)
+
+        print(f"At step {step}: RGB {interpolated_color}")
+        
+    This will calculate the color at an interpolation step of 0.5 between (255, 0, 0) and (0, 0, 255).
+    """
+    return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c))
+
 def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_index:int|float) -> tuple[float, float, float]:
     """
     # Calculate the color at a specific index of a color fade between two given colors.

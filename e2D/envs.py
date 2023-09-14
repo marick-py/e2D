@@ -37,12 +37,13 @@ class RootEnv:
         self.keyboard = Keyboard(self)
         self.mouse = Mouse(self)
         self.events :list= []
+        self.background_color = rgb(0,0,0)
     
     def init(self, sub_env) -> None:
         self.env = sub_env
     
     def clear(self) -> None:
-        self.screen.fill((0,0,0))
+        self.screen.fill(self.background_color)
     
     def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), center_x:bool=False, center_y:bool=False, font:pg.font.Font=font_arial_32) -> None:
         text_box = font.render(text, True, color)
