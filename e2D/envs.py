@@ -27,7 +27,7 @@ font_arial_64 = pg.font.SysFont("Arial", 64)
 my_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
 class RootEnv:
-    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True) -> None:
+    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x) -> None:
         self.quit = False
         self.screen_size :V2|Vector2D= screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync)
@@ -38,15 +38,16 @@ class RootEnv:
         self.mouse = Mouse(self)
         self.events :list= []
         self.background_color = rgb(0,0,0)
+        self._quit_on_key_pressed = quit_on_key_pressed
     
     def init(self, sub_env) -> None:
         self.env = sub_env
     
     def clear(self) -> None:
-        self.screen.fill(self.background_color)
+        self.screen.fill(self.background_color) #type: ignore
     
     def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), center_x:bool=False, center_y:bool=False, font:pg.font.Font=font_arial_32) -> None:
-        text_box = font.render(text, True, color)
+        text_box = font.render(text, True, color) #type: ignore
         w,h = text_box.get_size()
         if center_x: position.x -= w / 2
         if center_y: position.y -= h / 2
@@ -71,7 +72,7 @@ class RootEnv:
 
         self.events = pg.event.get()
         for event in self.events:
-            if event.type == pg.QUIT or (event.type == pg.KEYDOWN and event.key == pg.K_x):
+            if event.type == pg.QUIT or ((event.type == pg.KEYDOWN and event.key == self._quit_on_key_pressed) if self._quit_on_key_pressed != None else False):
                 self.quit = True
 
 ################################################################################################################################################################################################################################
