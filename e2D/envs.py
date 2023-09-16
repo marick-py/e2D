@@ -27,10 +27,10 @@ font_arial_64 = pg.font.SysFont("Arial", 64)
 my_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
 class RootEnv:
-    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x) -> None:
+    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x, window_flag:int=0) -> None:
         self.quit = False
         self.screen_size :V2|Vector2D= screen_size
-        self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync)
+        self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync, flags=window_flag)
         self.target_fps = target_fps
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
