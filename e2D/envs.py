@@ -26,7 +26,18 @@ font_arial_32 = pg.font.SysFont("Arial", 32)
 font_arial_64 = pg.font.SysFont("Arial", 64)
 my_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
+TEXT_FIXED_SIDES_TOP_LEFT = 0
+TEXT_FIXED_SIDES_TOP_MIDDLE = 1
+TEXT_FIXED_SIDES_TOP_RIGHT = 2
+TEXT_FIXED_SIDES_MIDDLE_LEFT = 3
+TEXT_FIXED_SIDES_MIDDLE_MIDDLE = 4
+TEXT_FIXED_SIDES_MIDDLE_RIGHT = 5
+TEXT_FIXED_SIDES_BOTTOM_LEFT = 6
+TEXT_FIXED_SIDES_BOTTOM_MIDDLE = 7
+TEXT_FIXED_SIDES_BOTTOM_RIGHT = 8
+
 class RootEnv:
+    __fixed_sides_multiplier = [V2(x,y) for y in [0, .5, 1] for x in [0, .5, 1]]
     def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x, window_flag:int=0) -> None:
         self.quit = False
         self.screen_size :V2|Vector2D= screen_size
@@ -46,12 +57,13 @@ class RootEnv:
     def clear(self) -> None:
         self.screen.fill(self.background_color) #type: ignore
     
-    def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), center_x:bool=False, center_y:bool=False, font:pg.font.Font=font_arial_32) -> None:
+    def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), fixed_sides=TEXT_FIXED_SIDES_TOP_LEFT, font:pg.font.Font=font_arial_32, bg_color:None|tuple[int,int,int]|list[int]=None, personalized_surface=None) -> None:
         text_box = font.render(text, True, color) #type: ignore
-        w,h = text_box.get_size()
-        if center_x: position.x -= w / 2
-        if center_y: position.y -= h / 2
-        self.screen.blit(text_box, position())
+        size = V2(*text_box.get_size())
+        position -= size * self.__fixed_sides_multiplier[fixed_sides]
+        if bg_color != None:
+            pg.draw.rect((self.screen if personalized_surface == None else personalized_surface), bg_color, position() + size())
+        (self.screen if personalized_surface == None else personalized_surface).blit(text_box, position())
 
     def __draw__(self) -> None:
         self.clock.tick(self.target_fps)
