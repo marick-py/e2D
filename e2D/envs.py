@@ -38,7 +38,7 @@ TEXT_FIXED_SIDES_BOTTOM_RIGHT = 8
 
 class RootEnv:
     __fixed_sides_multiplier = [V2(x,y) for y in [0, .5, 1] for x in [0, .5, 1]]
-    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x, window_flag:int=0) -> None:
+    def __init__(self, screen_size:V2|Vector2D=V2(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x, window_flag:int=0, clear_screen_each_frame:bool=True) -> None:
         self.quit = False
         self.screen_size :V2|Vector2D= screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync, flags=window_flag)
@@ -50,6 +50,7 @@ class RootEnv:
         self.events :list= []
         self.background_color = rgb(0,0,0)
         self._quit_on_key_pressed = quit_on_key_pressed
+        self.clear_screen_each_frame = clear_screen_each_frame
     
     def init(self, sub_env) -> None:
         self.env = sub_env
@@ -67,7 +68,7 @@ class RootEnv:
 
     def __draw__(self) -> None:
         self.clock.tick(self.target_fps)
-        self.clear()
+        if self.clear_screen_each_frame: self.clear()
         if self.show_fps: self.print(str(round(self.clock.get_fps(),2)), self.screen_size * .01)
 
         self.env.draw()
@@ -102,7 +103,7 @@ myfont = pg.font.SysFont("Arial", 32)
 
 DEFAULT_MOUSE_BUTTON_MODE = 0
 OVER_MOUSE_BUTTON_MODE = 1
-CLICKED_MOUSE_BUTTON_MODE = 2
+CLICKED_MOUSE, clear_screen_each_frame=True, clear_screen_each_frame=True_BUTTON_MODE = 2
 
 CALLBACK_MODE_ON_PRESSED = 0
 CALLBACK_MODE_ON_RELEASED = 1
