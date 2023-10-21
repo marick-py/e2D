@@ -48,9 +48,14 @@ class Function:
             for i,(point, real_point) in enumerate(zip(self.points[1:], self.draw_line[1:])):
                 if abs(point[1] - self.points[i][1]) < self.auto_connect_treshold:
                     pg.draw.line(self.plot.canvas, self.color, self.draw_line[i], real_point) #type: ignore
+    
+    @classmethod
+    def load_from_list_of_points(cls, points:list[V2|Vector2D], plot:"Plot", color, auto_connect_treshold:float=float("inf"), points_radius=2, points_color=None):
+        smoothed_function = lambda t: points[0].y if t <= 0  else (points[-1].y if t >= 1 else (points[rt] if (isinstance(rt:=t*len(points), int) or rt.is_integer()) else ((p0:=points[rt.__floor__()]).y-(p1:=points[rt.__ceil__()]).y)/(p0.x-p1.x)*(points[t*len(points)]-p0.x)+p0.y))
+        return cls(smoothed_function, plot, color, auto_connect_treshold=auto_connect_treshold, points_radius=points_radius, points_color=points_color)
 
 class ComplexFunction:
-    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=(255,255,255), auto_connect_treshold=5, points_radius=2, points_color=None) -> None:
+    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=(255,255,255), auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
         self.auto_connect_treshold = auto_connect_treshold
         self.plot = plot
         self.starting_t = starting_t

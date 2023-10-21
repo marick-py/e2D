@@ -56,10 +56,13 @@ class RootEnv:
         self.env = sub_env
     
     def clear(self) -> None:
-        self.screen.fill(self.background_color) #type: ignore
+        self.screen.fill(self.background_color)
+    
+    def clear_rect(self, position:V2|Vector2D, size:V2|Vector2D) -> None:
+        self.screen.fill(self.background_color, position() + size())
     
     def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), fixed_sides=TEXT_FIXED_SIDES_TOP_LEFT, font:pg.font.Font=font_arial_32, bg_color:None|tuple[int,int,int]|list[int]=None, personalized_surface=None) -> None:
-        text_box = font.render(text, True, color) #type: ignore
+        text_box = font.render(text, True, color)
         size = V2(*text_box.get_size())
         position -= size * self.__fixed_sides_multiplier[fixed_sides]
         if bg_color != None:

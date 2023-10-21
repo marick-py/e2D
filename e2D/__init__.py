@@ -570,6 +570,13 @@ class Vector2D:
         y = r * _mt.sin(theta)
         return cls(x, y)
 
+    def cartesian_to_complex(self) -> complex:
+        return self.x + self.y * 1j
+
+    @classmethod
+    def complex_to_cartesian(cls, complex_n: complex) -> "Vector2D|V2":
+        return cls(complex_n.real, complex_n.imag)
+
     def lerp(self, other:"float|int|Vector2D|V2|list|tuple", t: float) -> "Vector2D|V2":
         """
         # Linear Interpolation (LERP)
