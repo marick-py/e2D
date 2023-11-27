@@ -14,10 +14,12 @@ class Mouse:
         self.pressed :list= [False, False, False]
         self.just_pressed :list= [False, False, False]
         self.just_released :list= [False, False, False]
+        self.last_frame_movement = V2z.copy()
         self.update()
     
     def update(self) -> None:
         self.position = V2(*pg.mouse.get_pos()) # type: ignore
+        self.last_frame_movement = V2(*pg.mouse.get_rel())
         last_pressed = self.pressed.copy()
         self.pressed = list(pg.mouse.get_pressed()) # type: ignore
         self.just_pressed = [self.pressed[i] and not last_pressed[i] for i in range(3)]

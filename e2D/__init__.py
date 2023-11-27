@@ -13,6 +13,7 @@ DOUBLE_PI = PI*2
 # 
 
 class Vector2D:
+    round_values_on_print = False
     def __init__(self:"V2|Vector2D", x:int|float=0, y:int|float=0) -> None:
         """
         # Initialize a 2D vector with the specified x and y components.
@@ -434,7 +435,7 @@ class Vector2D:
         """
         mag = self.magnitude()
         if mag == 0:
-            raise ValueError("Cannot normalize zero vector.")
+            return self
         return Vector2D(self.x / mag, self.y / mag)
 
     def projection(self, other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
@@ -577,6 +578,9 @@ class Vector2D:
     def complex_to_cartesian(cls, complex_n: complex) -> "Vector2D|V2":
         return cls(complex_n.real, complex_n.imag)
 
+    def length(self) -> float:
+        return V2z.distance_to(self)
+
     def lerp(self, other:"float|int|Vector2D|V2|list|tuple", t: float) -> "Vector2D|V2":
         """
         # Linear Interpolation (LERP)
@@ -708,29 +712,43 @@ class Vector2D:
         else:
             raise Exception(f"\nArg n must be in [Vector2D, int, float, tuple, list] not a [{type(n)}]\n")
 
-    def __str__(self:"V2|Vector2D") -> str:
-        return f"{self.x}, {self.y}"
-
-    def __sub__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+    def min(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         other = self.__normalize__(other)
-        return Vector2D(self.x - other.x, self.y - other.y)
+        return Vector2D(min(self.x, other.x), min(self.y, other.y))
+    
+    def max(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(max(self.x, other.x), max(self.y, other.y))
 
+    def __str__(self:"V2|Vector2D") -> str:
+        return f"{self.x:.02f}, {self.y:.02f}" if self.round_values_on_print else f"{self.x}, {self.y}"
+
+    def __repr__(self:"V2|Vector2D") -> str:
+        return f"x:{self.x:.02f}\ty:{self.y:.02f}" if self.round_values_on_print else f"x:{self.x}\ty:{self.y}"
+
+    def __call__(self:"V2|Vector2D", return_tuple=False) -> list|tuple:
+        return (self.x, self.y) if return_tuple else [self.x, self.y]
+
+    # normal operations     Vector2D + a
     def __add__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         other = self.__normalize__(other)
         return Vector2D(self.x + other.x, self.y + other.y)
+    
+    def __sub__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(self.x - other.x, self.y - other.y)
+    
+    def __mul__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(self.x * other.x, self.y * other.y)
 
     def __mod__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         other = self.__normalize__(other)
         return Vector2D(self.x % other.x, self.y % other.y)
-
-    def __radd__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
-        return self.__add__(other)
-
-    def __repr__(self:"V2|Vector2D") -> str:
-        return f"x:{self.x}\ty:{self.y}"
-
-    def __call__(self:"V2|Vector2D", return_tuple=False) -> list|tuple:
-        return (self.x, self.y) if return_tuple else [self.x, self.y]
+    
+    def __pow__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(self.x ** other.x, self.y ** other.y)
 
     def __truediv__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
         other = self.__normalize__(other)
@@ -740,6 +758,34 @@ class Vector2D:
         other = self.__normalize__(other)
         return Vector2D(self.x // other.x, self.y // other.y)
     
+    # right operations      a + Vector2D
+    def __radd__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        return self.__add__(other)
+    
+    def __rsub__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(other.x - self.x, other.y - self.y)
+    
+    def __rmul__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        return self.__mul__(other)
+
+    def __rmod__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(other.x % self.x, other.y % self.y)
+    
+    def __rpow__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(other.x ** self.x, other.y ** self.y)
+
+    def __rtruediv__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(other.x / self.x, other.y / self.y)
+
+    def __rfloordiv__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        return Vector2D(other.x // self.x, other.y // self.y)
+    
+    # in-place operations   Vector2D += a
     def __iadd__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D":
         other = self.__normalize__(other)
         self.x += other.x
@@ -757,13 +803,32 @@ class Vector2D:
         self.x *= other.x
         self.y *= other.y
         return self
-    
+
     def __itruediv__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D":
         other = self.__normalize__(other)
         self.x /= other.x
         self.y /= other.y
         return self
+    
+    def __imod__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        self.x %= other.x
+        self.y %= other.y
+        return self
+    
+    def __ipow__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        self.x **= other.x
+        self.y **= other.y
+        return self
 
+    def __ifloordiv__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
+        other = self.__normalize__(other)
+        self.x //= other.x
+        self.y //= other.y
+        return self
+
+    # comparasion
     def __eq__(self, other) -> bool:
         if not isinstance(other, Vector2D|V2|list|tuple):
             return False
@@ -787,14 +852,6 @@ class Vector2D:
     def __ceil__(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         n = self.__normalize__(n)
         return Vector2D(_mt.ceil(self.x / n.x) * n.x, _mt.ceil(self.y / n.y) * n.y)
-
-    def __mul__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
-        other = self.__normalize__(other)
-        return Vector2D(self.x * other.x, self.y * other.y)
-
-    def __pow__(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> "Vector2D|V2":
-        other = self.__normalize__(other)
-        return Vector2D(self.x ** other.x, self.y ** other.y)
     
     def __float__(self:"V2|Vector2D") -> "Vector2D|V2":
         return Vector2D(float(self.x), float(self.y))
