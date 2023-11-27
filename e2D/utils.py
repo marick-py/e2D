@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pygame as pg
 from e2D import *
 

@@ -1,3 +1,4 @@
+from __future__ import annotations
 from .utils import *
 import pygame as pg
 
@@ -65,7 +66,7 @@ class RootEnv:
         text_box = font.render(text, True, color)
         size = V2(*text_box.get_size()) + margin * 2
         position = position - size * self.__fixed_sides_multiplier[fixed_sides] + margin
-        if not isinstance(border_radius, tuple|list): border_radius = [border_radius]*4
+        if not any(isinstance(border_radius, cls) for cls in {tuple, list}): border_radius = [border_radius]*4
         surface = (self.screen if personalized_surface == None else personalized_surface)
         if bg_color != None:
             pg.draw.rect(surface, bg_color, (position - margin)() + size(), 0, -1, *border_radius)

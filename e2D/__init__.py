@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as _np
 import math as _mt
 import random as _rnd
@@ -313,11 +315,11 @@ class Vector2D:
             It then generates random x and y coordinates in the range [0, 1) using the `random()` function from the `random` module.
             These random values are then scaled by (end - start) and added to the start point to obtain the final random Vector2D point.
         """
-        if not isinstance(start, Vector2D|V2):
+        if not any(isinstance(start, cls) for cls in {Vector2D, V2}):
             if type(start) in int|float: start = Vector2D(start, start) #type: ignore
             elif type(start) == None: start = Vector2D(0,0)
             else: raise Exception(f"\nArg start must be in [Vector2D, int, float, tuple, list] not a [{type(start)}]\n")
-        if not isinstance(end, Vector2D|V2):
+        if not any(isinstance(end, cls) for cls in {Vector2D, V2}):
             if type(end) in int|float: end = Vector2D(end, end) #type: ignore
             elif type(end) == None: end = Vector2D(1,1)
             else: raise Exception(f"\nArg end must be in [Vector2D, int, float, tuple, list] not a [{type(end)}]\n")
@@ -702,12 +704,12 @@ class Vector2D:
 
             If n is neither a numeric value nor a Vector2D other, the function raises an exception.
         """
-        if isinstance(n, int|float):
+        if any(isinstance(n, cls) for cls in {int, float}):
             if n == 0:
                 return Vector2D(0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan), 0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan))
             else:
                 return self / n
-        elif isinstance(n, Vector2D|V2):
+        elif any(isinstance(n, cls) for cls in {Vector2D, V2}):
             return Vector2D((0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan)) if n.x == 0 else self.x / n.x, (0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan)) if n.y == 0 else self.y / n.y)
         else:
             raise Exception(f"\nArg n must be in [Vector2D, int, float, tuple, list] not a [{type(n)}]\n")
@@ -830,7 +832,7 @@ class Vector2D:
 
     # comparasion
     def __eq__(self, other) -> bool:
-        if not isinstance(other, Vector2D|V2|list|tuple):
+        if not any(isinstance(other, cls) for cls in {Vector2D, V2, list, tuple}):
             return False
         other = self.__normalize__(other)
         return self.x == other.x and self.y == other.y
@@ -866,9 +868,9 @@ class Vector2D:
     
     def __normalize__(self:"V2|Vector2D", other) -> "Vector2D|V2":
         if not isinstance(other, Vector2D):
-            if isinstance(other, int|float):
+            if any(isinstance(other, cls) for cls in {int, float}):
                 return Vector2D(other, other)
-            elif isinstance(other, list|tuple):
+            elif any(isinstance(other, cls) for cls in {list, tuple}):
                 return Vector2D(*other[:2])
             else:
                 raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
