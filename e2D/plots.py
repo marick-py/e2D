@@ -13,6 +13,7 @@ class Function:
         self.plot : Plot
         self.color = color
         self.function = function
+        self.__layer_surface__ :pg.Surface= None #type: ignore
     
     def update_points(self) -> None:
         self.update_function(self.function)
@@ -82,7 +83,7 @@ class Function:
 class __PlotSettings__:
     def __init__(self, plot:Plot) -> None:
         self.plot = plot
-        self.settings :dict[str: bool|V2|Vector2D|int|float]= {
+        self.settings :dict= {
             "use_real_time_rendering" : True,
             "show_corners_coords" : True,
 
@@ -110,8 +111,9 @@ class __PlotSettings__:
     def print_current_settings(self) -> None:
         longest_key = max(map(len, self.settings))
         longest_type = max(map(lambda setting: len(str(type(setting)).split("'")[1]), self.settings.values()))
+        split_string = '"'
         for setting in self.settings:
-            print(f"{setting}{' '*(longest_key-len(setting))} :{str(type(self.settings[setting])).split("'")[1]}{' '*(longest_type-len(str(type(self.settings[setting])).split("'")[1]))}=\t{self.settings[setting]}")
+            print(f"{setting}{' '*(longest_key-len(setting))} :{str(type(self.settings[setting])).split(split_string)[1]}{' '*(longest_type-len(str(type(self.settings[setting])).split(split_string)[1]))}=\t{self.settings[setting]}")
     
     def set(self, key:str, new_value) -> None:
         if not (key in self.settings): raise ValueError(f"The key [{key}] does not exist...")
@@ -124,7 +126,7 @@ class __PlotSettings__:
     def get(self, key:str) -> bool|V2|Vector2D|int|float:
         return self.settings[key]
 
-    def multiple_set(self, keys:list[str]) -> list[bool|V2|Vector2D|int|float]:
+    def multiple_get(self, keys:list[str]) -> list[bool|V2|Vector2D|int|float]:
         return [self.get(key) for key in keys]
 
 class Plot:
@@ -182,19 +184,19 @@ class Plot:
         return (real_position - self.position) * (self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size + self.top_left_plot_coord
 
     def render(self) -> None:
-        self.canvas.fill(self.settings.get("bg_color"))
+        self.canvas.fill(self.settings.get("bg_color")) #type: ignore
         if self.top_left_x < 0 < self.bottom_right_x:
             pg.draw.line(self.canvas,
-                         self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color,
+                         self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color, #type: ignore
                          self.__plot2real__(V2(0, self.top_left_y))(),
                          self.__plot2real__(V2(0, self.bottom_right_y))(),
-                         self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width)
+                         self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
         if self.bottom_right_y < 0 < self.top_left_y:
             pg.draw.line(self.canvas,
-                         self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color,
+                         self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color, #type: ignore
                          self.__plot2real__(V2(self.top_left_x, 0))(),
                          self.__plot2real__(V2(self.bottom_right_x, 0))(),
-                         self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width)
+                         self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
 
         for function in self.functions: function.draw()
 
@@ -232,7 +234,7 @@ class Plot:
                 if event.type == pg.MOUSEWHEEL:
                     
                     range_n = self.settings.get("distance_to_axis_for_scalar_zoom")
-                    scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < range_n else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < range_n else 1)
+                    scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < range_n else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < range_n else 1) #type: ignore
                     self.current_zoom += event.y * scalar
 
                     self.update_grid(True)
@@ -259,14 +261,14 @@ class Plot:
     def draw(self) -> None:
         self.rootEnv.screen.blit(self.canvas, self.position())
         if self.is_mouse_in_rect and self.settings.get("show_cursor_coords"):
-            self.rootEnv.print(str(round(self.plot_mouse_position, .1)), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE)
+            self.rootEnv.print(str(round(self.plot_mouse_position, .1)), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
 
         data = [
             [f"ZOOM:", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  x: {self.current_zoom.x:.{self.settings.get("info_precision")}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  y: {self.current_zoom.y:.{self.settings.get("info_precision")}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  x: {self.current_zoom.x:.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  y: {self.current_zoom.y:.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
         ]
 
         for i, (d, fixed_side, show) in enumerate(data):
             if show:
-                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_spacing") * i, fixed_sides=fixed_side)
+                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_spacing") * i, fixed_sides=fixed_side) #type: ignore
