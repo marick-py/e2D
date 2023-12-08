@@ -27,6 +27,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    - name: Run Tests
+      run: |
+        python test_e2D.py
     - name: Lint with flake8
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
@@ -48,6 +51,9 @@ jobs:
         python -m pip install --upgrade pip
         pip install flake8 pytest
         if (Test-Path .\requirements.txt) { pip install -r requirements.txt }
+    - name: Run Tests
+      run: |
+        python test_e2D.py
     - name: Lint with flake8
       run: |
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics

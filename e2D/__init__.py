@@ -15,7 +15,7 @@ DOUBLE_PI = PI*2
 # 
 
 class Vector2D:
-    round_values_on_print = False
+    round_values_on_print :float= 1.0
     def __init__(self:"V2|Vector2D", x:int|float=0, y:int|float=0) -> None:
         """
         # Initialize a 2D vector with the specified x and y components.
@@ -67,7 +67,7 @@ class Vector2D:
         self.x = x
         self.y = y
 
-    def distance_to(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple", squared:bool=True) -> int|float:
+    def distance_to(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple", sqrd:bool=True) -> int|float:
         """
         # Calculate the distance between the current Vector2D other and another other.
 
@@ -103,7 +103,7 @@ class Vector2D:
         """
         other = self.__normalize__(other)
         d = (self.x - other.x)**2 + (self.y - other.y)**2
-        return (d**(1/2) if squared else d)
+        return (d**(1/2) if sqrd else d)
 
     def angle_to(self:"V2|Vector2D", other:"float|int|Vector2D|V2|list|tuple") -> int|float:
         """
@@ -232,7 +232,7 @@ class Vector2D:
         """
         return Vector2D(self.x, self.y)
 
-    def absolute_round(self:"V2|Vector2D", n=1) -> "Vector2D|V2":
+    def sign(self:"V2|Vector2D") -> "Vector2D|V2":
         """
         # Perform an "absolute round" operation on the Vector2D other.
 
@@ -271,14 +271,16 @@ class Vector2D:
             Note: The "absolute round" operation does not perform standard mathematical rounding; instead, it ensures the resulting
             vector points in the same direction as the original vector but has non-negative components.
         """
-        s_abs = abs(self)
-        return self.no_zero_div_error(s_abs, "zero") * n
+        return self.no_zero_div_error(abs(self), "zero")
 
     def floor(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         return self.__floor__(n)
 
     def ceil(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
         return self.__ceil__(n)
+    
+    def round(self:"V2|Vector2D", n:"int|float|Vector2D|V2"=1) -> "Vector2D|V2":
+        return self.__round__(n)
 
     def randomize(start:"int|float|Vector2D|V2|None"=None, end:"int|float|Vector2D|V2|None"=None) -> "Vector2D|V2": #type: ignore
         """
@@ -323,39 +325,7 @@ class Vector2D:
             if type(end) in int|float: end = Vector2D(end, end) #type: ignore
             elif type(end) == None: end = Vector2D(1,1)
             else: raise Exception(f"\nArg end must be in [Vector2D, int, float, tuple, list] not a [{type(end)}]\n")
-        return start + Vector2D(_rnd.random(), _rnd.random()) * (end - start)
-
-    def mid_point_to(self:"V2|Vector2D", *others) -> float:
-        """
-        # Calculate the midpoint between the current Vector2D other and one or more other Vector2D others.
-
-        ## Parameters:
-            *others (Vector2D): Variable number of Vector2D others representing other points.
-
-        ## Returns:
-            Vector2D: A new Vector2D other representing the midpoint.
-
-        ## Example:
-            point1 = Vector2D(1, 2)
-
-            point2 = Vector2D(3, 4)
-
-            mid_point = point1.mid_point_to(point2)
-
-            print(mid_point.x, mid_point.y)
-
-            This will print the midpoint between point1 and point2.
-
-        ## Explanation:
-            The function calculates the midpoint between the current Vector2D other (self)
-            and one or more other Vector2D others (provided as *others).
-
-            It first sums up all the Vector2D others (including self) and then divides the sum by
-            the total number of points (len(others) + 1) to find the average point, which represents the midpoint.
-
-            The result is returned as a new Vector2D other.
-        """
-        return sum(list(others) + [self]) / (len(others)+1)
+        return start + Vector2D(_rnd.random(), _rnd.random()) * (end - start) #type: ignore
     
     def dot_product(self, other:"float|int|Vector2D|V2|list|tuple") -> float:
         other = self.__normalize__(other)
@@ -382,30 +352,6 @@ class Vector2D:
             Example usage is shown in the "Example" section above.
         """
         return self.x * other.x + self.y * other.y
-    
-    def magnitude(self) -> float:
-        """
-        # Vector Magnitude (Length)
-
-        ## Returns:
-            float: The magnitude (length) of the vector.
-
-        ## Example:
-            v = Vector2D(3, 4)
-            magnitude_v = v.magnitude()  # Calculate the magnitude of the vector (3, 4)
-            print(magnitude_v)  # Output: 5.0
-
-        ## Explanation:
-            This method calculates the magnitude (length) of the vector.
-            The magnitude of a 2D vector (x, y) is the square root of the sum of the squares of its components.
-
-            The method uses the formula: magnitude = sqrt(x^2 + y^2).
-
-            The resulting magnitude is returned as a floating-point value.
-
-            Example usage is shown in the "Example" section above.
-        """
-        return (self.x ** 2 + self.y ** 2) ** .5
 
     def normalize(self) -> "Vector2D":
         """
@@ -435,7 +381,7 @@ class Vector2D:
 
             Example usage is shown in the "Example" section above.
         """
-        mag = self.magnitude()
+        mag = self.length()
         if mag == 0:
             return self
         return Vector2D(self.x / mag, self.y / mag)
@@ -479,7 +425,7 @@ class Vector2D:
         """
         other = self.__normalize__(other)
         dot_product = self.dot_product(other)
-        magnitude_product = other.magnitude() ** 2
+        magnitude_product = other.length() ** 2
         if magnitude_product == 0:
             raise ValueError("Cannot calculate projection for zero vectors.")
         return other * (dot_product / magnitude_product)
@@ -540,7 +486,7 @@ class Vector2D:
 
             Example usage is shown in the "Example" section above.
         """
-        r = self.magnitude()
+        r = self.length()
         theta = _mt.atan2(self.y, self.x)
         return r, theta
 
@@ -581,7 +527,7 @@ class Vector2D:
         return cls(complex_n.real, complex_n.imag)
 
     def length(self) -> float:
-        return V2z.distance_to(self)
+        return (self.x ** 2 + self.y ** 2) ** .5
 
     def lerp(self, other:"float|int|Vector2D|V2|list|tuple", t: float) -> "Vector2D|V2":
         """
@@ -710,7 +656,7 @@ class Vector2D:
             else:
                 return self / n
         elif any(isinstance(n, cls) for cls in {Vector2D, V2}):
-            return Vector2D((0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan)) if n.x == 0 else self.x / n.x, (0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan)) if n.y == 0 else self.y / n.y)
+            return Vector2D((0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan)) if n.x == 0 else self.x / n.x, (0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan)) if n.y == 0 else self.y / n.y) #type: ignore
         else:
             raise Exception(f"\nArg n must be in [Vector2D, int, float, tuple, list] not a [{type(n)}]\n")
 
@@ -723,10 +669,10 @@ class Vector2D:
         return Vector2D(max(self.x, other.x), max(self.y, other.y))
 
     def __str__(self:"V2|Vector2D") -> str:
-        return f"{self.x:.02f}, {self.y:.02f}" if self.round_values_on_print else f"{self.x}, {self.y}"
+        return f"{self.x:{self.round_values_on_print}f}, {self.y:{self.round_values_on_print}f}"
 
     def __repr__(self:"V2|Vector2D") -> str:
-        return f"x:{self.x:.02f}\ty:{self.y:.02f}" if self.round_values_on_print else f"x:{self.x}\ty:{self.y}"
+        return f"x:{self.x:{self.round_values_on_print}f}\ty:{self.y:{self.round_values_on_print}f}"
 
     def __call__(self:"V2|Vector2D", return_tuple=False) -> list|tuple:
         return (self.x, self.y) if return_tuple else [self.x, self.y]
@@ -832,9 +778,8 @@ class Vector2D:
 
     # comparasion
     def __eq__(self, other) -> bool:
-        if not any(isinstance(other, cls) for cls in {Vector2D, V2, list, tuple}):
-            return False
-        other = self.__normalize__(other)
+        try: other = self.__normalize__(other)
+        except: return False
         return self.x == other.x and self.y == other.y
 
     def __ne__(self, other) -> bool:
@@ -934,7 +879,7 @@ def color_lerp(current_c:list|tuple, final_c:list|tuple, step:int|float=.1) -> t
         
     This will calculate the color at an interpolation step of 0.5 between (255, 0, 0) and (0, 0, 255).
     """
-    return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c))
+    return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c)) #type: ignore
 
 def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_index:int|float) -> tuple[float, float, float]:
     """
@@ -966,7 +911,7 @@ def color_fade(starting_c:list|tuple, final_c:list|tuple, index:int|float, max_i
             
         This will print the colors transitioning from (255, 0, 0) to (0, 0, 255).
     """
-    return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3))
+    return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3)) #type: ignore
 
 def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
     """
@@ -998,49 +943,7 @@ def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
     weights = colors_dict.values()
 
     if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
-    return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3))
-
-def angular_interpolation(starting_angle:int|float, final_angle:int|float, step:int|float=.1) -> float:
-    """
-    # Perform angular interpolation between two angles using the shortest distance.
-
-    ## Parameters:
-        starting_angle (int or float): The initial angle in radians.
-        final_angle (int or float): The target angle in radians to interpolate towards.
-        step (int or float, optional): The step size for interpolation in radians. Default is 0.1.
-
-    ## Returns:
-        float: The interpolated angle as a result of angular interpolation.
-
-    ## Example:
-        starting_angle = 1.0
-
-        final_angle = 5.0
-
-        interpolated_angle = angular_interpolation(starting_angle, final_angle)
-
-        print(f"Interpolated angle: {interpolated_angle}")
-
-        This will print the interpolated angle using angular interpolation.
-
-    ## Explanation:
-        The function calculates three distances between the `starting_angle` and the
-        `final_angle`. These distances represent possible angular interpolations:
-            1. The direct interpolation from `starting_angle` to `final_angle`.
-            2. The interpolation by taking a full circle (2 * pi) and then proceeding from
-               `starting_angle` to `final_angle`.
-            3. The interpolation by taking a full circle (2 * pi) in the opposite direction
-               and then proceeding from `starting_angle` to `final_angle`.
-
-        The function then chooses the shortest distance from the three options and returns
-        the interpolated angle obtained by multiplying the shortest distance by the `step`
-        value.
-
-        The `step` parameter controls the granularity of interpolation. Smaller `step` values
-        provide more fine-grained interpolation but may require more iterations.
-    """
-    distances = (final_angle - starting_angle, final_angle - DOUBLE_PI - starting_angle, final_angle + DOUBLE_PI - starting_angle)
-    return min(distances, key=abs) * step
+    return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3)) #type: ignore
 
 def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd:bool=True) -> float:
     """
@@ -1083,6 +986,48 @@ def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd:bool=True) ->
     """
     distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
     return (distance ** .5) if sqrd else distance
+
+def angular_interpolation(starting_angle:int|float, final_angle:int|float, step:int|float=.1) -> float:
+    """
+    # Perform angular interpolation between two angles using the shortest distance.
+
+    ## Parameters:
+        starting_angle (int or float): The initial angle in radians.
+        final_angle (int or float): The target angle in radians to interpolate towards.
+        step (int or float, optional): The step size for interpolation in radians. Default is 0.1.
+
+    ## Returns:
+        float: The interpolated angle as a result of angular interpolation.
+
+    ## Example:
+        starting_angle = 1.0
+
+        final_angle = 5.0
+
+        interpolated_angle = angular_interpolation(starting_angle, final_angle)
+
+        print(f"Interpolated angle: {interpolated_angle}")
+
+        This will print the interpolated angle using angular interpolation.
+
+    ## Explanation:
+        The function calculates three distances between the `starting_angle` and the
+        `final_angle`. These distances represent possible angular interpolations:
+            1. The direct interpolation from `starting_angle` to `final_angle`.
+            2. The interpolation by taking a full circle (2 * pi) and then proceeding from
+               `starting_angle` to `final_angle`.
+            3. The interpolation by taking a full circle (2 * pi) in the opposite direction
+               and then proceeding from `starting_angle` to `final_angle`.
+
+        The function then chooses the shortest distance from the three options and returns
+        the interpolated angle obtained by multiplying the shortest distance by the `step`
+        value.
+
+        The `step` parameter controls the granularity of interpolation. Smaller `step` values
+        provide more fine-grained interpolation but may require more iterations.
+    """
+    distances = (final_angle - starting_angle, final_angle - DOUBLE_PI - starting_angle, final_angle + DOUBLE_PI - starting_angle)
+    return min(distances, key=abs) * step
 
 def avg_position(*others:"Vector2D|V2") -> Vector2D|V2:
     """
