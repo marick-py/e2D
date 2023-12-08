@@ -600,17 +600,10 @@ class Vector2D:
         """
         if center is None: center = V2z
         else: center = self.__normalize__(center)
-        print(f"CENTER {center}")
         translated = self - center
-        print(f"TRANS {translated}")
         cos_angle = _mt.cos(angle)
-        print(f"COS {cos_angle}")
         sin_angle = _mt.sin(angle)
-        print(f"SIN {sin_angle}")
-        print(translated.x * cos_angle, translated.y * sin_angle, translated.x * cos_angle - translated.y * sin_angle)
         data = Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle)
-        print(data.x, data.y, data)
-        print(data + center)
         return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
 
     def no_zero_div_error(self:"Vector2D|V2", n:"int|float|Vector2D|V2", error_mode:str="zero") -> "Vector2D|V2":
