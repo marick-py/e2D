@@ -598,10 +598,8 @@ class Vector2D:
 
             Example usage is shown in the "Example" section above.
         """
-        if center is None:
-            center = V2z
-        else:
-            center = self.__normalize__(center)
+        if center is None: center = V2z
+        else: center = self.__normalize__(center)
         translated = self - center
         cos_angle = _mt.cos(angle)
         sin_angle = _mt.sin(angle)
