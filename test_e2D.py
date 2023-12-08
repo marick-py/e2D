@@ -1,5 +1,6 @@
 import pytest
 from e2D import *
+import sys
 
 def test_Vector2D_V2_init() -> None:
     vec = Vector2D(1, 2)
@@ -331,4 +332,5 @@ def test_distance_line_point() -> None:
     assert distance == 5.0
 
 if __name__ == '__main__':
-    pytest.main(["--exitfirst"])
+    exit_code = pytest.main()
+    sys.exit(exit_code)
