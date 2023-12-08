@@ -331,4 +331,4 @@ def test_distance_line_point() -> None:
     assert distance == 5.0
 
 if __name__ == '__main__':
-    pytest.main()
+    pytest.main(["--exitfirst"])
