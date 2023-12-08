@@ -603,7 +603,6 @@ class Vector2D:
         translated = self - center
         cos_angle = _mt.cos(angle)
         sin_angle = _mt.sin(angle)
-        data = Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle)
         return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
 
     def no_zero_div_error(self:"Vector2D|V2", n:"int|float|Vector2D|V2", error_mode:str="zero") -> "Vector2D|V2":
