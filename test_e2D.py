@@ -120,15 +120,14 @@ def test_Vector2D_V2_length() -> None:
     assert length == 2.23606797749979
 
 def test_Vector2D_V2_rotate() -> None:
-    vec1 = Vector2D(3, 4)
+    vec1 = Vector2D(3.0, 4.0)
     rotated_vec = vec1.rotate(QUARTER_PI)
-    print(rotated_vec, "ROTATED_VECTOR")
     assert rotated_vec == Vector2D(-0.7071067811865475, 4.949747468305834)
-    center = Vector2D(1, 1)
+    center = Vector2D(1.0, 1.0)
     rotated_vec_center = vec1.rotate(QUARTER_PI, center)
     assert rotated_vec_center == Vector2D(0.2928932188134523, 4.535533905932738)
-    center = Vector2D(2, 2)
-    vec2 = Vector2D(3, 3)
+    center = Vector2D(2.0, 2.0)
+    vec2 = Vector2D(3.0, 3.0)
     rotated_vec_neg = vec2.rotate(-HALF_PI, center)
     assert rotated_vec_neg == Vector2D(3.0, 1.0)
 
