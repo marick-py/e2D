@@ -608,6 +608,8 @@ class Vector2D:
         sin_angle = _mt.sin(angle)
         print(f"SIN {sin_angle}")
         print(translated.x * cos_angle, translated.y * sin_angle, translated.x * cos_angle - translated.y * sin_angle)
+        print(Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle))
+        print(Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center)
         return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
 
     def no_zero_div_error(self:"Vector2D|V2", n:"int|float|Vector2D|V2", error_mode:str="zero") -> "Vector2D|V2":
