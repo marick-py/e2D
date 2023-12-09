@@ -30,13 +30,14 @@ class Function:
     
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
-        offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else None
+        # print(self.plot.dra)
+        offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
         if any(x < 1 for x in self.plot.scale):
+            # draw rects
             for point in self.points:
-                # radius = max(min(self.plot.pixel_size)*.5, 1)
-                # pg.draw.circle(self.plot.canvas, self.color, (point + self.plot.pixel_size*.5)(), radius)
-                pg.draw.rect(self.__layer_surface__, self.color, (point.tolist() + (offset if offset != None else V2z))() + self.plot.pixel_size()) #type: ignore
+                pg.draw.rect(self.__layer_surface__, self.color, (point.tolist() + offset)() + self.plot.pixel_size()) #type: ignore
         else:
+            # draw points
             for point in self.points:
                 point = point.astype(int).tolist()
                 if self.plot.dragging != None:
@@ -96,25 +97,41 @@ class __PlotSettings__:
 
             "distance_to_axis_for_scalar_zoom" : 10,
 
+            "show_x_axis" : True,
+            "show_y_axis" : True,
             "bg_color" : (25, 25, 25),
             "axes_default_color" : (100, 100, 100),
             "x_axis_color" : None,
             "y_axis_color" : None,
+            "change_axes_colors_on_mouse_hover" : True,
+            "mouse_hover_axes_color" : (200, 200, 200),
 
             "axes_default_width" : 5,
             "x_axis_width" : None,
             "y_axis_width" : None,
 
             "show_cursor_coords" : False,
+
+            "zoom_on_center" : False,
         }
 
     def print_current_settings(self) -> None:
         longest_key = max(map(len, self.settings))
         longest_type = max(map(lambda setting: len(str(type(setting)).split("'")[1]), self.settings.values()))
-        split_string = '"'
-        for setting in self.settings:
-            print(f"{setting}{' '*(longest_key-len(setting))} :{str(type(self.settings[setting])).split(split_string)[1]}{' '*(longest_type-len(str(type(self.settings[setting])).split(split_string)[1]))}=\t{self.settings[setting]}")
+        split_string = "'"
+        texts = [
+            f"{setting}{' '*(longest_key-len(setting))} :{str(type(self.settings[setting])).split(split_string)[1]}{' '*(longest_type-len(str(type(self.settings[setting])).split(split_string)[1]))}=\t{self.settings[setting]}"
+            for setting in self.settings
+            ]
+        longest_text = max(map(len , texts))
+        print("=" * longest_text)
+        for text in texts:
+            print(text)
+        print("=" * longest_text)
     
+    def toggle(self, key:str) -> None:
+        self.set(key, not self.get(key))
+
     def set(self, key:str, new_value) -> None:
         if not (key in self.settings): raise ValueError(f"The key [{key}] does not exist...")
         self.settings[key] = new_value
@@ -131,7 +148,7 @@ class __PlotSettings__:
 
 class Plot:
     __top_left_multiplier__ = V2(1, -1)
-    __bottop_right_multiplier__ = V2(1, -1)
+    __bottom_right_multiplier__ = V2(1, -1)
     def __init__(self, rootEnv:"RootEnv", plot_position:V2|Vector2D, plot_size:V2|Vector2D, top_left_plot_coord:V2|Vector2D, bottom_right_plot_coord: V2|Vector2D, scale:V2|Vector2D=V2one) -> None:
         self.rootEnv = rootEnv
 
@@ -154,10 +171,11 @@ class Plot:
         self.dragging = None
         self.start_dragging = V2z
         self.is_mouse_in_rect = False
+        self.mouse_scalar = V2one.copy()
 
     def set_borders_by_position_and_zoom(self) -> None:
         self.top_left_plot_coord = self.current_offset - (.5**(.1*self.current_zoom)) * self.__top_left_multiplier__
-        self.bottom_right_plot_coord = self.current_offset + (.5**(.1*self.current_zoom)) * self.__bottop_right_multiplier__
+        self.bottom_right_plot_coord = self.current_offset + (.5**(.1*self.current_zoom)) * self.__bottom_right_multiplier__
         self.top_left_x, self.top_left_y = self.top_left_plot_coord
         self.bottom_right_x, self.bottom_right_y = self.bottom_right_plot_coord
 
@@ -185,18 +203,6 @@ class Plot:
 
     def render(self) -> None:
         self.canvas.fill(self.settings.get("bg_color")) #type: ignore
-        if self.top_left_x < 0 < self.bottom_right_x:
-            pg.draw.line(self.canvas,
-                         self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color, #type: ignore
-                         self.__plot2real__(V2(0, self.top_left_y))(),
-                         self.__plot2real__(V2(0, self.bottom_right_y))(),
-                         self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
-        if self.bottom_right_y < 0 < self.top_left_y:
-            pg.draw.line(self.canvas,
-                         self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color, #type: ignore
-                         self.__plot2real__(V2(self.top_left_x, 0))(),
-                         self.__plot2real__(V2(self.bottom_right_x, 0))(),
-                         self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
 
         for function in self.functions: function.draw()
 
@@ -209,10 +215,10 @@ class Plot:
         pg.draw.circle(self.canvas, (100,100,100), (self.size * .5)(), 15, 1)
 
         if self.settings.get("show_corners_coords"):
-            self.rootEnv.print(str(self.top_left_plot_coord.__round__(.1)), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(V2(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y).__round__(.1)), self.size * V2(0, 1), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_LEFT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(self.bottom_right_plot_coord.__round__(.1)), self.size.copy(), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(V2(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y).__round__(.1)), self.size * V2(1, 0), fixed_sides=TEXT_FIXED_SIDES_TOP_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(str(self.top_left_plot_coord), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(str(V2(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y)), self.size * V2(0, 1), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_LEFT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(str(self.bottom_right_plot_coord), self.size.copy(), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(str(V2(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y)), self.size * V2(1, 0), fixed_sides=TEXT_FIXED_SIDES_TOP_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
     
     def update(self) -> None:
         self.plot_mouse_position = self.__real2plot__(self.rootEnv.mouse.position)
@@ -227,16 +233,19 @@ class Plot:
             for function in self.functions:
                 function.update_points()
             self.render()
-        
 
         if self.is_mouse_in_rect:
+            self.mouse_scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1) #type: ignore
+            if self.mouse_scalar.x == self.mouse_scalar.y == 0: self.mouse_scalar = V2one
             for event in self.rootEnv.events:
                 if event.type == pg.MOUSEWHEEL:
-                    
-                    range_n = self.settings.get("distance_to_axis_for_scalar_zoom")
-                    scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < range_n else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < range_n else 1) #type: ignore
-                    self.current_zoom += event.y * scalar
-
+                    if self.settings.get("zoom_on_center"):
+                        self.current_zoom += event.y * self.mouse_scalar
+                    else:
+                        pre = self.__real2plot__(self.rootEnv.mouse.position)
+                        self.current_zoom += event.y * self.mouse_scalar
+                        self.update_grid(False)
+                        self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
                     self.update_grid(True)
                     for function in self.functions:
                         function.update_points()
@@ -260,13 +269,26 @@ class Plot:
 
     def draw(self) -> None:
         self.rootEnv.screen.blit(self.canvas, self.position())
+        if self.top_left_x < 0 < self.bottom_right_x and self.settings.get("show_x_axis"):
+            pg.draw.line(self.rootEnv.screen,
+                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if self.mouse_scalar.x else (self.settings.get("mouse_hover_axes_color")),
+                         (self.__plot2real__(V2(0, self.top_left_y)) + self.position)(),
+                         (self.__plot2real__(V2(0, self.bottom_right_y)) + self.position)(),
+                         self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
+        if self.bottom_right_y < 0 < self.top_left_y and self.settings.get("show_y_axis"):
+            pg.draw.line(self.rootEnv.screen,
+                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if self.mouse_scalar.y else (self.settings.get("mouse_hover_axes_color")),
+                         (self.__plot2real__(V2(self.top_left_x, 0)) + self.position)(),
+                         (self.__plot2real__(V2(self.bottom_right_x, 0)) + self.position)(),
+                         self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
+
         if self.is_mouse_in_rect and self.settings.get("show_cursor_coords"):
             self.rootEnv.print(str(round(self.plot_mouse_position, .1)), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
 
         data = [
             [f"ZOOM:", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  x: {self.current_zoom.x:.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  y: {self.current_zoom.y:.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  x: {(.5**(.1*self.current_zoom.x)):.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  y: {(.5**(.1*self.current_zoom.y)):.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
         ]
 
         for i, (d, fixed_side, show) in enumerate(data):
