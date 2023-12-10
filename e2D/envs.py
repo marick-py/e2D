@@ -25,7 +25,7 @@ pg.font.init()
 font_arial_16 = pg.font.SysFont("Arial", 16)
 font_arial_32 = pg.font.SysFont("Arial", 32)
 font_arial_64 = pg.font.SysFont("Arial", 64)
-my_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
+create_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
 TEXT_FIXED_SIDES_TOP_LEFT = 0
 TEXT_FIXED_SIDES_TOP_MIDDLE = 1

@@ -9,7 +9,7 @@ def no_error_complex_function(function, args) -> V2|Vector2D:
 sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
 
 class Function:
-    def __init__(self, function, color) -> None:
+    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         self.plot : Plot
         self.color = color
         self.function = function
@@ -28,9 +28,11 @@ class Function:
         self.points = self.get_points()
         self.render()
     
+    def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> Function:
+        return Function(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color)
+    
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
-        # print(self.plot.dra)
         offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
         if any(x < 1 for x in self.plot.scale):
             # draw rects
@@ -85,34 +87,56 @@ class __PlotSettings__:
     def __init__(self, plot:Plot) -> None:
         self.plot = plot
         self.settings :dict= {
-            "use_real_time_rendering" : True,
-            "show_corners_coords" : True,
+            # axes
+                "distance_to_axis_for_scalar_zoom" : 10,
 
-            "use_inter_pixel_correction" : True,
+            # cursor
+                "show_cursor_coords" : False,
+                "zoom_on_center" : False,
 
-            "show_zoom_info": True,
-            "top_left_info_position" : self.plot.position + V2(20, 100),
-            "info_spacing" : V2(0, 32),
-            "info_precision" : 2,
+            # plot visual options
+                # plot system
+                    "use_inter_pixel_correction" : True,
+                    "use_real_time_rendering" : True,
+                
+                # axes
+                    "change_axes_colors_on_mouse_hover" : True,
+                    "mouse_hover_axes_color" : rgb(200, 200, 200),
+                    "show_axes" : True,
+                    "show_x_axis" : True,
+                    "show_y_axis" : True,
+                    "axes_default_color" : rgb(100, 100, 100),
+                    "x_axis_color" : None,
+                    "y_axis_color" : None,
+                    "axes_default_width" : 5,
+                    "x_axis_width" : None,
+                    "y_axis_width" : None,
+                    "render_axes_on_top" : False,
 
-            "distance_to_axis_for_scalar_zoom" : 10,
+                # grid
+                    "show_grid" : True,
+                    "grid_step" : V2(PI, 1),
+                    "grid_color" : rgb(17, 65, 68),
+                    "grid_width" : 1,
+            
+                # pointer
+                    "show_pointer" : True,
+                    "pointer_radius" : 15,
+                    "pointer_color" : rgb(255, 255, 255),
 
-            "show_x_axis" : True,
-            "show_y_axis" : True,
-            "bg_color" : (25, 25, 25),
-            "axes_default_color" : (100, 100, 100),
-            "x_axis_color" : None,
-            "y_axis_color" : None,
-            "change_axes_colors_on_mouse_hover" : True,
-            "mouse_hover_axes_color" : (200, 200, 200),
+                #rect
+                    "render_bg" : True,
+                    "bg_color" : rgb(28, 29, 34),
+                    "draw_rect" : True,
+                    "rect_color" : rgb(255, 255, 255),
+                    "rect_width" : 5,
+                    "show_corners_coords" : True,
 
-            "axes_default_width" : 5,
-            "x_axis_width" : None,
-            "y_axis_width" : None,
-
-            "show_cursor_coords" : False,
-
-            "zoom_on_center" : False,
+                # info options
+                    "show_zoom_info": True,
+                    "top_left_info_position" : self.plot.position + V2(20, 100),
+                    "info_interline_space" : V2(0, 32),
+                    "info_precision" : 2,
         }
 
     def print_current_settings(self) -> None:
@@ -136,9 +160,8 @@ class __PlotSettings__:
         if not (key in self.settings): raise ValueError(f"The key [{key}] does not exist...")
         self.settings[key] = new_value
 
-    def multiple_set(self, keys:list[str], new_values:list) -> None:
-        for key, new_value in zip(keys, new_values):
-            self.set(key, new_value)
+    def multiple_set(self, new_key_and_values_dict:dict) -> None:
+        self.settings.update(new_key_and_values_dict)
     
     def get(self, key:str) -> bool|V2|Vector2D|int|float:
         return self.settings[key]
@@ -147,8 +170,7 @@ class __PlotSettings__:
         return [self.get(key) for key in keys]
 
 class Plot:
-    __top_left_multiplier__ = V2(1, -1)
-    __bottom_right_multiplier__ = V2(1, -1)
+    __y_axis_multiplier__ = V2(1, -1)
     def __init__(self, rootEnv:"RootEnv", plot_position:V2|Vector2D, plot_size:V2|Vector2D, top_left_plot_coord:V2|Vector2D, bottom_right_plot_coord: V2|Vector2D, scale:V2|Vector2D=V2one) -> None:
         self.rootEnv = rootEnv
 
@@ -167,15 +189,15 @@ class Plot:
 
         self.functions :list[Function]= []
 
-        self.canvas = pg.Surface(self.size())
+        self.canvas = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
         self.dragging = None
         self.start_dragging = V2z
         self.is_mouse_in_rect = False
         self.mouse_scalar = V2one.copy()
 
     def set_borders_by_position_and_zoom(self) -> None:
-        self.top_left_plot_coord = self.current_offset - (.5**(.1*self.current_zoom)) * self.__top_left_multiplier__
-        self.bottom_right_plot_coord = self.current_offset + (.5**(.1*self.current_zoom)) * self.__bottom_right_multiplier__
+        self.top_left_plot_coord = self.current_offset - (.5**(.1*self.current_zoom)) * self.__y_axis_multiplier__
+        self.bottom_right_plot_coord = self.current_offset + (.5**(.1*self.current_zoom)) * self.__y_axis_multiplier__
         self.top_left_x, self.top_left_y = self.top_left_plot_coord
         self.bottom_right_x, self.bottom_right_y = self.bottom_right_plot_coord
 
@@ -202,17 +224,35 @@ class Plot:
         return (real_position - self.position) * (self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size + self.top_left_plot_coord
 
     def render(self) -> None:
-        self.canvas.fill(self.settings.get("bg_color")) #type: ignore
+        # fill canvas with alpha zero color
+        self.canvas.fill((0,0,0,0))
 
+        # draw grid
+        if self.settings.get("show_grid"):
+            grid_step = self.settings.get("grid_step")
+            grid_color = self.settings.get("grid_color")
+            grid_width = self.settings.get("grid_width")
+            clamped_top_left = grid_step * (self.top_left_plot_coord / grid_step).__ceil__()
+            clamped_bottom_right = grid_step * (self.bottom_right_plot_coord / grid_step).__ceil__()
+            for x_value in np.arange(clamped_top_left.x, clamped_bottom_right.x, grid_step.x):
+                pg.draw.line( self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width)
+            for y_value in np.arange(clamped_bottom_right.y, clamped_top_left.y, grid_step.y):
+                pg.draw.line(self.canvas, grid_color, self.__plot2real__((self.top_left_x, y_value))(), self.__plot2real__((self.bottom_right_x, y_value))(), grid_width)
+
+        # draw functions
         for function in self.functions: function.draw()
 
-        pg.draw.rect(self.canvas, (255,255,255), V2z() + self.size(), 5) #type: ignore
+        # draw rect, pointer and corner coords
+        if self.settings.get("draw_rect"):
+            pg.draw.rect(self.canvas, self.settings.get("rect_color"), V2z() + self.size(), self.settings.get("rect_width"))
 
-        center = self.size * .5
-        aimer_radius = 15
-        pg.draw.line(self.canvas, (100,100,100), (center + aimer_radius)(), (center - aimer_radius)(), 1)
-        pg.draw.line(self.canvas, (100,100,100), (center + self.__top_left_multiplier__ * aimer_radius)(), (center - self.__top_left_multiplier__ * aimer_radius)(), 1)
-        pg.draw.circle(self.canvas, (100,100,100), (self.size * .5)(), 15, 1)
+        if self.settings.get("show_pointer"):
+            center = self.size * .5
+            aimer_radius = self.settings.get("pointer_radius")
+            pointer_color = self.settings.get("pointer_color")
+            pg.draw.line(self.canvas, pointer_color, (center + aimer_radius)(), (center - aimer_radius)(), 1)
+            pg.draw.line(self.canvas, pointer_color, (center + self.__y_axis_multiplier__ * aimer_radius)(), (center - self.__y_axis_multiplier__ * aimer_radius)(), 1)
+            pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1)
 
         if self.settings.get("show_corners_coords"):
             self.rootEnv.print(str(self.top_left_plot_coord), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
@@ -221,12 +261,14 @@ class Plot:
             self.rootEnv.print(str(V2(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y)), self.size * V2(1, 0), fixed_sides=TEXT_FIXED_SIDES_TOP_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
     
     def update(self) -> None:
+        # update mouse and center positions
         self.plot_mouse_position = self.__real2plot__(self.rootEnv.mouse.position)
         self.plot_center_real_position = self.__plot2real__(V2z) + self.position
 
         self.is_mouse_in_rect = self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and \
                                 self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y
 
+        # render the functions when i stop dragging (when i release the left mouse key)
         if self.rootEnv.mouse.just_released[0] and self.dragging != None:
             self.dragging = None
             self.update_grid(True)
@@ -235,15 +277,19 @@ class Plot:
             self.render()
 
         if self.is_mouse_in_rect:
+            # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
             self.mouse_scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1) #type: ignore
             if self.mouse_scalar.x == self.mouse_scalar.y == 0: self.mouse_scalar = V2one
             for event in self.rootEnv.events:
                 if event.type == pg.MOUSEWHEEL:
                     if self.settings.get("zoom_on_center"):
+                        # this will always zoom exactly in the middle of the canvas, according to the current plot offset
                         self.current_zoom += event.y * self.mouse_scalar
                     else:
+                        # this will get the pre plot mouse position, calculate the zoom and with the "after" mouse position calculate the offset that i will add to the current plot offset
                         pre = self.__real2plot__(self.rootEnv.mouse.position)
                         self.current_zoom += event.y * self.mouse_scalar
+                        # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
                         self.update_grid(False)
                         self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
                     self.update_grid(True)
@@ -251,15 +297,18 @@ class Plot:
                         function.update_points()
                     self.render()
             
+            # start dragging whenever mouse left button is just pressed
             if self.rootEnv.mouse.just_pressed[0] and self.dragging == None:
                 self.dragging = self.rootEnv.mouse.position.copy()
                 self.start_dragging = self.dragging.copy()
             
+        # update the canvas if im dragging
         if self.dragging:
             offset = (self.dragging - self.rootEnv.mouse.position)* V2(1, -1) * (abs(self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size)
             self.dragging = self.rootEnv.mouse.position.copy()
             self.current_offset += offset
 
+            # with real time rendering i update the function render each frame whnever im dragging the canvs around
             if self.settings.get("use_real_time_rendering"):
                 self.update_grid(True)
                 for function in self.functions: function.update_points()
@@ -268,22 +317,32 @@ class Plot:
             self.render()
 
     def draw(self) -> None:
-        self.rootEnv.screen.blit(self.canvas, self.position())
-        if self.top_left_x < 0 < self.bottom_right_x and self.settings.get("show_x_axis"):
+        # fill canvas with bg color
+        if self.settings.get("render_bg"):
+            self.rootEnv.screen.fill(self.settings.get("bg_color"), self.position() + self.size())
+        
+        # render functions before axes
+        if render_axes_on_top:=self.settings.get("render_axes_on_top"): self.rootEnv.screen.blit(self.canvas, self.position())
+        
+        # render axes
+        if self.top_left_x < 0 < self.bottom_right_x and (self.settings.get("show_x_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
                          (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if self.mouse_scalar.x else (self.settings.get("mouse_hover_axes_color")),
                          (self.__plot2real__(V2(0, self.top_left_y)) + self.position)(),
                          (self.__plot2real__(V2(0, self.bottom_right_y)) + self.position)(),
                          self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
-        if self.bottom_right_y < 0 < self.top_left_y and self.settings.get("show_y_axis"):
+        if self.bottom_right_y < 0 < self.top_left_y and (self.settings.get("show_y_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
                          (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if self.mouse_scalar.y else (self.settings.get("mouse_hover_axes_color")),
                          (self.__plot2real__(V2(self.top_left_x, 0)) + self.position)(),
                          (self.__plot2real__(V2(self.bottom_right_x, 0)) + self.position)(),
                          self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
+        
+        # render functions after axes
+        if not render_axes_on_top: self.rootEnv.screen.blit(self.canvas, self.position())
 
         if self.is_mouse_in_rect and self.settings.get("show_cursor_coords"):
-            self.rootEnv.print(str(round(self.plot_mouse_position, .1)), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
+            self.rootEnv.print(str(self.plot_mouse_position), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
 
         data = [
             [f"ZOOM:", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
@@ -293,4 +352,4 @@ class Plot:
 
         for i, (d, fixed_side, show) in enumerate(data):
             if show:
-                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_spacing") * i, fixed_sides=fixed_side) #type: ignore
+                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_interline_space") * i, fixed_sides=fixed_side) #type: ignore
