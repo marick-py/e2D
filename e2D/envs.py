@@ -44,6 +44,8 @@ class RootEnv:
         self.screen_size :V2|Vector2D= screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync, flags=window_flag)
         self.target_fps = target_fps
+        self.current_fps = self.target_fps
+        self.current_frame = 0
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
         self.keyboard = Keyboard(self)
@@ -76,8 +78,9 @@ class RootEnv:
 
     def __draw__(self) -> None:
         self.clock.tick(self.target_fps)
+        self.current_fps = self.clock.get_fps()
         if self.clear_screen_each_frame: self.clear()
-        if self.show_fps: self.print(str(round(self.clock.get_fps(),2)), self.screen_size * .01, bg_color=(0,0,0))
+        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=(0,0,0))
 
         self.env.draw()
         pg.display.update()
@@ -91,6 +94,7 @@ class RootEnv:
         self.__update__()
         self.__draw__()
 
+        self.current_frame += 1
         self.events = pg.event.get()
         for event in self.events:
             if event.type == pg.QUIT or ((event.type == pg.KEYDOWN and event.key == self._quit_on_key_pressed) if self._quit_on_key_pressed != None else False):

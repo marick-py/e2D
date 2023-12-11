@@ -2,35 +2,38 @@ from __future__ import annotations
 from .envs import *
 import numpy as np
 
-def no_error_complex_function(function, args) -> V2|Vector2D:
-    res :complex= function(args)
-    return V2(res.real, res.imag)
-
-sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
-
 class Function:
-    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self) -> None:
         self.plot : Plot
-        self.color = color
-        self.function = function
         self.__layer_surface__ :pg.Surface= None #type: ignore
     
-    def update_points(self) -> None:
-        self.update_function(self.function)
+    def update(self) -> None: pass
+    
+    def render(self) -> None: pass
+    
+    def draw(self) -> None:
+        self.plot.canvas.blit(self.__layer_surface__, (0,0))
+
+class MathFunction(Function):
+    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+        super().__init__()
+        self.color = color
+        self.function = function
 
     def get_points(self) -> list:
         signs_self = np.sign(self.function(*self.plot.meshgrid))
         signs_sum = signs_self + np.roll(signs_self, axis=1, shift=1) + np.roll(signs_self, axis=0, shift=-1) + np.roll(signs_self, axis=(1,0), shift=(1,-1))
         return np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
     
-    def update_function(self, new_function) -> None:
-        self.function = new_function
+    def update(self, new_function=None) -> None:
+        if new_function != None:
+            self.function = new_function
         self.points = self.get_points()
         self.render()
     
-    def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> Function:
-        return Function(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color)
-    
+    def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> MathFunction:
+        return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color)
+
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
@@ -44,44 +47,70 @@ class Function:
                 point = point.astype(int).tolist()
                 if self.plot.dragging != None:
                     point = round(point + offset)()
-                self.__layer_surface__.set_at(point, self.color)
+                self.__layer_surface__.set_at(point, self.color) #type: ignore
     
+class PointsFunction(Function):
+    def __init__(self, points:list[V2|Vector2D]=[], points_color:list[float]|tuple[float,float,float]=(255,0,0), color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+        super().__init__()
+        self.color = color
+        self.points = points
+        self.points_color = points_color
+
+    def update(self, points:list[V2|Vector2D]|None=None) -> None:
+        if points != None: self.points = points
+        self.plot_points = [self.plot.__plot2real__(point)() for point in self.points if \
+                        self.plot.top_left_x < point.x < self.plot.bottom_right_x and \
+                        self.plot.bottom_right_y < point.y < self.plot.top_left_y]
+        self.render()
+
+    def render(self) -> None:
+        self.__layer_surface__.fill((0,0,0,0))
+        if len(self.plot_points): pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points)
+        # for point in self.points:
+            # pg.draw.circle(self.__layer_surface__,
+            #                self.points_color,
+            #                self.plot.__plot2real__(point),
+            #                5)
+
+"""
+def no_error_complex_function(function, args) -> V2|Vector2D:
+    res :complex= function(args)
+    return V2(res.real, res.imag)
+sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
+class ComplexFunction:
+    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=(255,255,255), auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
+        self.auto_connect_treshold = auto_connect_treshold
+        self.plot = plot
+        self.starting_t = starting_t
+        self.ending_t = ending_t
+        self.color = color
+        self.step = step
+        self.points_color = points_color
+        self.points_radius = points_radius
+        self.update_function(function)
+    
+    def update_points(self) -> None:
+        self.update_function(self.function)
+    
+    def update_function(self, new_function) -> None:
+        self.function = new_function
+        self.points :list[V2|Vector2D]= [point for t in range(int(self.starting_t / self.step), int(self.ending_t / self.step)) if (self.plot.bottom_right_y < (point:=no_error_complex_function(new_function, t * self.step)).y < self.plot.top_left_y) and (self.plot.top_left_x < point.x < self.plot.bottom_right_x)]
+        self.full_auto_connect = not any(point.distance_to(self.points[i]) > self.auto_connect_treshold for i,point in enumerate(self.points[1:]))
+
     def draw(self) -> None:
-        self.plot.canvas.blit(self.__layer_surface__, (0,0))
+        if self.points_radius:
+            for point in self.points:
+                pg.draw.circle(self.plot.canvas, self.color if self.points_color == None else self.points_color, self.plot.__plot2real__(point)(), self.points_radius)
 
-# class ComplexFunction:
-#     def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=(255,255,255), auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
-#         self.auto_connect_treshold = auto_connect_treshold
-#         self.plot = plot
-#         self.starting_t = starting_t
-#         self.ending_t = ending_t
-#         self.color = color
-#         self.step = step
-#         self.points_color = points_color
-#         self.points_radius = points_radius
-#         self.update_function(function)
-    
-#     def update_points(self) -> None:
-#         self.update_function(self.function)
-    
-#     def update_function(self, new_function) -> None:
-#         self.function = new_function
-#         self.points :list[V2|Vector2D]= [point for t in range(int(self.starting_t / self.step), int(self.ending_t / self.step)) if (self.plot.bottom_right_y < (point:=no_error_complex_function(new_function, t * self.step)).y < self.plot.top_left_y) and (self.plot.top_left_x < point.x < self.plot.bottom_right_x)]
-#         self.full_auto_connect = not any(point.distance_to(self.points[i]) > self.auto_connect_treshold for i,point in enumerate(self.points[1:]))
-
-#     def draw(self) -> None:
-#         if self.points_radius:
-#             for point in self.points:
-#                 pg.draw.circle(self.plot.canvas, self.color if self.points_color == None else self.points_color, self.plot.__plot2real__(point)(), self.points_radius)
-
-#         if len(self.points) < 2: return
-#         if self.full_auto_connect:
-#             pg.draw.lines(self.plot.canvas, self.color, False, [self.plot.__plot2real__(point)() for point in self.points])
-#         else:
-#             real_points = [self.plot.__plot2real__(point)() for point in self.points]
-#             for i,(point, real_point) in enumerate(zip(self.points[1:], real_points[1:])):
-#                 if point.distance_to(self.points[i]) < self.auto_connect_treshold:
-#                     pg.draw.line(self.plot.canvas, self.color, real_points[i], real_point) #type: ignore
+        if len(self.points) < 2: return
+        if self.full_auto_connect:
+            pg.draw.lines(self.plot.canvas, self.color, False, [self.plot.__plot2real__(point)() for point in self.points])
+        else:
+            real_points = [self.plot.__plot2real__(point)() for point in self.points]
+            for i,(point, real_point) in enumerate(zip(self.points[1:], real_points[1:])):
+                if point.distance_to(self.points[i]) < self.auto_connect_treshold:
+                    pg.draw.line(self.plot.canvas, self.color, real_points[i], real_point) #type: ignore
+"""
 
 class __PlotSettings__:
     def __init__(self, plot:Plot) -> None:
@@ -182,11 +211,6 @@ class Plot:
         self.scale = scale
 
         self.settings = __PlotSettings__(self)
-
-        self.current_zoom = V2one * -np.log2(10)*10
-        self.current_offset = V2(0,0)
-        self.update_grid(True)
-
         self.functions :list[Function]= []
 
         self.canvas = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
@@ -194,6 +218,8 @@ class Plot:
         self.start_dragging = V2z
         self.is_mouse_in_rect = False
         self.mouse_scalar = V2one.copy()
+
+        self.focus(V2(0,0), 10)
 
     def set_borders_by_position_and_zoom(self) -> None:
         self.top_left_plot_coord = self.current_offset - (.5**(.1*self.current_zoom)) * self.__y_axis_multiplier__
@@ -214,7 +240,7 @@ class Plot:
     def load_function(self, function:Function) -> None:
         function.plot = self
         function.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
-        function.update_function(function.function)
+        function.update()
         self.functions.append(function)
 
     def __plot2real__(self, plot_position:V2|Vector2D) -> V2|Vector2D:
@@ -234,25 +260,25 @@ class Plot:
             grid_width = self.settings.get("grid_width")
             clamped_top_left = grid_step * (self.top_left_plot_coord / grid_step).__ceil__()
             clamped_bottom_right = grid_step * (self.bottom_right_plot_coord / grid_step).__ceil__()
-            for x_value in np.arange(clamped_top_left.x, clamped_bottom_right.x, grid_step.x):
-                pg.draw.line( self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width)
-            for y_value in np.arange(clamped_bottom_right.y, clamped_top_left.y, grid_step.y):
-                pg.draw.line(self.canvas, grid_color, self.__plot2real__((self.top_left_x, y_value))(), self.__plot2real__((self.bottom_right_x, y_value))(), grid_width)
+            for x_value in np.arange(clamped_top_left.x, clamped_bottom_right.x, grid_step.x): #type: ignore
+                pg.draw.line( self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width) #type: ignore
+            for y_value in np.arange(clamped_bottom_right.y, clamped_top_left.y, grid_step.y): #type: ignore
+                pg.draw.line(self.canvas, grid_color, self.__plot2real__((self.top_left_x, y_value))(), self.__plot2real__((self.bottom_right_x, y_value))(), grid_width) #type: ignore
 
         # draw functions
         for function in self.functions: function.draw()
 
         # draw rect, pointer and corner coords
         if self.settings.get("draw_rect"):
-            pg.draw.rect(self.canvas, self.settings.get("rect_color"), V2z() + self.size(), self.settings.get("rect_width"))
+            pg.draw.rect(self.canvas, self.settings.get("rect_color"), V2z() + self.size(), self.settings.get("rect_width")) #type: ignore
 
         if self.settings.get("show_pointer"):
             center = self.size * .5
             aimer_radius = self.settings.get("pointer_radius")
             pointer_color = self.settings.get("pointer_color")
-            pg.draw.line(self.canvas, pointer_color, (center + aimer_radius)(), (center - aimer_radius)(), 1)
-            pg.draw.line(self.canvas, pointer_color, (center + self.__y_axis_multiplier__ * aimer_radius)(), (center - self.__y_axis_multiplier__ * aimer_radius)(), 1)
-            pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1)
+            pg.draw.line(self.canvas, pointer_color, (center + aimer_radius)(), (center - aimer_radius)(), 1) #type: ignore
+            pg.draw.line(self.canvas, pointer_color, (center + self.__y_axis_multiplier__ * aimer_radius)(), (center - self.__y_axis_multiplier__ * aimer_radius)(), 1) #type: ignore
+            pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1) #type: ignore
 
         if self.settings.get("show_corners_coords"):
             self.rootEnv.print(str(self.top_left_plot_coord), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
@@ -271,10 +297,7 @@ class Plot:
         # render the functions when i stop dragging (when i release the left mouse key)
         if self.rootEnv.mouse.just_released[0] and self.dragging != None:
             self.dragging = None
-            self.update_grid(True)
-            for function in self.functions:
-                function.update_points()
-            self.render()
+            self.focus(None, None)
 
         if self.is_mouse_in_rect:
             # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
@@ -292,10 +315,7 @@ class Plot:
                         # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
                         self.update_grid(False)
                         self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
-                    self.update_grid(True)
-                    for function in self.functions:
-                        function.update_points()
-                    self.render()
+                    self.focus(None, None)
             
             # start dragging whenever mouse left button is just pressed
             if self.rootEnv.mouse.just_pressed[0] and self.dragging == None:
@@ -304,22 +324,49 @@ class Plot:
             
         # update the canvas if im dragging
         if self.dragging:
-            offset = (self.dragging - self.rootEnv.mouse.position)* V2(1, -1) * (abs(self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size)
+            moved = False
+            if not self.is_mouse_in_rect:
+                if self.rootEnv.mouse.position.x < self.position.x:
+                    self.rootEnv.mouse.set_position(V2(self.position.x + self.size.x, self.rootEnv.mouse.position.y))
+                    moved = True
+                elif self.rootEnv.mouse.position.x > self.position.x + self.size.x:
+                    self.rootEnv.mouse.set_position(V2(self.position.x, self.rootEnv.mouse.position.y))
+                    moved = True
+                if self.rootEnv.mouse.position.y < self.position.y:
+                    self.rootEnv.mouse.set_position(V2(self.rootEnv.mouse.position.x, self.position.y + self.size.y))
+                    moved = True
+                elif self.rootEnv.mouse.position.y > self.position.y + self.size.y:
+                    self.rootEnv.mouse.set_position(V2(self.rootEnv.mouse.position.x, self.position.y))
+                    moved = True
+            if not moved:
+                offset = (self.dragging - self.rootEnv.mouse.position)* V2(1, -1) * (abs(self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size)
+                self.current_offset += offset
             self.dragging = self.rootEnv.mouse.position.copy()
-            self.current_offset += offset
 
             # with real time rendering i update the function render each frame whnever im dragging the canvs around
             if self.settings.get("use_real_time_rendering"):
-                self.update_grid(True)
-                for function in self.functions: function.update_points()
+                self.focus(None, None)
             else:
                 self.update_grid()
-            self.render()
+                self.render()
+        
+    def focus(self, center:V2|Vector2D|None=V2z, zoom:float|Vector2D|V2|None=10.0) -> None:
+        if center != None:
+            self.current_offset = center.copy()
+        if zoom != None:
+            if any(isinstance(zoom, cls) for cls in {Vector2D, V2}):
+                self.current_zoom = 0-V2(np.log2(zoom.x), np.log2(zoom.y)) * 10
+            else:
+                self.current_zoom = V2one * -np.log2(zoom)*10
+        
+        self.update_grid(True)
+        for function in self.functions: function.update()
+        self.render()
 
     def draw(self) -> None:
         # fill canvas with bg color
         if self.settings.get("render_bg"):
-            self.rootEnv.screen.fill(self.settings.get("bg_color"), self.position() + self.size())
+            self.rootEnv.screen.fill(self.settings.get("bg_color"), self.position() + self.size()) #type: ignore
         
         # render functions before axes
         if render_axes_on_top:=self.settings.get("render_axes_on_top"): self.rootEnv.screen.blit(self.canvas, self.position())
@@ -327,13 +374,13 @@ class Plot:
         # render axes
         if self.top_left_x < 0 < self.bottom_right_x and (self.settings.get("show_x_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if self.mouse_scalar.x else (self.settings.get("mouse_hover_axes_color")),
+                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if self.mouse_scalar.x else (self.settings.get("mouse_hover_axes_color")), #type: ignore
                          (self.__plot2real__(V2(0, self.top_left_y)) + self.position)(),
                          (self.__plot2real__(V2(0, self.bottom_right_y)) + self.position)(),
                          self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
         if self.bottom_right_y < 0 < self.top_left_y and (self.settings.get("show_y_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if self.mouse_scalar.y else (self.settings.get("mouse_hover_axes_color")),
+                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if self.mouse_scalar.y else (self.settings.get("mouse_hover_axes_color")), #type: ignore
                          (self.__plot2real__(V2(self.top_left_x, 0)) + self.position)(),
                          (self.__plot2real__(V2(self.bottom_right_x, 0)) + self.position)(),
                          self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore

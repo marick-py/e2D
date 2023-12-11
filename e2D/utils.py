@@ -18,6 +18,10 @@ class Mouse:
         self.last_frame_movement = V2z.copy()
         self.update()
     
+    def set_position(self, new_position:Vector2D|V2) -> None:
+        self.position = new_position
+        pg.mouse.set_pos(new_position())
+    
     def update(self) -> None:
         self.position = V2(*pg.mouse.get_pos()) # type: ignore
         self.last_frame_movement = V2(*pg.mouse.get_rel())
