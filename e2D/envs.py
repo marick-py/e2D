@@ -22,9 +22,9 @@ while not rootEnv.quit:
 
 pg.init()
 pg.font.init()
-font_arial_16 = pg.font.SysFont("Arial", 16)
-font_arial_32 = pg.font.SysFont("Arial", 32)
-font_arial_64 = pg.font.SysFont("Arial", 64)
+FONT_ARIAL_16 = pg.font.SysFont("Arial", 16)
+FONT_ARIAL_32 = pg.font.SysFont("Arial", 32)
+FONT_ARIAL_64 = pg.font.SysFont("Arial", 64)
 create_arial_font_size = lambda size: pg.font.SysFont("Arial", size)
 
 TEXT_FIXED_SIDES_TOP_LEFT = 0
@@ -64,7 +64,7 @@ class RootEnv:
     def clear_rect(self, position:V2|Vector2D, size:V2|Vector2D) -> None:
         self.screen.fill(self.background_color, position() + size())
     
-    def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), fixed_sides=TEXT_FIXED_SIDES_TOP_LEFT, font:pg.font.Font=font_arial_32, bg_color:None|tuple[int,int,int]|list[int]=None, border_color:None|tuple[int,int,int]|list[int]=None, border_width:float=0, border_radius:int|list[int]|tuple[int,int,int,int]=-1, margin:V2|Vector2D=V2z, personalized_surface:pg.Surface|None=None) -> None:
+    def print(self, text:str, position:V2|Vector2D, color:tuple[float,float,float]=(255,255,255), fixed_sides=TEXT_FIXED_SIDES_TOP_LEFT, font:pg.font.Font=FONT_ARIAL_32, bg_color:None|tuple[int,int,int]|list[int]=None, border_color:None|tuple[int,int,int]|list[int]=None, border_width:float=0, border_radius:int|list[int]|tuple[int,int,int,int]=-1, margin:V2|Vector2D=V2z, personalized_surface:pg.Surface|None=None) -> None:
         text_box = font.render(text, True, color)
         size = V2(*text_box.get_size()) + margin * 2
         position = position - size * self.__fixed_sides_multiplier[fixed_sides] + margin

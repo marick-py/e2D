@@ -15,7 +15,7 @@ DOUBLE_PI = PI*2
 # 
 
 class Vector2D:
-    round_values_on_print :float= 1.0
+    round_values_on_print :int|float= 2
     def __init__(self:"V2|Vector2D", x:int|float=0.0, y:int|float=0.0) -> None:
         """
         # Initialize a 2D vector with the specified x and y components.
@@ -666,11 +666,25 @@ class Vector2D:
         other = self.__normalize__(other)
         return Vector2D(max(self.x, other.x), max(self.y, other.y))
 
+    def advanced_stringify(self:"V2|Vector2D", precision:float|None=None, use_scientific_notation:bool=False, return_as_list=False) -> str:
+        precision = self.round_values_on_print if precision == None else precision
+        def optimize(value) -> str:
+            abs_value = abs(value)
+            if abs_value < 1/10**precision and abs_value != 0:
+                return f"{value:.{precision}e}"
+            elif abs_value < 10**precision:
+                return f"{value:.{precision}f}".rstrip('0').rstrip('.')
+            else:
+                return f"{value:.{precision}e}"
+        if return_as_list:
+            return [optimize(self.x), optimize(self.y)] if use_scientific_notation else [f"{self.x:.{precision}f}" f"{self.y:.{precision}f}"]
+        return f"{optimize(self.x)}, {optimize(self.y)}" if use_scientific_notation else f"{self.x:.{precision}f}, {self.y:.{precision}f}"
+
     def __str__(self:"V2|Vector2D") -> str:
-        return f"{self.x:{self.round_values_on_print}f}, {self.y:{self.round_values_on_print}f}"
+        return f"{self.x:.{self.round_values_on_print}f}, {self.y:.{self.round_values_on_print}f}"
 
     def __repr__(self:"V2|Vector2D") -> str:
-        return f"x:{self.x:{self.round_values_on_print}f}\ty:{self.y:{self.round_values_on_print}f}"
+        return f"x:{self.x:.{self.round_values_on_print}f}\ty:{self.y:.{self.round_values_on_print}f}"
 
     def __call__(self:"V2|Vector2D", return_tuple=False) -> list|tuple:
         return (self.x, self.y) if return_tuple else [self.x, self.y]
@@ -1250,3 +1264,12 @@ def distance_line_point(line_point_a:Vector2D|V2, line_point_b:Vector2D|V2, poin
         The result is returned as a float representing the distance between the line segment and the point.
     """
     return float(_np.linalg.norm(_np.cross((line_point_b-line_point_a)(), (line_point_a-point_c)()))/_np.linalg.norm((line_point_b-line_point_a)()))
+
+def optimize_value_string(value:int|float, precision:int) -> str:
+    abs_value = abs(value)
+    if abs_value < 1/10**precision and abs_value != 0:
+        return f"{value:.{precision}e}"
+    elif abs_value < 10**precision:
+        return f"{value:.{precision}f}".rstrip('0').rstrip('.')
+    else:
+        return f"{value:.{precision}e}"

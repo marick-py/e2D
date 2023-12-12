@@ -65,7 +65,7 @@ class PointsFunction(Function):
 
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
-        if len(self.plot_points): pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points)
+        if len(self.plot_points)>=2: pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points)
         # for point in self.points:
             # pg.draw.circle(self.__layer_surface__,
             #                self.points_color,
@@ -120,7 +120,6 @@ class __PlotSettings__:
                 "distance_to_axis_for_scalar_zoom" : 10,
 
             # cursor
-                "show_cursor_coords" : False,
                 "zoom_on_center" : False,
 
             # plot visual options
@@ -152,6 +151,9 @@ class __PlotSettings__:
                     "show_pointer" : True,
                     "pointer_radius" : 15,
                     "pointer_color" : rgb(255, 255, 255),
+                
+                # cursor
+                    "show_cursor_coords" : False,
 
                 #rect
                     "render_bg" : True,
@@ -163,8 +165,9 @@ class __PlotSettings__:
 
                 # info options
                     "show_zoom_info": True,
-                    "top_left_info_position" : self.plot.position + V2(20, 100),
-                    "info_interline_space" : V2(0, 32),
+                    "top_left_info_position" : self.plot.position + V2(15, 75),
+                    "info_interline_space" : V2(0, 24),
+                    "info_font" : create_arial_font_size(24),
                     "info_precision" : 2,
         }
 
@@ -281,10 +284,10 @@ class Plot:
             pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1) #type: ignore
 
         if self.settings.get("show_corners_coords"):
-            self.rootEnv.print(str(self.top_left_plot_coord), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(V2(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y)), self.size * V2(0, 1), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_LEFT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(self.bottom_right_plot_coord), self.size.copy(), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(str(V2(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y)), self.size * V2(1, 0), fixed_sides=TEXT_FIXED_SIDES_TOP_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(self.top_left_plot_coord.advanced_stringify(4, True), V2z.copy(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(V2(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y).advanced_stringify(4, True), self.size * V2(0, 1), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_LEFT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(self.bottom_right_plot_coord.advanced_stringify(4, True), self.size.copy(), fixed_sides=TEXT_FIXED_SIDES_BOTTOM_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(V2(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y).advanced_stringify(4, True), self.size * V2(1, 0), fixed_sides=TEXT_FIXED_SIDES_TOP_RIGHT, bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=V2(10,10), personalized_surface=self.canvas)
     
     def update(self) -> None:
         # update mouse and center positions
@@ -389,14 +392,17 @@ class Plot:
         if not render_axes_on_top: self.rootEnv.screen.blit(self.canvas, self.position())
 
         if self.is_mouse_in_rect and self.settings.get("show_cursor_coords"):
-            self.rootEnv.print(str(self.plot_mouse_position), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
+            self.rootEnv.print(self.plot_mouse_position.advanced_stringify(3, True), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
 
+
+        current_real_zoom = (.5**(.1*self.current_zoom)).advanced_stringify(self.settings.get('info_precision'), True, True)
         data = [
             [f"ZOOM:", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  x: {(.5**(.1*self.current_zoom.x)):.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  y: {(.5**(.1*self.current_zoom.y)):.{self.settings.get('info_precision')}f};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  x: {current_real_zoom[0]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  y: {current_real_zoom[1]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  ratio: {optimize_value_string(self.current_zoom.x / self.current_zoom.y, 4)};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
         ]
 
         for i, (d, fixed_side, show) in enumerate(data):
             if show:
-                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_interline_space") * i, fixed_sides=fixed_side) #type: ignore
+                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_interline_space") * i, fixed_sides=fixed_side, font=self.settings.get("info_font"))
