@@ -677,7 +677,7 @@ class Vector2D:
             else:
                 return f"{value:.{precision}e}"
         if return_as_list:
-            return [optimize(self.x), optimize(self.y)] if use_scientific_notation else [f"{self.x:.{precision}f}" f"{self.y:.{precision}f}"]
+            return [optimize(self.x), optimize(self.y)] if use_scientific_notation else [f"{self.x:.{precision}f}", f"{self.y:.{precision}f}"]
         return f"{optimize(self.x)}, {optimize(self.y)}" if use_scientific_notation else f"{self.x:.{precision}f}, {self.y:.{precision}f}"
 
     def __str__(self:"V2|Vector2D") -> str:

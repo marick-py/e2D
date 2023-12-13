@@ -15,21 +15,37 @@ class Function:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
 
 class MathFunction(Function):
-    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255), domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf]) -> None:
         super().__init__()
         self.color = color
         self.function = function
+        self.domain = domain
+        self.codomain = codomain[::-1]
 
     def get_points(self) -> list:
         signs_self = np.sign(self.function(*self.plot.meshgrid))
+        # i create 4 different matrixes? with the signs of f(x,y) pixel, each matrix is shifted according to this list [(0,0), (-1,0), (0,-1), (-1,-1)] and i find the points where summing the matrix i obtain a float => [-4 < x < 4]
+        # credits for the plotting idea:
+        # https://www.youtube.com/watch?v=EvvWOaLgKVU
+        # mattbatwings (https://www.youtube.com/@mattbatwings)
+        
+        # real_domain = self.plot.__plot2real__()
+        domain = [((domain - self.plot.top_left_plot_coord.x) * self.plot.size.x / (self.plot.bottom_right_plot_coord.x - self.plot.top_left_plot_coord.x)) for domain in self.domain]
+        codomain = [((codomain - self.plot.top_left_plot_coord.y) * self.plot.size.y / (self.plot.bottom_right_plot_coord.y - self.plot.top_left_plot_coord.y)) for codomain in self.codomain]
+        
         signs_sum = signs_self + np.roll(signs_self, axis=1, shift=1) + np.roll(signs_self, axis=0, shift=-1) + np.roll(signs_self, axis=(1,0), shift=(1,-1))
-        return np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
-    
-    def update(self, new_function=None) -> None:
+        coords = np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
+        return coords[
+            np.logical_and(
+                np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
+                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))]
+
+    def update(self, new_function=None, render=True) -> None:
         if new_function != None:
             self.function = new_function
-        self.points = self.get_points()
-        self.render()
+        if render:
+            self.points = self.get_points()
+            self.render()
     
     def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> MathFunction:
         return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color)
@@ -222,6 +238,8 @@ class Plot:
         self.is_mouse_in_rect = False
         self.mouse_scalar = V2one.copy()
 
+        self.plot_mouse_position = V2z.copy()
+
         self.focus(V2(0,0), 10)
 
     def set_borders_by_position_and_zoom(self) -> None:
@@ -245,6 +263,9 @@ class Plot:
         function.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
         function.update()
         self.functions.append(function)
+    
+    def add_function(self, function:Function) -> None:
+        self.load_function(function)
 
     def __plot2real__(self, plot_position:V2|Vector2D) -> V2|Vector2D:
         return (plot_position + self.top_left_plot_coord * -1) * self.size / (self.bottom_right_plot_coord - self.top_left_plot_coord)
@@ -300,7 +321,7 @@ class Plot:
         # render the functions when i stop dragging (when i release the left mouse key)
         if self.rootEnv.mouse.just_released[0] and self.dragging != None:
             self.dragging = None
-            self.focus(None, None)
+            self.focus()
 
         if self.is_mouse_in_rect:
             # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
@@ -318,7 +339,7 @@ class Plot:
                         # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
                         self.update_grid(False)
                         self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
-                    self.focus(None, None)
+                    self.focus()
             
             # start dragging whenever mouse left button is just pressed
             if self.rootEnv.mouse.just_pressed[0] and self.dragging == None:
@@ -348,12 +369,12 @@ class Plot:
 
             # with real time rendering i update the function render each frame whnever im dragging the canvs around
             if self.settings.get("use_real_time_rendering"):
-                self.focus(None, None)
+                self.focus()
             else:
                 self.update_grid()
                 self.render()
         
-    def focus(self, center:V2|Vector2D|None=V2z, zoom:float|Vector2D|V2|None=10.0) -> None:
+    def focus(self, center:V2|Vector2D|None=None, zoom:float|Vector2D|V2|None=None) -> None:
         if center != None:
             self.current_offset = center.copy()
         if zoom != None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .utils import *
 import pygame as pg
+from time import time as __tm__
 
 """  CODE EXAMPLE FOR RootEnv
 from e2D.envs import *
@@ -44,7 +45,7 @@ class RootEnv:
         self.screen_size :V2|Vector2D= screen_size
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync, flags=window_flag)
         self.target_fps = target_fps
-        self.current_fps = self.target_fps
+        self.current_fps = self.target_fps if self.target_fps != 0 else 1
         self.current_frame = 0
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
@@ -54,6 +55,10 @@ class RootEnv:
         self.background_color = rgb(0,0,0)
         self._quit_on_key_pressed = quit_on_key_pressed
         self.clear_screen_each_frame = clear_screen_each_frame
+        self.starting_time = __tm__()
+    
+    def get_time_from_start(self) -> float:
+        return __tm__() - self.starting_time
     
     def init(self, sub_env) -> None:
         self.env = sub_env
