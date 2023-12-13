@@ -38,7 +38,7 @@ class MathFunction(Function):
         return coords[
             np.logical_and(
                 np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
-                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))]
+                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))] #type: ignore
 
     def update(self, new_function=None, render=True) -> None:
         if new_function != None:
@@ -81,7 +81,7 @@ class PointsFunction(Function):
 
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
-        if len(self.plot_points)>=2: pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points)
+        if len(self.plot_points)>=2: pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points) #type: ignore
         # for point in self.points:
             # pg.draw.circle(self.__layer_surface__,
             #                self.points_color,
