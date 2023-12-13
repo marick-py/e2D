@@ -137,6 +137,7 @@ class __PlotSettings__:
 
             # cursor
                 "zoom_on_center" : False,
+                "warp_mouse" : True,
 
             # plot visual options
                 # plot system
@@ -349,7 +350,7 @@ class Plot:
         # update the canvas if im dragging
         if self.dragging:
             moved = False
-            if not self.is_mouse_in_rect:
+            if (not self.is_mouse_in_rect) and self.settings.get("warp_mouse"):
                 if self.rootEnv.mouse.position.x < self.position.x:
                     self.rootEnv.mouse.set_position(V2(self.position.x + self.size.x, self.rootEnv.mouse.position.y))
                     moved = True
