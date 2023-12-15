@@ -1,6 +1,7 @@
 from __future__ import annotations
 from .envs import *
 import numpy as np
+import ctypes
 
 class Function:
     def __init__(self) -> None:
@@ -40,9 +41,11 @@ class MathFunction(Function):
                 np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
                 np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))] #type: ignore
 
-    def update(self, new_function=None, render=True) -> None:
+    def update(self, new_function=None, render=True, domain:list[float]|None=None, codomain:list[float]|None=None) -> None:
         if new_function != None:
             self.function = new_function
+        if domain != None: self.domain = domain
+        if codomain != None: self.codomain = codomain
         if render:
             self.points = self.get_points()
             self.render()
@@ -399,13 +402,13 @@ class Plot:
         # render axes
         if self.top_left_x < 0 < self.bottom_right_x and (self.settings.get("show_x_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if self.mouse_scalar.x else (self.settings.get("mouse_hover_axes_color")), #type: ignore
+                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if (self.mouse_scalar.x or not self.settings.get("change_axes_colors_on_mouse_hover")) else (self.settings.get("mouse_hover_axes_color")), #type: ignore
                          (self.__plot2real__(V2(0, self.top_left_y)) + self.position)(),
                          (self.__plot2real__(V2(0, self.bottom_right_y)) + self.position)(),
                          self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
         if self.bottom_right_y < 0 < self.top_left_y and (self.settings.get("show_y_axis") and self.settings.get("show_axes")):
             pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if self.mouse_scalar.y else (self.settings.get("mouse_hover_axes_color")), #type: ignore
+                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if (self.mouse_scalar.y or not self.settings.get("change_axes_colors_on_mouse_hover")) else (self.settings.get("mouse_hover_axes_color")), #type: ignore
                          (self.__plot2real__(V2(self.top_left_x, 0)) + self.position)(),
                          (self.__plot2real__(V2(self.bottom_right_x, 0)) + self.position)(),
                          self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
@@ -417,12 +420,13 @@ class Plot:
             self.rootEnv.print(self.plot_mouse_position.advanced_stringify(3, True), self.rootEnv.mouse.position, fixed_sides=TEXT_FIXED_SIDES_BOTTOM_MIDDLE) #type: ignore
 
 
-        current_real_zoom = (.5**(.1*self.current_zoom)).advanced_stringify(self.settings.get('info_precision'), True, True)
+        current_real_zoom = (.5**(.1*self.current_zoom))
+        str_current_real_zoom = current_real_zoom.advanced_stringify(self.settings.get('info_precision'), True, True)
         data = [
             [f"ZOOM:", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  x: {current_real_zoom[0]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  y: {current_real_zoom[1]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
-            [f"  ratio: {optimize_value_string(self.current_zoom.x / self.current_zoom.y, 4)};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  x: {str_current_real_zoom[0]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  y: {str_current_real_zoom[1]};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
+            [f"  ratio: {optimize_value_string(current_real_zoom.x / current_real_zoom.y, 4)};", TEXT_FIXED_SIDES_TOP_LEFT, self.settings.get("show_zoom_info")],
         ]
 
         for i, (d, fixed_side, show) in enumerate(data):
