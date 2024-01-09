@@ -1041,6 +1041,12 @@ def angular_interpolation(starting_angle:int|float, final_angle:int|float, step:
     distances = (final_angle - starting_angle, final_angle - DOUBLE_PI - starting_angle, final_angle + DOUBLE_PI - starting_angle)
     return min(distances, key=abs) * step
 
+def bezier_cubic_interpolation(t:float, p0:Vector2D|V2, p1:Vector2D|V2) -> float:
+    return t*p0.y*3*(1 - t)**2 + p1.y*3*(1 - t) * t**2 + t**3
+
+def bezier_quadratic_interpolation(t:float, p0:Vector2D|V2) -> float:
+    return 2*(1-t)*t*p0.y+t**2
+
 def avg_position(*others:"Vector2D|V2") -> Vector2D|V2:
     """
     # Calculate the average position for a variable number of Vector2D others.

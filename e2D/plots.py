@@ -1,7 +1,6 @@
 from __future__ import annotations
 from .envs import *
 import numpy as np
-import ctypes
 
 class Function:
     def __init__(self) -> None:
@@ -15,8 +14,20 @@ class Function:
     def draw(self) -> None:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
 
+class Object:
+    def __init__(self) -> None:
+        self.plot : Plot
+        self.__layer_surface__ :pg.Surface= None #type: ignore
+    
+    def update(self) -> None: pass
+    
+    def render(self) -> None: pass
+    
+    def draw(self) -> None:
+        self.plot.canvas.blit(self.__layer_surface__, (0,0))
+
 class MathFunction(Function):
-    def __init__(self, function, color:list[float]|tuple[float,float,float]=(255,255,255), domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf]) -> None:
+    def __init__(self, function, domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf], color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         super().__init__()
         self.color = color
         self.function = function
@@ -29,8 +40,6 @@ class MathFunction(Function):
         # credits for the plotting idea:
         # https://www.youtube.com/watch?v=EvvWOaLgKVU
         # mattbatwings (https://www.youtube.com/@mattbatwings)
-        
-        # real_domain = self.plot.__plot2real__()
         domain = [((domain - self.plot.top_left_plot_coord.x) * self.plot.size.x / (self.plot.bottom_right_plot_coord.x - self.plot.top_left_plot_coord.x)) for domain in self.domain]
         codomain = [((codomain - self.plot.top_left_plot_coord.y) * self.plot.size.y / (self.plot.bottom_right_plot_coord.y - self.plot.top_left_plot_coord.y)) for codomain in self.codomain]
         
@@ -51,7 +60,7 @@ class MathFunction(Function):
             self.render()
     
     def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> MathFunction:
-        return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color)
+        return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color) #type: ignore
 
     def render(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
@@ -67,7 +76,54 @@ class MathFunction(Function):
                 if self.plot.dragging != None:
                     point = round(point + offset)()
                 self.__layer_surface__.set_at(point, self.color) #type: ignore
-    
+
+class Line:
+    def __init__(self) -> None:
+        pass
+
+class Point:
+    def __init__(self, rootEnv) -> None:
+        pass
+class TimeFunction(Function):
+    def __init__(self, function, t_range:list[float]=[0,0, 1.0], t_step:float=.01, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+        super().__init__()
+        self.color = color
+        self.function = function
+        self.t_range = t_range
+        self.t_step = t_step
+    def get_points(self) -> list:
+        signs_self = np.sign(self.function(*self.plot.meshgrid))
+        domain = [((domain - self.plot.top_left_plot_coord.x) * self.plot.size.x / (self.plot.bottom_right_plot_coord.x - self.plot.top_left_plot_coord.x)) for domain in self.domain]
+        codomain = [((codomain - self.plot.top_left_plot_coord.y) * self.plot.size.y / (self.plot.bottom_right_plot_coord.y - self.plot.top_left_plot_coord.y)) for codomain in self.codomain]
+        signs_sum = signs_self + np.roll(signs_self, axis=1, shift=1) + np.roll(signs_self, axis=0, shift=-1) + np.roll(signs_self, axis=(1,0), shift=(1,-1))
+        coords = np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
+        return coords[
+            np.logical_and(
+                np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
+                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))] #type: ignore
+    def update(self, new_function=None, render=True, domain:list[float]|None=None, codomain:list[float]|None=None) -> None:
+        if new_function != None:
+            self.function = new_function
+        if domain != None: self.domain = domain
+        if codomain != None: self.codomain = codomain
+        if render:
+            self.points = self.get_points()
+            self.render()
+    def render(self) -> None:
+        self.__layer_surface__.fill((0,0,0,0))
+        offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
+        if any(x < 1 for x in self.plot.scale):
+            # draw rects
+            for point in self.points:
+                pg.draw.rect(self.__layer_surface__, self.color, (point.tolist() + offset)() + self.plot.pixel_size()) #type: ignore
+        else:
+            # draw points
+            for point in self.points:
+                point = point.astype(int).tolist()
+                if self.plot.dragging != None:
+                    point = round(point + offset)()
+                self.__layer_surface__.set_at(point, self.color) #type: ignore
+
 class PointsFunction(Function):
     def __init__(self, points:list[V2|Vector2D]=[], points_color:list[float]|tuple[float,float,float]=(255,0,0), color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         super().__init__()
@@ -225,30 +281,25 @@ class Plot:
     __y_axis_multiplier__ = V2(1, -1)
     def __init__(self, rootEnv:"RootEnv", plot_position:V2|Vector2D, plot_size:V2|Vector2D, top_left_plot_coord:V2|Vector2D, bottom_right_plot_coord: V2|Vector2D, scale:V2|Vector2D=V2one) -> None:
         self.rootEnv = rootEnv
-
         self.top_left_plot_coord = top_left_plot_coord
         self.bottom_right_plot_coord = bottom_right_plot_coord
-
         self.position = plot_position
         self.size = plot_size
         self.scale = scale
-
         self.settings = __PlotSettings__(self)
         self.functions :list[Function]= []
-
+        self.objects :list[Object]= []
         self.canvas = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
         self.dragging = None
         self.start_dragging = V2z
         self.is_mouse_in_rect = False
         self.mouse_scalar = V2one.copy()
-
         self.plot_mouse_position = V2z.copy()
-
-        self.focus(V2(0,0), 10)
+        self.focus_using_corners(top_left_plot_coord, bottom_right_plot_coord)
 
     def set_borders_by_position_and_zoom(self) -> None:
-        self.top_left_plot_coord = self.current_offset - (.5**(.1*self.current_zoom)) * self.__y_axis_multiplier__
-        self.bottom_right_plot_coord = self.current_offset + (.5**(.1*self.current_zoom)) * self.__y_axis_multiplier__
+        self.top_left_plot_coord = self.current_offset - 2**(-.1*self.current_zoom) * self.__y_axis_multiplier__
+        self.bottom_right_plot_coord = self.current_offset + 2**(-.1*self.current_zoom) * self.__y_axis_multiplier__
         self.top_left_x, self.top_left_y = self.top_left_plot_coord
         self.bottom_right_x, self.bottom_right_y = self.bottom_right_plot_coord
 
@@ -267,9 +318,23 @@ class Plot:
         function.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
         function.update()
         self.functions.append(function)
-    
     def add_function(self, function:Function) -> None:
         self.load_function(function)
+    
+    def load_object(self, obj:Object) -> None:
+        obj.plot = self
+        obj.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
+        obj.update()
+        self.objects.append(obj)
+    def add_object(self, function:Function) -> None:
+        self.load_function(function)
+    
+    def add(self, *data:Object|Function) -> None:
+        for d in data:
+            if isinstance(d, Object):
+                self.load_object(d)
+            elif isinstance(d, Function):
+                self.load_function(d)
 
     def __plot2real__(self, plot_position:V2|Vector2D) -> V2|Vector2D:
         return (plot_position + self.top_left_plot_coord * -1) * self.size / (self.bottom_right_plot_coord - self.top_left_plot_coord)
@@ -378,18 +443,27 @@ class Plot:
                 self.update_grid()
                 self.render()
         
+    def get_humanoid_zoom(self) -> None:
+        return 2 ** (-.1*self.current_zoom)
+        
     def focus(self, center:V2|Vector2D|None=None, zoom:float|Vector2D|V2|None=None) -> None:
         if center != None:
             self.current_offset = center.copy()
         if zoom != None:
             if any(isinstance(zoom, cls) for cls in {Vector2D, V2}):
-                self.current_zoom = 0-V2(np.log2(zoom.x), np.log2(zoom.y)) * 10
+                self.current_zoom = V2(np.log2(zoom.x), np.log2(zoom.y)) * -10
             else:
                 self.current_zoom = V2one * -np.log2(zoom)*10
         
         self.update_grid(True)
         for function in self.functions: function.update()
         self.render()
+    
+    def focus_using_corners(self, top_left_plot_coord:V2|Vector2D|None=None, bottom_right_plot_coord: V2|Vector2D|None=None) -> None:
+        self.focus(
+            (top_left_plot_coord + bottom_right_plot_coord)/2,
+            (bottom_right_plot_coord - top_left_plot_coord)/2 * self.__y_axis_multiplier__
+            )   
 
     def draw(self) -> None:
         # fill canvas with bg color
