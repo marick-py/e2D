@@ -3,8 +3,8 @@ from e2D.winrec import *
 
 class Env:
     def __init__(self) -> None:
-        size = rootEnv.screen_size
-        position = V2z.copy()
+        size = rootEnv.screen_size * .8
+        position = rootEnv.screen_size * .1
 
         # self.plot = Plot(rootEnv, position, size, V2(-PI*5, 2), V2(PI*5, -2), V2(1,1) * 1)
         self.plot = Plot(rootEnv, position, size, V2(-10, 10), V2(10, -10), V2(1,1) * .5)
@@ -39,10 +39,10 @@ class Env:
         # self.recorder.update()
 
 # (rootEnv:=RootEnv(V2(2560, 1440), target_fps=0, show_fps=False)).init(env:=Env())
-(rootEnv:=RootEnv(V2(720, 720), target_fps=0, show_fps=False)).init(env:=Env())
+(rootEnv:=RootEnv(V2(720, 720), target_fps=0, show_fps=True)).init(env:=Env())
 
-Vector2D.round_values_on_print = 2
-V2.round_values_on_print = 2
+# Vector2D.round_values_on_print = 2
+# V2.round_values_on_print = 2
 
 while not rootEnv.quit:
     rootEnv.frame()

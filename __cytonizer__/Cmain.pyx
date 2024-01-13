@@ -7,7 +7,7 @@ cdef class Vector2D:
     cdef float _x
     cdef float _y
 
-    def __cinit__(self, x=0, y=0):
+    def __init__(self, x=0, y=0):
         self.set(x, y)
     
     property x:

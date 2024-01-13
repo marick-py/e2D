@@ -312,8 +312,11 @@ class Vector2D:
             else:
                 raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
         return other
-    
-from Cmain import * #type: ignore
+
+try:
+    from e2D.Cmain import * #type: ignore
+except Exception as err:
+    raise Warning(f"Unable to load the C-version on Vector2D: \n\t{err}")
 
 class V2(Vector2D):
     def  __init__(self:"V2|Vector2D", x: int|float = 0, y: int|float = 0) -> None:
