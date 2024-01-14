@@ -314,9 +314,9 @@ class Vector2D:
         return other
 
 try:
-    from e2D.Cmain import * #type: ignore
+    from .Cmain import * #type: ignore
 except Exception as err:
-    raise Warning(f"Unable to load the C-version on Vector2D: \n\t{err}")
+    print(Warning(f"Unable to load the C-version on Vector2D: \n\t{err}"))
 
 class V2(Vector2D):
     def  __init__(self:"V2|Vector2D", x: int|float = 0, y: int|float = 0) -> None:
