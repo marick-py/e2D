@@ -2,7 +2,7 @@ from libc.math cimport cos, sin, atan2, pi
 from libc.stdlib cimport rand, RAND_MAX
 
 cdef class Vector2D:    
-    cdef int _storage_type
+    #cdef int _storage_type
 
     cdef float _x
     cdef float _y
@@ -12,31 +12,30 @@ cdef class Vector2D:
     
     property x:
         def __get__(self):
-            if self._storage_type == 0: return self._x
-            else: return int(self._x)
-        def __set__(self, value: float|int):
+            return self._x
+
+        def __set__(self, value):
             self._x = <float>value
-            self._update_storage_type()
+            #self._update_storage_type()
 
     property y:
         def __get__(self):
-            if self._storage_type == 0: return self._y
-            else: return int(self._y)
+            return self._y
 
-        def __set__(self, value: float|int):
+        def __set__(self, value):
             self._y = <float>value
-            self._update_storage_type()
+            #self._update_storage_type()
 
     def set(self, x=0, y=0):
         self._x = <float>x
         self._y = <float>y
-        self._update_storage_type()
+        #self._update_storage_type()
 
-    cdef void _update_storage_type(self):
-        if float(self._x) == self._x and float(self._y) == self._y:
-            self._storage_type = 0
-        else:
-            self._storage_type = 1
+#    cdef void _update_storage_type(self):
+#        if float(self._x) == self._x and float(self._y) == self._y:
+#            self._storage_type = 0
+#        else:
+#            self._storage_type = 1
 
     def distance_to(self, other):
         d = (self._x - other.x)**2 + (self._y - other.y)**2

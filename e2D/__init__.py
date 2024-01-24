@@ -313,10 +313,13 @@ class Vector2D:
                 raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
         return other
 
-try:
-    from .Cmain import * #type: ignore
-except Exception as err:
-    print(Warning(f"Unable to load the C-version on Vector2D: \n\t{err}"))
+# __pvector2d__ = Vector2D
+# try:
+#     from .Cmain import * #type: ignore
+#     __cvector2d__ = Vector2D
+# except Exception as err:
+#     print(Warning(f"Unable to load the C-version on Vector2D: \n\t{err}"))
+#     __cvector2d__ = None
 
 class V2(Vector2D):
     def  __init__(self:"V2|Vector2D", x: int|float = 0, y: int|float = 0) -> None:
