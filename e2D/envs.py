@@ -46,6 +46,7 @@ class RootEnv:
         self.screen = pg.display.set_mode(self.screen_size(), vsync=vsync, flags=window_flag)
         self.target_fps = target_fps
         self.current_fps = self.target_fps if self.target_fps != 0 else 1
+        self.delta = 1 / self.current_fps
         self.current_frame = 0
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
@@ -84,6 +85,7 @@ class RootEnv:
     def __draw__(self) -> None:
         self.clock.tick(self.target_fps)
         self.current_fps = self.clock.get_fps()
+        self.delta = 1 / (self.current_fps if self.current_fps != 0 else 1)
         if self.clear_screen_each_frame: self.clear()
         if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=(0,0,0))
 
