@@ -7,9 +7,15 @@ class Function:
         self.plot : Plot
         self.__layer_surface__ :pg.Surface= None #type: ignore
     
+    def __post_load_init__(self, plot:Plot) -> None:
+        self.plot = plot
+        self.__layer_surface__ = pg.Surface(self.plot.size(), pg.SRCALPHA, 32).convert_alpha()
+        self.update()
+        self.plot.functions.append(self)
+    
     def update(self) -> None: pass
     
-    def render(self) -> None: pass
+    def __render__(self) -> None: pass
     
     def draw(self) -> None:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
@@ -18,13 +24,67 @@ class Object:
     def __init__(self) -> None:
         self.plot : Plot
         self.__layer_surface__ :pg.Surface= None #type: ignore
+        self.__controller__ = None
+    
+    def __post_load_init__(self, plot:Plot, controller:Plot|Object) -> None:
+        self.plot = plot
+        self.__layer_surface__ = pg.Surface(self.plot.size(), pg.SRCALPHA, 32).convert_alpha()
+        self.__controller__ = controller
+        self.plot.objects.append(self)
+        if isinstance(self, Line):
+            self.point_a.__post_load_init__(self.plot, self)
+            self.point_b.__post_load_init__(self.plot, self)
     
     def update(self) -> None: pass
     
-    def render(self) -> None: pass
+    def __render__(self) -> None: pass
     
     def draw(self) -> None:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
+
+class Line(Object):
+    def __init__(self, point_a:V2|Vector2D|Point, point_b:V2|Vector2D|Point, color:list[float]|tuple[float,float,float]=(255,255,255), width:float=1) -> None:
+        super().__init__()
+        if isinstance(point_a, Point):
+            self.point_a = point_a
+        else:
+            self.point_a = Point(point_a)
+        if isinstance(point_b, Point):
+            self.point_b = point_b
+        else:
+            self.point_b = Point(point_b)
+        self.color = color
+        self.width = width
+    
+    def update(self) -> None:
+        self.__render__()
+
+    def __render__(self) -> None:
+        self.__layer_surface__.fill((0,0,0,0))
+        if self.point_a.__controller__ == self: self.point_a.update()
+        if self.point_b.__controller__ == self: self.point_b.update()
+        pg.draw.line(self.__layer_surface__, self.color, self.point_a.center(), self.point_b.center(), self.width)
+
+class Point(Object):
+    def __init__(self, position, label:str="", radius:float=1, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+        super().__init__()
+        self.position = position
+        self.radius = radius
+        self.color = color
+        self.label = label
+        self.rect :list[float]= [0, 0, 0, 0]
+        self.center = V2z.copy()
+
+    def update(self) -> None:
+        radius = self.radius * self.plot.size / (self.plot.bottom_right_plot_coord - self.plot.top_left_plot_coord) * self.plot.__y_axis_multiplier__
+        self.center = self.plot.__plot2real__(self.position)
+        position = self.center - radius * .5
+        self.rect = position() + radius()
+        self.__render__()
+
+    def __render__(self) -> None:
+        self.__layer_surface__.fill((0,0,0,0))
+        pg.draw.ellipse(self.__layer_surface__, self.color, self.rect)
 
 class MathFunction(Function):
     def __init__(self, function, domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf], color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
@@ -57,12 +117,12 @@ class MathFunction(Function):
         if codomain != None: self.codomain = codomain
         if render:
             self.points = self.get_points()
-            self.render()
+            self.__render__()
     
     def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> MathFunction:
         return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color) #type: ignore
 
-    def render(self) -> None:
+    def __render__(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
         if any(x < 1 for x in self.plot.scale):
@@ -77,13 +137,6 @@ class MathFunction(Function):
                     point = round(point + offset)()
                 self.__layer_surface__.set_at(point, self.color) #type: ignore
 
-class Line:
-    def __init__(self) -> None:
-        pass
-
-class Point:
-    def __init__(self, rootEnv) -> None:
-        pass
 class TimeFunction(Function):
     def __init__(self, function, t_range:list[float]=[0,0, 1.0], t_step:float=.01, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         super().__init__()
@@ -108,8 +161,8 @@ class TimeFunction(Function):
         if codomain != None: self.codomain = codomain
         if render:
             self.points = self.get_points()
-            self.render()
-    def render(self) -> None:
+            self.__render__()
+    def __render__(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else V2z
         if any(x < 1 for x in self.plot.scale):
@@ -136,9 +189,9 @@ class PointsFunction(Function):
         self.plot_points = [self.plot.__plot2real__(point)() for point in self.points if \
                         self.plot.top_left_x < point.x < self.plot.bottom_right_x and \
                         self.plot.bottom_right_y < point.y < self.plot.top_left_y]
-        self.render()
+        self.__render__()
 
-    def render(self) -> None:
+    def __render__(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         if len(self.plot_points)>=2: pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points) #type: ignore
         # for point in self.points:
@@ -314,20 +367,14 @@ class Plot:
                 self.pixel_size += V2one
 
     def load_function(self, function:Function) -> None:
-        function.plot = self
-        function.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
-        function.update()
-        self.functions.append(function)
+        function.__post_load_init__(self)
     def add_function(self, function:Function) -> None:
         self.load_function(function)
     
     def load_object(self, obj:Object) -> None:
-        obj.plot = self
-        obj.__layer_surface__ = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
-        obj.update()
-        self.objects.append(obj)
-    def add_object(self, function:Function) -> None:
-        self.load_function(function)
+        obj.__post_load_init__(self, self)
+    def add_object(self, function:Object) -> None:
+        self.load_object(function)
     
     def add(self, *data:Object|Function) -> None:
         for d in data:
@@ -360,6 +407,8 @@ class Plot:
 
         # draw functions
         for function in self.functions: function.draw()
+        # draw objects
+        for obj in self.objects: obj.draw()
 
         # draw rect, pointer and corner coords
         if self.settings.get("draw_rect"):
@@ -457,6 +506,7 @@ class Plot:
         
         self.update_grid(True)
         for function in self.functions: function.update()
+        for obj in self.objects: obj.update()
         self.render()
     
     def focus_using_corners(self, top_left_plot_coord:V2|Vector2D|None=None, bottom_right_plot_coord: V2|Vector2D|None=None) -> None:

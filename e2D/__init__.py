@@ -833,30 +833,16 @@ class Vector2D:
                 raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
         return other
 
+# __pvector2d__ = Vector2D
+# try:
+#     from .Cmain import * #type: ignore
+#     __cvector2d__ = Vector2D
+# except Exception as err:
+#     print(Warning(f"Unable to load the C-version on Vector2D: \n\t{err}"))
+#     __cvector2d__ = None
+
 class V2(Vector2D):
     def  __init__(self:"V2|Vector2D", x: int|float = 0, y: int|float = 0) -> None:
-        """
-        # Initialize a 2D vector (V2) with the specified x and y components.
-
-        ## Parameters:
-            x (int | float, optional): The x-component of the vector. Default is 0.
-            y (int | float, optional): The y-component of the vector. Default is 0.
-
-        ## Example:
-            vector1 = V2()        # Creates a V2 other with x=0 and y=0
-            vector2 = V2(3, -2.5) # Creates a V2 other with x=3 and y=-2.5
-
-        ## Explanation:
-            This class is an alias for the Vector2D class, with the benefit of using a shorter name (V2).
-
-            The constructor initializes a V2 other with the specified x and y components.
-
-            If no arguments are provided, the default values for x and y are both set to 0.
-
-            The x and y components can be integers or floating-point numbers.
-
-            Example usage is shown in the "Example" section above.
-        """
         super().__init__(x, y)
 
 V2inf = Vector2D(float('inf'), float('inf'))
@@ -1079,7 +1065,7 @@ def avg_position(*others:"Vector2D|V2") -> Vector2D|V2:
     """
     return sum(others) / len(others) #type: ignore
 
-def inter_points(ray:list["Vector2D|V2"]|tuple["Vector2D|V2", "Vector2D|V2"], lines:list[tuple["Vector2D|V2", "Vector2D|V2"]], return_inter_lines:bool=False, sort:bool=False, return_empty:bool=False) -> list[tuple[Vector2D | None, tuple[Vector2D | V2, Vector2D | V2]]] | list[Vector2D | None]:
+def inter_points(ray:list["Vector2D|V2"]|tuple["Vector2D|V2", "Vector2D|V2"], lines:list[tuple["Vector2D|V2", "Vector2D|V2"]], return_inter_lines:bool=False, sort:bool=False, return_empty:bool=False) -> list[tuple[Vector2D | None, tuple[Vector2D | V2, Vector2D | V2]]] | list[Vector2D | None] | list[V2|Vector2D]:
     """
     # Find intersection points between a ray or line segment and multiple line segments.
 
@@ -1133,10 +1119,10 @@ def inter_points(ray:list["Vector2D|V2"]|tuple["Vector2D|V2", "Vector2D|V2"], li
         return None
     
     if return_inter_lines:
-        collisions = [(lineLineIntersect(line[1], line[0], ray[1], ray[0]), line) for line in lines if (line!=None or return_empty)]
+        collisions = [(ip, line) for line in lines if ((ip:=lineLineIntersect(line[1], line[0], ray[1], ray[0]))!=None or return_empty)]
         return sorted(collisions, key=lambda x: ray[0].distance_to(x[0], False) if x[0] != None else _mt.inf) if sort else collisions
     else:
-        collisions = [lineLineIntersect(line[1], line[0], ray[1], ray[0]) for line in lines if (line!=None or return_empty)]
+        collisions = [ip for line in lines if ((ip:=lineLineIntersect(line[1], line[0], ray[1], ray[0]))!=None or return_empty)]
         return sorted(collisions, key=lambda x: ray[0].distance_to(x, False) if x != None else _mt.inf) if sort else collisions
 
 def get_points(position:Vector2D|V2, size:Vector2D|V2, rotation:int|float=0, pos_in_middle:bool=True, return_list:bool=False, clockwise_return:bool=False) -> tuple["Vector2D|V2", "Vector2D|V2", "Vector2D|V2", "Vector2D|V2"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
