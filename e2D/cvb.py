@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+__all__ = ['cV2', 'cVector2D']
+
 class Vector2D:
     round_values_on_print :int|float= 2
     def __init__(self:"Vector2D", x:int|float=0.0, y:int|float=0.0) -> None:
@@ -60,11 +62,11 @@ class Vector2D:
         ## Parameters:
             other (float or int or Vector2D or list|tuple): The other other to which the distance is calculated.
             squared (bool, optional): If True, return the squared distance. If False, return the actual distance.
-                                      Default is True.
+                                    Default is True.
 
         ## Returns:
             int|float: The squared distance between the current Vector2D other and the other other if `squared` is True,
-                      otherwise the actual distance.
+                    otherwise the actual distance.
 
         ## Example:
             point1 = Vector2D(0, 0)
@@ -600,7 +602,7 @@ class Vector2D:
             error_mode (str, optional): The mode to handle division by zero scenarios.
                                         - "zero" (default): Return a Vector2D other with zeros for both components.
                                         - "null": Return a Vector2D other with the original x or y component if available,
-                                                   otherwise, return NaN (Not a Number) for the component.
+                                                otherwise, return NaN (Not a Number) for the component.
 
         ## Returns:
             Vector2D: A new Vector2D other after division or handling division by zero scenarios.
@@ -624,13 +626,13 @@ class Vector2D:
             If n is a numeric value (int or float):
                 - If n is zero, the function returns a Vector2D other with zeros for both components if error_mode is "zero".
                 - If error_mode is "null", the function returns a Vector2D other with the original x or y component if available,
-                  otherwise, return NaN (Not a Number) for the component.
+                otherwise, return NaN (Not a Number) for the component.
 
             If n is a Vector2D other:
                 - If n's x or y component is zero, the function returns a Vector2D other with zeros for the corresponding component
-                  if error_mode is "zero".
+                if error_mode is "zero".
                 - If error_mode is "null", the function returns a Vector2D other with the original x or y component if available,
-                  otherwise, return NaN (Not a Number) for the component.
+                otherwise, return NaN (Not a Number) for the component.
 
             If n is neither a numeric value nor a Vector2D other, the function raises an exception.
         """
@@ -819,11 +821,11 @@ class Vector2D:
                 raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
         return other
 
-__pvector2d__ = Vector2D
 try:
-    # from .Cmain import * #type: ignore
-    # cV2 = Vector2D
-    cv2 = None
+    from .Cmain import * #type: ignore
+    cV2 = Vector2D
+    cVector2D = Vector2D
 except Exception as err:
     print(Warning(f"Unable to load the C-version on Vector2D: \n\t{err}"))
     cV2 = None
+    cVector2D = None
