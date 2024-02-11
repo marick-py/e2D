@@ -830,7 +830,10 @@ class Vector2D:
             elif any(isinstance(other, cls) for cls in {list, tuple}):
                 return Vector2D(*other[:2])
             else:
-                raise TypeError(f"The value {other} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
+                try:
+                    return Vector2D(other.x, other.y)
+                except:
+                    raise TypeError(f"pThe value {other} of type {type(other)} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
         return other
 
 from .cvb import *

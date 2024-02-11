@@ -2788,6 +2788,7 @@ static const char __pyx_k_update[] = "update";
 static const char __pyx_k_disable[] = "disable";
 static const char __pyx_k_floor_2[] = "floor";
 static const char __pyx_k_genexpr[] = "genexpr";
+static const char __pyx_k_of_type[] = " of type ";
 static const char __pyx_k_round_2[] = "__round__";
 static const char __pyx_k_Vector2D[] = "Vector2D";
 static const char __pyx_k_angle_to[] = "angle_to";
@@ -3116,6 +3117,7 @@ typedef struct {
   PyObject *__pyx_n_s_normal;
   PyObject *__pyx_n_s_normalize;
   PyObject *__pyx_n_s_null;
+  PyObject *__pyx_kp_u_of_type;
   PyObject *__pyx_n_s_optimize;
   PyObject *__pyx_n_s_other;
   PyObject *__pyx_n_s_pickle;
@@ -3412,6 +3414,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_normal);
   Py_CLEAR(clear_module_state->__pyx_n_s_normalize);
   Py_CLEAR(clear_module_state->__pyx_n_s_null);
+  Py_CLEAR(clear_module_state->__pyx_kp_u_of_type);
   Py_CLEAR(clear_module_state->__pyx_n_s_optimize);
   Py_CLEAR(clear_module_state->__pyx_n_s_other);
   Py_CLEAR(clear_module_state->__pyx_n_s_pickle);
@@ -3686,6 +3689,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_normal);
   Py_VISIT(traverse_module_state->__pyx_n_s_normalize);
   Py_VISIT(traverse_module_state->__pyx_n_s_null);
+  Py_VISIT(traverse_module_state->__pyx_kp_u_of_type);
   Py_VISIT(traverse_module_state->__pyx_n_s_optimize);
   Py_VISIT(traverse_module_state->__pyx_n_s_other);
   Py_VISIT(traverse_module_state->__pyx_n_s_pickle);
@@ -3976,6 +3980,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_normal __pyx_mstate_global->__pyx_n_s_normal
 #define __pyx_n_s_normalize __pyx_mstate_global->__pyx_n_s_normalize
 #define __pyx_n_s_null __pyx_mstate_global->__pyx_n_s_null
+#define __pyx_kp_u_of_type __pyx_mstate_global->__pyx_kp_u_of_type
 #define __pyx_n_s_optimize __pyx_mstate_global->__pyx_n_s_optimize
 #define __pyx_n_s_other __pyx_mstate_global->__pyx_n_s_other
 #define __pyx_n_s_pickle __pyx_mstate_global->__pyx_n_s_pickle
@@ -15060,8 +15065,13 @@ static PyObject *__pyx_f_5Cmain_8Vector2D___normalize__(CYTHON_UNUSED struct __p
   PyObject *__pyx_t_4 = NULL;
   float __pyx_t_5;
   PyObject *__pyx_t_6 = NULL;
-  Py_ssize_t __pyx_t_7;
-  Py_UCS4 __pyx_t_8;
+  PyObject *__pyx_t_7 = NULL;
+  PyObject *__pyx_t_8 = NULL;
+  PyObject *__pyx_t_9 = NULL;
+  PyObject *__pyx_t_10 = NULL;
+  Py_ssize_t __pyx_t_11;
+  Py_UCS4 __pyx_t_12;
+  PyObject *__pyx_t_13 = NULL;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
@@ -15178,14 +15188,14 @@ static PyObject *__pyx_f_5Cmain_8Vector2D___normalize__(CYTHON_UNUSED struct __p
     __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
     __pyx_t_3 = __Pyx_PyObject_IsTrue(__pyx_t_4); if (unlikely((__pyx_t_3 < 0))) __PYX_ERR(0, 308, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-    if (likely(__pyx_t_3)) {
+    if (__pyx_t_3) {
 
       /* "Cmain.pyx":309
  *                 return Vector2D(<float>other, <float>other)
  *             elif any(isinstance(other, cls) for cls in (list, tuple)):
  *                 return Vector2D(<float>other[0], <float>other[1])             # <<<<<<<<<<<<<<
  *             else:
- *                 raise TypeError(f"The value {other} is not a num type: [int|float] nor an array type: [list|tuple]")
+ *                 try:
  */
       __Pyx_XDECREF(__pyx_r);
       __pyx_t_4 = __Pyx_GetItemInt(__pyx_cur_scope->__pyx_v_other, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 1); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 309, __pyx_L1_error)
@@ -15227,38 +15237,149 @@ static PyObject *__pyx_f_5Cmain_8Vector2D___normalize__(CYTHON_UNUSED struct __p
     /* "Cmain.pyx":311
  *                 return Vector2D(<float>other[0], <float>other[1])
  *             else:
- *                 raise TypeError(f"The value {other} is not a num type: [int|float] nor an array type: [list|tuple]")             # <<<<<<<<<<<<<<
- *         return other
+ *                 try:             # <<<<<<<<<<<<<<
+ *                     return Vector2D(<float>other.x, <float>other.y)
+ *                 except:
  */
     /*else*/ {
-      __pyx_t_6 = PyTuple_New(3); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 311, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __pyx_t_7 = 0;
-      __pyx_t_8 = 127;
-      __Pyx_INCREF(__pyx_kp_u_The_value);
-      __pyx_t_7 += 10;
-      __Pyx_GIVEREF(__pyx_kp_u_The_value);
-      PyTuple_SET_ITEM(__pyx_t_6, 0, __pyx_kp_u_The_value);
-      __pyx_t_1 = __Pyx_PyObject_FormatSimple(__pyx_cur_scope->__pyx_v_other, __pyx_empty_unicode); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 311, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __pyx_t_8 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_1) > __pyx_t_8) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_1) : __pyx_t_8;
-      __pyx_t_7 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_1);
-      __Pyx_GIVEREF(__pyx_t_1);
-      PyTuple_SET_ITEM(__pyx_t_6, 1, __pyx_t_1);
-      __pyx_t_1 = 0;
-      __Pyx_INCREF(__pyx_kp_u_is_not_a_num_type_int_float_nor);
-      __pyx_t_7 += 63;
-      __Pyx_GIVEREF(__pyx_kp_u_is_not_a_num_type_int_float_nor);
-      PyTuple_SET_ITEM(__pyx_t_6, 2, __pyx_kp_u_is_not_a_num_type_int_float_nor);
-      __pyx_t_1 = __Pyx_PyUnicode_Join(__pyx_t_6, 3, __pyx_t_7, __pyx_t_8); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 311, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_1);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __pyx_t_6 = __Pyx_PyObject_CallOneArg(__pyx_builtin_TypeError, __pyx_t_1); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 311, __pyx_L1_error)
-      __Pyx_GOTREF(__pyx_t_6);
-      __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-      __Pyx_Raise(__pyx_t_6, 0, 0, 0);
-      __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
-      __PYX_ERR(0, 311, __pyx_L1_error)
+      {
+        __Pyx_PyThreadState_declare
+        __Pyx_PyThreadState_assign
+        __Pyx_ExceptionSave(&__pyx_t_7, &__pyx_t_8, &__pyx_t_9);
+        __Pyx_XGOTREF(__pyx_t_7);
+        __Pyx_XGOTREF(__pyx_t_8);
+        __Pyx_XGOTREF(__pyx_t_9);
+        /*try:*/ {
+
+          /* "Cmain.pyx":312
+ *             else:
+ *                 try:
+ *                     return Vector2D(<float>other.x, <float>other.y)             # <<<<<<<<<<<<<<
+ *                 except:
+ *                     raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")
+ */
+          __Pyx_XDECREF(__pyx_r);
+          __pyx_t_6 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_other, __pyx_n_s_x); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_5 = __pyx_PyFloat_AsFloat(__pyx_t_6); if (unlikely((__pyx_t_5 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_DECREF(__pyx_t_6); __pyx_t_6 = 0;
+          __pyx_t_6 = PyFloat_FromDouble(((float)__pyx_t_5)); if (unlikely(!__pyx_t_6)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_6);
+          __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_cur_scope->__pyx_v_other, __pyx_n_s_y); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __pyx_t_5 = __pyx_PyFloat_AsFloat(__pyx_t_1); if (unlikely((__pyx_t_5 == (float)-1) && PyErr_Occurred())) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+          __pyx_t_1 = PyFloat_FromDouble(((float)__pyx_t_5)); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __pyx_t_4 = PyTuple_New(2); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_4);
+          __Pyx_GIVEREF(__pyx_t_6);
+          if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 0, __pyx_t_6)) __PYX_ERR(0, 312, __pyx_L5_error);
+          __Pyx_GIVEREF(__pyx_t_1);
+          if (__Pyx_PyTuple_SET_ITEM(__pyx_t_4, 1, __pyx_t_1)) __PYX_ERR(0, 312, __pyx_L5_error);
+          __pyx_t_6 = 0;
+          __pyx_t_1 = 0;
+          __pyx_t_1 = __Pyx_PyObject_Call(((PyObject *)__pyx_ptype_5Cmain_Vector2D), __pyx_t_4, NULL); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 312, __pyx_L5_error)
+          __Pyx_GOTREF(__pyx_t_1);
+          __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+          __pyx_r = __pyx_t_1;
+          __pyx_t_1 = 0;
+          goto __pyx_L9_try_return;
+
+          /* "Cmain.pyx":311
+ *                 return Vector2D(<float>other[0], <float>other[1])
+ *             else:
+ *                 try:             # <<<<<<<<<<<<<<
+ *                     return Vector2D(<float>other.x, <float>other.y)
+ *                 except:
+ */
+        }
+        __pyx_L5_error:;
+        __Pyx_XDECREF(__pyx_t_1); __pyx_t_1 = 0;
+        __Pyx_XDECREF(__pyx_t_4); __pyx_t_4 = 0;
+        __Pyx_XDECREF(__pyx_t_6); __pyx_t_6 = 0;
+
+        /* "Cmain.pyx":313
+ *                 try:
+ *                     return Vector2D(<float>other.x, <float>other.y)
+ *                 except:             # <<<<<<<<<<<<<<
+ *                     raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")
+ *         return other
+ */
+        /*except:*/ {
+          __Pyx_AddTraceback("Cmain.Vector2D.__normalize__", __pyx_clineno, __pyx_lineno, __pyx_filename);
+          if (__Pyx_GetException(&__pyx_t_1, &__pyx_t_4, &__pyx_t_6) < 0) __PYX_ERR(0, 313, __pyx_L7_except_error)
+          __Pyx_XGOTREF(__pyx_t_1);
+          __Pyx_XGOTREF(__pyx_t_4);
+          __Pyx_XGOTREF(__pyx_t_6);
+
+          /* "Cmain.pyx":314
+ *                     return Vector2D(<float>other.x, <float>other.y)
+ *                 except:
+ *                     raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")             # <<<<<<<<<<<<<<
+ *         return other
+ */
+          __pyx_t_10 = PyTuple_New(5); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 314, __pyx_L7_except_error)
+          __Pyx_GOTREF(__pyx_t_10);
+          __pyx_t_11 = 0;
+          __pyx_t_12 = 127;
+          __Pyx_INCREF(__pyx_kp_u_The_value);
+          __pyx_t_11 += 10;
+          __Pyx_GIVEREF(__pyx_kp_u_The_value);
+          PyTuple_SET_ITEM(__pyx_t_10, 0, __pyx_kp_u_The_value);
+          __pyx_t_13 = __Pyx_PyObject_FormatSimple(__pyx_cur_scope->__pyx_v_other, __pyx_empty_unicode); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 314, __pyx_L7_except_error)
+          __Pyx_GOTREF(__pyx_t_13);
+          __pyx_t_12 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) > __pyx_t_12) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) : __pyx_t_12;
+          __pyx_t_11 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_13);
+          __Pyx_GIVEREF(__pyx_t_13);
+          PyTuple_SET_ITEM(__pyx_t_10, 1, __pyx_t_13);
+          __pyx_t_13 = 0;
+          __Pyx_INCREF(__pyx_kp_u_of_type);
+          __pyx_t_11 += 9;
+          __Pyx_GIVEREF(__pyx_kp_u_of_type);
+          PyTuple_SET_ITEM(__pyx_t_10, 2, __pyx_kp_u_of_type);
+          __pyx_t_13 = __Pyx_PyObject_FormatSimple(((PyObject *)Py_TYPE(__pyx_cur_scope->__pyx_v_other)), __pyx_empty_unicode); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 314, __pyx_L7_except_error)
+          __Pyx_GOTREF(__pyx_t_13);
+          __pyx_t_12 = (__Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) > __pyx_t_12) ? __Pyx_PyUnicode_MAX_CHAR_VALUE(__pyx_t_13) : __pyx_t_12;
+          __pyx_t_11 += __Pyx_PyUnicode_GET_LENGTH(__pyx_t_13);
+          __Pyx_GIVEREF(__pyx_t_13);
+          PyTuple_SET_ITEM(__pyx_t_10, 3, __pyx_t_13);
+          __pyx_t_13 = 0;
+          __Pyx_INCREF(__pyx_kp_u_is_not_a_num_type_int_float_nor);
+          __pyx_t_11 += 63;
+          __Pyx_GIVEREF(__pyx_kp_u_is_not_a_num_type_int_float_nor);
+          PyTuple_SET_ITEM(__pyx_t_10, 4, __pyx_kp_u_is_not_a_num_type_int_float_nor);
+          __pyx_t_13 = __Pyx_PyUnicode_Join(__pyx_t_10, 5, __pyx_t_11, __pyx_t_12); if (unlikely(!__pyx_t_13)) __PYX_ERR(0, 314, __pyx_L7_except_error)
+          __Pyx_GOTREF(__pyx_t_13);
+          __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+          __pyx_t_10 = __Pyx_PyObject_CallOneArg(__pyx_builtin_TypeError, __pyx_t_13); if (unlikely(!__pyx_t_10)) __PYX_ERR(0, 314, __pyx_L7_except_error)
+          __Pyx_GOTREF(__pyx_t_10);
+          __Pyx_DECREF(__pyx_t_13); __pyx_t_13 = 0;
+          __Pyx_Raise(__pyx_t_10, 0, 0, 0);
+          __Pyx_DECREF(__pyx_t_10); __pyx_t_10 = 0;
+          __PYX_ERR(0, 314, __pyx_L7_except_error)
+        }
+
+        /* "Cmain.pyx":311
+ *                 return Vector2D(<float>other[0], <float>other[1])
+ *             else:
+ *                 try:             # <<<<<<<<<<<<<<
+ *                     return Vector2D(<float>other.x, <float>other.y)
+ *                 except:
+ */
+        __pyx_L7_except_error:;
+        __Pyx_XGIVEREF(__pyx_t_7);
+        __Pyx_XGIVEREF(__pyx_t_8);
+        __Pyx_XGIVEREF(__pyx_t_9);
+        __Pyx_ExceptionReset(__pyx_t_7, __pyx_t_8, __pyx_t_9);
+        goto __pyx_L1_error;
+        __pyx_L9_try_return:;
+        __Pyx_XGIVEREF(__pyx_t_7);
+        __Pyx_XGIVEREF(__pyx_t_8);
+        __Pyx_XGIVEREF(__pyx_t_9);
+        __Pyx_ExceptionReset(__pyx_t_7, __pyx_t_8, __pyx_t_9);
+        goto __pyx_L0;
+      }
     }
 
     /* "Cmain.pyx":305
@@ -15270,9 +15391,9 @@ static PyObject *__pyx_f_5Cmain_8Vector2D___normalize__(CYTHON_UNUSED struct __p
  */
   }
 
-  /* "Cmain.pyx":312
- *             else:
- *                 raise TypeError(f"The value {other} is not a num type: [int|float] nor an array type: [list|tuple]")
+  /* "Cmain.pyx":315
+ *                 except:
+ *                     raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")
  *         return other             # <<<<<<<<<<<<<<
  */
   __Pyx_XDECREF(__pyx_r);
@@ -15293,6 +15414,8 @@ static PyObject *__pyx_f_5Cmain_8Vector2D___normalize__(CYTHON_UNUSED struct __p
   __Pyx_XDECREF(__pyx_t_1);
   __Pyx_XDECREF(__pyx_t_4);
   __Pyx_XDECREF(__pyx_t_6);
+  __Pyx_XDECREF(__pyx_t_10);
+  __Pyx_XDECREF(__pyx_t_13);
   __Pyx_AddTraceback("Cmain.Vector2D.__normalize__", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __pyx_r = 0;
   __pyx_L0:;
@@ -17550,6 +17673,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
     {&__pyx_n_s_normal, __pyx_k_normal, sizeof(__pyx_k_normal), 0, 0, 1, 1},
     {&__pyx_n_s_normalize, __pyx_k_normalize, sizeof(__pyx_k_normalize), 0, 0, 1, 1},
     {&__pyx_n_s_null, __pyx_k_null, sizeof(__pyx_k_null), 0, 0, 1, 1},
+    {&__pyx_kp_u_of_type, __pyx_k_of_type, sizeof(__pyx_k_of_type), 0, 1, 0, 0},
     {&__pyx_n_s_optimize, __pyx_k_optimize, sizeof(__pyx_k_optimize), 0, 0, 1, 1},
     {&__pyx_n_s_other, __pyx_k_other, sizeof(__pyx_k_other), 0, 0, 1, 1},
     {&__pyx_n_s_pickle, __pyx_k_pickle, sizeof(__pyx_k_pickle), 0, 0, 1, 1},
@@ -17622,7 +17746,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) __PYX_ERR(0, 111, __pyx_L1_error)
   __pyx_builtin_round = __Pyx_GetBuiltinName(__pyx_n_s_round); if (!__pyx_builtin_round) __PYX_ERR(0, 288, __pyx_L1_error)
   __pyx_builtin_IndexError = __Pyx_GetBuiltinName(__pyx_n_s_IndexError); if (!__pyx_builtin_IndexError) __PYX_ERR(0, 303, __pyx_L1_error)
-  __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(0, 311, __pyx_L1_error)
+  __pyx_builtin_TypeError = __Pyx_GetBuiltinName(__pyx_n_s_TypeError); if (!__pyx_builtin_TypeError) __PYX_ERR(0, 314, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
   return -1;
