@@ -1,7 +1,7 @@
 from libc.math cimport cos, sin, atan2, pi
 from libc.stdlib cimport rand, RAND_MAX
 
-cdef class Vector2D:    
+cdef class Vector2D:
     #cdef int _storage_type
 
     cdef float _x
