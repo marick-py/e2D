@@ -24,8 +24,10 @@ class Env:
         
         self.plot.add_function(MathFunction(lambda x,y: x**y - y**x))
         self.plot.add_function(MathFunction(lambda x,y: x - y, color=(255,0,0)))
-        self.plot.add_object(Point(V2(5, 5), color=(255,127,0)))
-        self.plot.add_object(Line(V2(-5, 5), V2(5, -5), color=(255,127,0)))
+        # self.plot.add_object(Point(V2(5, 5), color=(255,127,0)))
+        self.plot.add_object(Line(V2(1, 2), V2(5, 3), color=(255,127,0)))
+        self.plot.add_object(Line(V2(6, 6), V2(8, 8), color=(255,127,0)))
+        self.plot.add_object(Line(V2(7, 7), V2(10, 6), color=(255,127,0)))
 
         self.plot.render()
 

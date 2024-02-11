@@ -308,7 +308,7 @@ def test_inter_points() -> None:
     assert result == [(V2(2.333333333333333, 2.333333333333333), (V2(2, 2), V2(4, 4))), (V2(3.8571428571428568, 2.7142857142857144), (V2(3, 3), V2(6, 2)))]
     ray = [Vector2D(1, 2), Vector2D(5, 3)]
     lines = [(Vector2D(6, 6), Vector2D(8, 8)), (Vector2D(7, 7), Vector2D(10, 6))]
-    result = inter_points(ray, lines, return_inter_lines=True, sort=True)
+    result = inter_points(ray, lines, return_inter_lines=True, return_empty=True)
     assert result == [(None, (V2(6, 6), V2(8, 8))), (None, (V2(7, 7), V2(10, 6)))]
     ray = [Vector2D(1, 2), Vector2D(5, 3)]
     lines = [(Vector2D(2, 2), Vector2D(4, 4)), (Vector2D(3, 3), Vector2D(6, 2))]
