@@ -1,51 +1,21 @@
-from e2D.plots import *
-from e2D.winrec import *
+from timeit import timeit as tm
+import e2D
 
-class Env:
-    def __init__(self) -> None:
-        size = rootEnv.screen_size * .8
-        position = rootEnv.screen_size * .1
+v1 = Vector2D(2, 4)
+v2 = Vector2D(4, 8)
 
-        # self.plot = Plot(rootEnv, position, size, V2(-PI*5, 2), V2(PI*5, -2), V2(1,1) * 1)
-        self.plot = Plot(rootEnv, position, size, V2(-10, 10), V2(10, -10), V2(1,1) * .5)
+v3 = e2D.V2(2,4)
+v4 = e2D.V2(4,8)
+v5 = e2D.V2(8,8)
 
-        self.plot.settings.multiple_set({
-            "show_grid" : False,
-            "grid_step" : V2(DOUBLE_PI, 1),
-            "show_cursor_coords" : True,
-            "show_pointer" : False,
-            "show_zoom_info" : False,
-            "change_axes_colors_on_mouse_hover" : False,
-            "show_corners_coords" : False,
-            "show_axes" : True
-            # "use_real_time_rendering" : False,
-        })
-        # self.recorder = WinRec(rootEnv, fps=60)
-        
-        self.plot.add_function(MathFunction(lambda x,y: x**y - y**x))
-        self.plot.add_function(MathFunction(lambda x,y: x - y, color=(255,0,0)))
-        # self.plot.add_object(Point(V2(5, 5), color=(255,127,0)))
-        self.plot.add_object(Line(V2(1, 2), V2(5, 3), color=(255,127,0)))
-        self.plot.add_object(Line(V2(6, 6), V2(8, 8), color=(255,127,0)))
-        self.plot.add_object(Line(V2(7, 7), V2(10, 6), color=(255,127,0)))
+t1 = tm("avg_position(*[V2one*i for i in range(1000)])", number=1_000, globals=globals())
+t2 = tm("e2D.avg_position(*[V2one*i for i in range(1000)])", number=1_000, globals=globals())
+# t3 = tm("v3 * v5", number=1_000_000, globals=globals())
 
-        self.plot.render()
+print(v1 + 1, v3 + 1)
+print(t1, t2, 100 / t1 * t2)
 
-    def draw(self) -> None:
-        self.plot.draw()
-        # self.recorder.draw(True)
-
-    def update(self) -> None:
-        self.plot.focus()
-        self.plot.update()
-        # self.recorder.update()
-
-# (rootEnv:=RootEnv(V2(2560, 1440), target_fps=0, show_fps=False)).init(env:=Env())
-(rootEnv:=RootEnv(V2(720, 720), target_fps=0, show_fps=True)).init(env:=Env())
-
-# Vector2D.round_values_on_print = 2
-# V2.round_values_on_print = 2
-
-while not rootEnv.quit:
-    rootEnv.frame()
-# env.recorder.quit()
+v1.y = 1
+print(v1)
+v1.y *= 5.5
+print(v1)
