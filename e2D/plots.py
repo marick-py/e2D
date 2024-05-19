@@ -66,18 +66,30 @@ class Line(Object):
         pg.draw.line(self.__layer_surface__, self.color, self.point_a.center(), self.point_b.center(), self.width)
 
 class Point(Object):
-    def __init__(self, position, label:str="", radius:float=1, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self, position, label:str="", radius:float=1, color:list[float]|tuple[float,float,float]=(255,255,255),
+                 label_color:tuple[float, float, float]=(255, 255, 255), label_position_offset:Vector2D|V2=V2z,  label_fixed_sides:int=TEXT_FIXED_SIDES_TOP_LEFT, label_font:pg.font.Font=FONT_ARIAL_32, label_bg_color:tuple[int,int,int]|list[int]|None=None, label_border_color:tuple[int,int,int]|list[int]|None=None, label_border_width:float=0, label_border_radius:int|list[int]|tuple[int,int,int,int]=-1, label_margin:V2=V2z) -> None:
         super().__init__()
         self.position = position
         self.radius = radius
         self.color = color
         self.label = label
+        self.label_color = label_color
+        self.label_position_offset = label_position_offset
+        self.label_fixed_sides = label_fixed_sides
+        self.label_font = label_font
+        self.label_bg_color = label_bg_color
+        self.label_border_color = label_border_color
+        self.label_border_width = label_border_width
+        self.label_border_radius = label_border_radius
+        self.label_margin = label_margin
+
         self.rect :list[float]= [0, 0, 0, 0]
         self.center = V2z.copy()
 
     def update(self) -> None:
         radius = self.radius * self.plot.size / (self.plot.bottom_right_plot_coord - self.plot.top_left_plot_coord) * self.plot.__y_axis_multiplier__
         self.center = self.plot.__plot2real__(self.position)
+        self.text_position = self.plot.__plot2real__(self.position + self.label_position_offset)
         position = self.center - radius * .5
         self.rect = position() + radius()
         self.__render__()
@@ -85,6 +97,7 @@ class Point(Object):
     def __render__(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         pg.draw.ellipse(self.__layer_surface__, self.color, self.rect)
+        self.plot.rootEnv.print(self.label, self.text_position, color=self.label_color, fixed_sides=self.label_fixed_sides, font=self.label_font, bg_color=self.label_bg_color, border_color=self.label_border_color, border_width=self.label_border_width, border_radius=self.label_border_radius, margin=self.label_margin, personalized_surface=self.__layer_surface__)
 
 class MathFunction(Function):
     def __init__(self, function, domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf], color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
@@ -250,6 +263,8 @@ class __PlotSettings__:
             # cursor
                 "zoom_on_center" : False,
                 "warp_mouse" : True,
+                "movable" : True,
+                "zoomable" : True,
 
             # plot visual options
                 # plot system
@@ -284,7 +299,7 @@ class __PlotSettings__:
                 # cursor
                     "show_cursor_coords" : False,
 
-                #rect
+                # rect
                     "render_bg" : True,
                     "bg_color" : rgb(28, 29, 34),
                     "draw_rect" : True,
@@ -296,7 +311,7 @@ class __PlotSettings__:
                     "show_zoom_info": True,
                     "top_left_info_position" : self.plot.position + V2(15, 75),
                     "info_interline_space" : V2(0, 24),
-                    "info_font" : create_arial_font_size(24),
+                    "info_font" : new_font(24),
                     "info_precision" : 2,
         }
 
@@ -401,7 +416,7 @@ class Plot:
             clamped_top_left = grid_step * (self.top_left_plot_coord / grid_step).__ceil__()
             clamped_bottom_right = grid_step * (self.bottom_right_plot_coord / grid_step).__ceil__()
             for x_value in np.arange(clamped_top_left.x, clamped_bottom_right.x, grid_step.x): #type: ignore
-                pg.draw.line( self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width) #type: ignore
+                pg.draw.line(self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width) #type: ignore
             for y_value in np.arange(clamped_bottom_right.y, clamped_top_left.y, grid_step.y): #type: ignore
                 pg.draw.line(self.canvas, grid_color, self.__plot2real__((self.top_left_x, y_value))(), self.__plot2real__((self.bottom_right_x, y_value))(), grid_width) #type: ignore
 
@@ -442,27 +457,29 @@ class Plot:
             self.focus()
 
         if self.is_mouse_in_rect:
-            # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
-            self.mouse_scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1) #type: ignore
-            if self.mouse_scalar.x == self.mouse_scalar.y == 0: self.mouse_scalar = V2one
-            for event in self.rootEnv.events:
-                if event.type == pg.MOUSEWHEEL:
-                    if self.settings.get("zoom_on_center"):
-                        # this will always zoom exactly in the middle of the canvas, according to the current plot offset
-                        self.current_zoom += event.y * self.mouse_scalar
-                    else:
-                        # this will get the pre plot mouse position, calculate the zoom and with the "after" mouse position calculate the offset that i will add to the current plot offset
-                        pre = self.__real2plot__(self.rootEnv.mouse.position)
-                        self.current_zoom += event.y * self.mouse_scalar
-                        # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
-                        self.update_grid(False)
-                        self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
-                    self.focus()
+            if self.settings.get("zoomable"):
+                # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
+                self.mouse_scalar = V2(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1) #type: ignore
+                if self.mouse_scalar.x == self.mouse_scalar.y == 0: self.mouse_scalar = V2one
+                for event in self.rootEnv.events:
+                    if event.type == pg.MOUSEWHEEL:
+                        if self.settings.get("zoom_on_center"):
+                            # this will always zoom exactly in the middle of the canvas, according to the current plot offset
+                            self.current_zoom += event.y * self.mouse_scalar
+                        else:
+                            # this will get the pre plot mouse position, calculate the zoom and with the "after" mouse position calculate the offset that i will add to the current plot offset
+                            pre = self.__real2plot__(self.rootEnv.mouse.position)
+                            self.current_zoom += event.y * self.mouse_scalar
+                            # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
+                            self.update_grid(False)
+                            self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
+                        self.focus()
             
-            # start dragging whenever mouse left button is just pressed
-            if self.rootEnv.mouse.just_pressed[0] and self.dragging == None:
-                self.dragging = self.rootEnv.mouse.position.copy()
-                self.start_dragging = self.dragging.copy()
+            if self.settings.get("movable"):
+                # start dragging whenever mouse left button is just pressed
+                if self.rootEnv.mouse.just_pressed[0] and self.dragging == None:
+                    self.dragging = self.rootEnv.mouse.position.copy()
+                    self.start_dragging = self.dragging.copy()
             
         # update the canvas if im dragging
         if self.dragging:

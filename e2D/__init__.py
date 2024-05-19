@@ -105,6 +105,9 @@ class Vector2D:
         d = (self.x - other.x)**2 + (self.y - other.y)**2
         return (d**(1/2) if sqrd else d)
 
+    def angle(self:"Vector2D") -> int|float:
+        return _mt.atan2(self.y, self.x)
+
     def angle_to(self:"Vector2D", other:"float|int|Vector2D|list|tuple") -> int|float:
         """
         # Calculate the angle between the current Vector2D other and another other.
