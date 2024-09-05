@@ -509,7 +509,7 @@ class Plot:
                 self.update_grid()
                 self.render()
         
-    def get_humanoid_zoom(self) -> None:
+    def get_humanoid_zoom(self) -> V2|Vector2D:
         return 2 ** (-.1*self.current_zoom)
         
     def focus(self, center:V2|Vector2D|None=None, zoom:float|Vector2D|V2|None=None) -> None:
