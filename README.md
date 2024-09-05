@@ -247,7 +247,7 @@ e2D is open-source software licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For inquiries, you can reach me at [ricomari2006@gmail.com](mailto:ricomari2006@gmail.com).
+For inquiries, you can reach me at [emptyhead.dev@gmail.com](mailto:emptyhead.dev@gmail.com).
 
 ## Acknowledgements
 The e2D is developed and maintained by [marick-py](https://github.com/marick-py) but is inspired by the Pygame library and various other game development resources. We would like to express our gratitude to the Pygame community and all the developers who have contributed to the open-source projects that made e2D possible.
