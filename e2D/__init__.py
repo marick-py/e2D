@@ -417,8 +417,8 @@ V2left = Vector2D(-1, 0)
 def lerp(starting, ending, step) -> float:
     return starting + (ending - starting) * step
 
-# def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
-#     return (r,g,b)
+def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
+    return (r,g,b)
 
 # def color_lerp(current_c:list|tuple, final_c:list|tuple, step=.1) -> tuple[float, float, float]:
 #     return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c)) #type: ignore

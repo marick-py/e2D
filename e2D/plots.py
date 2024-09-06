@@ -2,6 +2,9 @@ from __future__ import annotations
 from .envs import *
 import numpy as np
 
+__LITERAL_PIVOT_POSITIONS__ = Literal["top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"]
+__PIVOT_POSITIONS_MULTIPLIER__ = dict(zip(("top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"), (Vector2D(x,y) for y in [0, .5, 1] for x in [0, .5, 1])))
+
 class Function:
     def __init__(self) -> None:
         self.plot : Plot
@@ -43,7 +46,7 @@ class Object:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
 
 class Line(Object):
-    def __init__(self, point_a:V2|Vector2D|Point, point_b:V2|Vector2D|Point, color:list[float]|tuple[float,float,float]=(255,255,255), width:float=1) -> None:
+    def __init__(self, point_a:Vector2D|Point, point_b:Vector2D|Point, color:list[float]|tuple[float,float,float]=(255,255,255), width:float=1) -> None:
         super().__init__()
         if isinstance(point_a, Point):
             self.point_a = point_a
@@ -66,8 +69,21 @@ class Line(Object):
         pg.draw.line(self.__layer_surface__, self.color, self.point_a.center(), self.point_b.center(), self.width)
 
 class Point(Object):
-    def __init__(self, position, label:str="", radius:float=1, color:list[float]|tuple[float,float,float]=(255,255,255),
-                 label_color:tuple[float, float, float]=(255, 255, 255), label_position_offset:Vector2D|V2=V2z,  label_fixed_sides:int=TEXT_FIXED_SIDES_TOP_LEFT, label_font:pg.font.Font=FONT_ARIAL_32, label_bg_color:tuple[int,int,int]|list[int]|None=None, label_border_color:tuple[int,int,int]|list[int]|None=None, label_border_width:float=0, label_border_radius:int|list[int]|tuple[int,int,int,int]=-1, label_margin:V2=V2z) -> None:
+    def __init__(self,
+                position : Vector2D,
+                label : str = "",
+                radius : float = 1,
+                color : list[float]|tuple[float,float,float] = (255,255,255),
+                label_color : tuple[float, float, float] = (255, 255, 255),
+                label_position_offset : Vector2D = Vector2D.zero(),
+                label_pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
+                label_font : pg.font.Font = FONT_ARIAL_32,
+                label_bg_color : tuple[int,int,int]|list[int]|None = None,
+                label_border_color : tuple[int,int,int]|list[int]|None = None,
+                label_border_width : float = 0,
+                label_border_radius : int|list[int]|tuple[int,int,int,int] = -1,
+                label_margin : Vector2D = Vector2D.zero()
+                ) -> None:
         super().__init__()
         self.position = position
         self.radius = radius
@@ -75,7 +91,7 @@ class Point(Object):
         self.label = label
         self.label_color = label_color
         self.label_position_offset = label_position_offset
-        self.label_fixed_sides = label_fixed_sides
+        self.label_pivot_position = label_pivot_position
         self.label_font = label_font
         self.label_bg_color = label_bg_color
         self.label_border_color = label_border_color
@@ -84,7 +100,7 @@ class Point(Object):
         self.label_margin = label_margin
 
         self.rect :list[float]= [0, 0, 0, 0]
-        self.center = V2z.copy()
+        self.center = Vector2D.new_zero()
 
     def update(self) -> None:
         radius = self.radius * self.plot.size / (self.plot.bottom_right_plot_coord - self.plot.top_left_plot_coord) * self.plot.__y_axis_multiplier__
@@ -97,7 +113,7 @@ class Point(Object):
     def __render__(self) -> None:
         self.__layer_surface__.fill((0,0,0,0))
         pg.draw.ellipse(self.__layer_surface__, self.color, self.rect)
-        self.plot.rootEnv.print(self.label, self.text_position, color=self.label_color, fixed_sides=self.label_fixed_sides, font=self.label_font, bg_color=self.label_bg_color, border_color=self.label_border_color, border_width=self.label_border_width, border_radius=self.label_border_radius, margin=self.label_margin, personalized_surface=self.__layer_surface__)
+        self.plot.rootEnv.print(self.label, self.text_position, color=self.label_color, fixed_sides=self.label_pivot_position, font=self.label_font, bg_color=self.label_bg_color, border_color=self.label_border_color, border_width=self.label_border_width, border_radius=self.label_border_radius, margin=self.label_margin, personalized_surface=self.__layer_surface__)
 
 class MathFunction(Function):
     def __init__(self, function, domain:list[float]=[-np.inf, np.inf], codomain:list[float]=[-np.inf, np.inf], color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
@@ -191,13 +207,13 @@ class TimeFunction(Function):
                 self.__layer_surface__.set_at(point, self.color) #type: ignore
 
 class PointsFunction(Function):
-    def __init__(self, points:list[V2|Vector2D]=[], points_color:list[float]|tuple[float,float,float]=(255,0,0), color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self, points:list[Vector2D]=[], points_color:list[float]|tuple[float,float,float]=(255,0,0), color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         super().__init__()
         self.color = color
         self.points = points
         self.points_color = points_color
 
-    def update(self, points:list[V2|Vector2D]|None=None) -> None:
+    def update(self, points:list[Vector2D]|None=None) -> None:
         if points != None: self.points = points
         self.plot_points = [self.plot.__plot2real__(point)() for point in self.points if \
                         self.plot.top_left_x < point.x < self.plot.bottom_right_x and \
@@ -214,7 +230,7 @@ class PointsFunction(Function):
             #                5)
 
 """
-def no_error_complex_function(function, args) -> V2|Vector2D:
+def no_error_complex_function(function, args) -> Vector2D:
     res :complex= function(args)
     return V2(res.real, res.imag)
 sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
@@ -235,7 +251,7 @@ class ComplexFunction:
     
     def update_function(self, new_function) -> None:
         self.function = new_function
-        self.points :list[V2|Vector2D]= [point for t in range(int(self.starting_t / self.step), int(self.ending_t / self.step)) if (self.plot.bottom_right_y < (point:=no_error_complex_function(new_function, t * self.step)).y < self.plot.top_left_y) and (self.plot.top_left_x < point.x < self.plot.bottom_right_x)]
+        self.points :list[Vector2D]= [point for t in range(int(self.starting_t / self.step), int(self.ending_t / self.step)) if (self.plot.bottom_right_y < (point:=no_error_complex_function(new_function, t * self.step)).y < self.plot.top_left_y) and (self.plot.top_left_x < point.x < self.plot.bottom_right_x)]
         self.full_auto_connect = not any(point.distance_to(self.points[i]) > self.auto_connect_treshold for i,point in enumerate(self.points[1:]))
 
     def draw(self) -> None:
@@ -339,15 +355,15 @@ class __PlotSettings__:
     def multiple_set(self, new_key_and_values_dict:dict) -> None:
         self.settings.update(new_key_and_values_dict)
     
-    def get(self, key:str) -> bool|V2|Vector2D|int|float:
+    def get(self, key:str) -> bool|Vector2D|int|float:
         return self.settings[key]
 
-    def multiple_get(self, keys:list[str]) -> list[bool|V2|Vector2D|int|float]:
+    def multiple_get(self, keys:list[str]) -> list[bool|Vector2D|int|float]:
         return [self.get(key) for key in keys]
 
 class Plot:
     __y_axis_multiplier__ = V2(1, -1)
-    def __init__(self, rootEnv:"RootEnv", plot_position:V2|Vector2D, plot_size:V2|Vector2D, top_left_plot_coord:V2|Vector2D, bottom_right_plot_coord: V2|Vector2D, scale:V2|Vector2D=V2one) -> None:
+    def __init__(self, rootEnv:"RootEnv", plot_position:Vector2D, plot_size:Vector2D, top_left_plot_coord:Vector2D, bottom_right_plot_coord: Vector2D, scale:Vector2D=V2one) -> None:
         self.rootEnv = rootEnv
         self.top_left_plot_coord = top_left_plot_coord
         self.bottom_right_plot_coord = bottom_right_plot_coord
@@ -398,10 +414,10 @@ class Plot:
             elif isinstance(d, Function):
                 self.load_function(d)
 
-    def __plot2real__(self, plot_position:V2|Vector2D) -> V2|Vector2D:
+    def __plot2real__(self, plot_position:Vector2D) -> Vector2D:
         return (plot_position + self.top_left_plot_coord * -1) * self.size / (self.bottom_right_plot_coord - self.top_left_plot_coord)
 
-    def __real2plot__(self, real_position:V2|Vector2D) -> V2|Vector2D:
+    def __real2plot__(self, real_position:Vector2D) -> Vector2D:
         return (real_position - self.position) * (self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size + self.top_left_plot_coord
 
     def render(self) -> None:
@@ -509,10 +525,10 @@ class Plot:
                 self.update_grid()
                 self.render()
         
-    def get_humanoid_zoom(self) -> V2|Vector2D:
+    def get_humanoid_zoom(self) -> Vector2D:
         return 2 ** (-.1*self.current_zoom)
         
-    def focus(self, center:V2|Vector2D|None=None, zoom:float|Vector2D|V2|None=None) -> None:
+    def focus(self, center:Vector2D|None=None, zoom:float|Vector2D|None=None) -> None:
         if center != None:
             self.current_offset = center.copy()
         if zoom != None:
@@ -526,7 +542,7 @@ class Plot:
         for obj in self.objects: obj.update()
         self.render()
     
-    def focus_using_corners(self, top_left_plot_coord:V2|Vector2D|None=None, bottom_right_plot_coord: V2|Vector2D|None=None) -> None:
+    def focus_using_corners(self, top_left_plot_coord:Vector2D|None=None, bottom_right_plot_coord: Vector2D|None=None) -> None:
         self.focus(
             (top_left_plot_coord + bottom_right_plot_coord)/2,
             (bottom_right_plot_coord - top_left_plot_coord)/2 * self.__y_axis_multiplier__

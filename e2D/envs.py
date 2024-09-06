@@ -1,11 +1,10 @@
 from __future__ import annotations
-from typing import Any, Callable, Literal
+from typing import Literal
 
 from .utils import *
 import pygame as pg
 from pygame.event import Event
 from time import time as __tm__
-import math as _mt
 
 """  CODE EXAMPLE FOR RootEnv
 from e2D.envs import *
@@ -26,7 +25,9 @@ while not rootEnv.quit:
 """
 
 pg.init()
-pg.font.init()
+
+__LITERAL_PIVOT_POSITIONS__ = Literal["top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"]
+__PIVOT_POSITIONS_MULTIPLIER__ = dict(zip(("top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"), (Vector2D(x,y) for y in [0, .5, 1] for x in [0, .5, 1])))
 
 class RootEnv:
     def __init__(self, screen_size:Vector2D=Vector2D(1920, 1080), vsync:bool=True, target_fps:int=60, show_fps=True, quit_on_key_pressed:None|int=pg.K_x, window_flag:int=0, clear_screen_each_frame:bool=True) -> None:
@@ -39,7 +40,7 @@ class RootEnv:
         self.current_frame = 0
         self.show_fps = show_fps
         self.clock = pg.time.Clock()
-        self.keyboard = Keyboard(self)
+        self.keyboard = Keyboard()
         self.mouse = Mouse(self)
         self.events :list[Event]= []
         self.background_color = rgb(0,0,0)
@@ -70,10 +71,22 @@ class RootEnv:
     def clear_rect(self, position:Vector2D, size:Vector2D) -> None:
         self.screen.fill(self.background_color, position() + size())
     
-    def print(self, text:str, position:Vector2D, color:tuple[float,float,float]=(255,255,255), fixed_sides=TEXT_FIXED_SIDES_TOP_LEFT, font:pg.font.Font=FONT_ARIAL_32, bg_color:None|tuple[int,int,int]|list[int]=None, border_color:None|tuple[int,int,int]|list[int]=(255,255,255), border_width:float=0, border_radius:int|list[int]|tuple[int,int,int,int]=-1, margin:Vector2D=Vector2D.zero(), personalized_surface:pg.Surface|None=None) -> None:
+    def print(self, 
+            text : str, 
+            position : Vector2D, 
+            color : tuple[float,float,float] = (255,255,255), 
+            pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
+            font : pg.font.Font = FONT_ARIAL_32,
+            bg_color : None|tuple[int,int,int]|list[int] = None,
+            border_color : None|tuple[int,int,int]|list[int] = (255,255,255),
+            border_width : float = 0,
+            border_radius : int|list[int]|tuple[int,int,int,int] = -1,
+            margin : Vector2D = Vector2D.zero(),
+            personalized_surface : pg.Surface|None = None
+            ) -> None:
         text_box = font.render(text, True, color)
         size = Vector2D(*text_box.get_size()) + margin * 2
-        position = position - size * FIXED_SIDES_MULTIPLIER[fixed_sides] + margin
+        position = position - size * __PIVOT_POSITIONS_MULTIPLIER__[pivot_position] + margin
         if not any(isinstance(border_radius, cls) for cls in {tuple, list}): border_radius = [border_radius]*4
         surface = (self.screen if personalized_surface == None else personalized_surface)
         if bg_color != None:
