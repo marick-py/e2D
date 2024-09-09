@@ -5,13 +5,15 @@ from e2D import *
 
 pg.font.init()
 
-__KEY_MODE_TYPES_DICT__ = {"pressed":0, "just_pressed":1, "just_released":2}
+__KEY_MODE_TYPES_DICT__ = dict(zip(["pressed", "just_pressed", "just_released"], range(3)))
 __LITERAL_KEY_MODE_TYPES__ = Literal["pressed", "just_pressed", "just_released"]
 
-NEW_FONT = lambda size, name="Arial", bold=False, italic=False: pg.font.SysFont(name, size, bold, italic)
-FONT_ARIAL_16 = NEW_FONT(16, "Arial")
-FONT_ARIAL_32 = NEW_FONT(32, "Arial")
-FONT_ARIAL_64 = NEW_FONT(64, "Arial")
+__LITERAL_FONTS__ = Literal['arial', 'arialblack', 'bahnschrift', 'calibri', 'cambria', 'cambriamath', 'candara', 'comicsansms', 'consolas', 'constantia', 'corbel', 'couriernew', 'ebrima', 'franklingothicmedium', 'gabriola', 'gadugi', 'georgia', 'impact', 'inkfree', 'javanesetext', 'leelawadeeui', 'leelawadeeuisemilight', 'lucidaconsole', 'lucidasans', 'malgungothic', 'malgungothicsemilight', 'microsofthimalaya', 'microsoftjhenghei', 'microsoftjhengheiui', 'microsoftnewtailue', 'microsoftphagspa', 'microsoftsansserif', 'microsofttaile', 'microsoftyahei', 'microsoftyaheiui', 'microsoftyibaiti', 'mingliuextb', 'pmingliuextb', 'mingliuhkscsextb', 'mongolianbaiti', 'msgothic', 'msuigothic', 'mspgothic', 'mvboli', 'myanmartext', 'nirmalaui', 'nirmalauisemilight', 'palatinolinotype', 'segoemdl2assets', 'segoeprint', 'segoescript', 'segoeui', 'segoeuiblack', 'segoeuiemoji', 'segoeuihistoric', 'segoeuisemibold', 'segoeuisemilight', 'segoeuisymbol', 'simsun', 'nsimsun', 'simsunextb', 'sitkasmall', 'sitkatext', 'sitkasubheading', 'sitkaheading', 'sitkadisplay', 'sitkabanner', 'sylfaen', 'symbol', 'tahoma', 'timesnewroman', 'trebuchetms', 'verdana', 'webdings', 'wingdings', 'yugothic', 'yugothicuisemibold', 'yugothicui', 'yugothicmedium', 'yugothicuiregular', 'yugothicregular', 'yugothicuisemilight', 'holomdl2assets', 'bizudgothic', 'bizudpgothictruetype', 'bizudminchomedium', 'bizudpminchomediumtruetype', 'meiryo', 'meiryoui', 'msmincho', 'mspmincho', 'uddigikyokashonb', 'uddigikyokashonpb', 'uddigikyokashonkb', 'uddigikyokashonr', 'uddigikyokashonpr', 'uddigikyokashonkr', 'yumincho', 'lcd', 'glassgauge', 'maiandragd', 'maiandragddemi', 'newsgothic', 'quartz', 'kievitoffcpro', 'agencyfbgrassetto', 'agencyfb', 'algerian', 'bookantiquagrassetto', 'bookantiquagrassettocorsivo', 'bookantiquacorsivo', 'arialcorsivo', 'arialrounded', 'baskervilleoldface', 'bauhaus93', 'bell', 'bellgrassetto', 'bellcorsivo', 'bernardcondensed', 'bookantiqua', 'bodonigrassetto', 'bodonigrassettocorsivo', 'bodoniblackcorsivo', 'bodoniblack', 'bodonicondensedgrassetto', 'bodonicondensedgrassettocorsivo', 'bodonicondensedcorsivo', 'bodonicondensed', 'bodonicorsivo', 'bodonipostercompressed', 'bodoni', 'bookmanoldstyle', 'bookmanoldstylegrassetto', 'bookmanoldstylegrassettocorsivo', 'bookmanoldstylecorsivo', 'bradleyhanditc', 'britannic', 'berlinsansfbgrassetto', 'berlinsansfbdemigrassetto', 'berlinsansfb', 'broadway', 'brushscriptcorsivo', 'bookshelfsymbol7', 'californianfbgrassetto', 'californianfbcorsivo', 'californianfb', 'calisto', 'calistograssetto', 'calistograssettocorsivo', 'calistocorsivo', 'castellar', 'centuryschoolbook', 'centaur', 'century', 'chiller', 'colonna', 'cooperblack', 'copperplategothic', 'curlz', 'dubai', 'dubaimedium', 'dubairegular', 'elephant', 'elephantcorsivo', 'engravers', 'erasitc', 'erasdemiitc', 'erasmediumitc', 'felixtitling', 'forte', 'franklingothicbook', 'franklingothicbookcorsivo', 'franklingothicdemi', 'franklingothicdemicond', 'franklingothicdemicorsivo', 'franklingothicheavy', 'franklingothicheavycorsivo', 'franklingothicmediumcond', 'freestylescript', 'frenchscript', 'footlight', 'garamond', 'garamondgrassetto', 'garamondcorsivo', 'gigi', 'gillsansgrassettocorsivo', 'gillsansgrassetto', 'gillsanscondensed', 'gillsanscorsivo', 'gillsansultracondensed', 'gillsansultra', 'gillsans', 'gloucesterextracondensed', 'gillsansextcondensed', 'centurygothic', 'centurygothicgrassetto', 'centurygothicgrassettocorsivo', 'centurygothiccorsivo', 'goudyoldstyle', 'goudyoldstylegrassetto', 'goudyoldstylecorsivo', 'goudystout', 'harlowsolid', 'harrington', 'haettenschweiler', 'hightowertext', 'hightowertextcorsivo', 'imprintshadow', 'informalroman', 'blackadderitc', 'kristenitc', 'jokerman', 'juiceitc', 'kunstlerscript', 'widelatin', 'lucidabright', 'lucidacalligraphy', 'leelawadee', 'leelawadeegrassetto', 'lucidafax', 'lucidafaxdemigrassetto', 'lucidafaxdemigrassettocorsivo', 'lucidafaxcorsivo', 'lucidahandwritingcorsivo', 'lucidasansdemigrassetto', 'lucidasansdemigrassettocorsivo', 'lucidasanscorsivo', 'lucidasanstypewriter', 'lucidasanstypewritergrassetto', 'lucidasanstypewritergrassettooblique', 'lucidasanstypewriteroblique', 'magnetograssetto', 'maturascriptcapitals', 'mistral', 'modernno20', 'microsoftuighurgrassetto', 'microsoftuighur', 'monotypecorsiva', 'extra', 'niagaraengraved', 'niagarasolid', 'ocraextended', 'oldenglishtext', 'onyx', 'msoutlook', 'palacescript', 'papyrus', 'parchment', 'perpetuagrassettocorsivo', 'perpetuagrassetto', 'perpetuacorsivo', 'perpetuatitlinggrassetto', 'perpetuatitlingchiarissimo', 'perpetua', 'playbill', 'poorrichard', 'pristina', 'rage', 'ravie', 'msreferencesansserif', 'msreferencespecialty', 'rockwellcondensedgrassetto', 'rockwellcondensed', 'rockwell', 'rockwellgrassetto', 'rockwellgrassettocorsivo', 'rockwellextra', 'rockwellcorsivo', 'centuryschoolbookgrassetto', 'centuryschoolbookgrassettocorsivo', 'centuryschoolbookcorsivo', 'script', 'showcardgothic', 'snapitc', 'stencil', 'twcengrassettocorsivo', 'twcengrassetto', 'twcencondensedgrassetto', 'twcencondensedextra', 'twcencondensed', 'twcencorsivo', 'twcen', 'tempussansitc', 'vinerhanditc', 'vivaldicorsivo', 'vladimirscript', 'wingdings2', 'wingdings3', 'cascadiacoderegular', 'cascadiamonoregular', 'edwardianscriptitcnormale', 'stoneharbourregular', 'mregular', 'xirodregular', 'minecraft']
+
+NEW_FONT :Callable[[int, __LITERAL_FONTS__, bool, bool], pg.font.Font]= lambda size, name="arial", bold=False, italic=False: pg.font.SysFont(name, size, bold, italic)
+FONT_ARIAL_16 = NEW_FONT(16)
+FONT_ARIAL_32 = NEW_FONT(32)
+FONT_ARIAL_64 = NEW_FONT(64)
 
 
 __LITERAL_PIVOT_POSITIONS__ = Literal["top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"]
@@ -88,15 +90,17 @@ class Keyboard:
             raise Exception(f"Unknown mode type: {mode}")
 
 
-class Utils:
+class Util:
     def __init__(self) -> None:
         self.rootEnv = None
         self.surface : pg.Surface
+        self.id : int|str
     def draw(self) -> None: pass
     def update(self) -> None: pass
 
-class InputCell(Utils):
+class InputCell(Util):
     def __init__(self,
+                id : int|str,
                 initial_value : str,
                 position : Vector2D,
                 size : Vector2D,
@@ -115,6 +119,7 @@ class InputCell(Utils):
                 ) -> None:
         super().__init__()
 
+        self.id = id
         self.on_enter_pressed = on_enter_pressed
         self.check_when_adding = check_when_adding
         self.prefix = prefix if prefix != None else ""
@@ -153,7 +158,7 @@ class InputCell(Utils):
         self.surface.blit(self.text_surface, self.position())
         
     def update(self) -> None:
-        if self.rootEnv.mouse.just_pressed[0]:
+        if self.rootEnv.mouse.get_key(0, "just_pressed"):
             if self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and\
                self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y:
                 self.rootEnv.selected_util = self if self.rootEnv.selected_util != self else None
@@ -166,9 +171,9 @@ class InputCell(Utils):
                     self.value = self.value[:-1]
             if self.rootEnv.keyboard.get_key(pg.K_DELETE):
                 self.value = self.value[:-1]
-            if self.rootEnv.keyboard.get_key(pg.K_RETURN, KEY_MODE_JUST_PRESSED):
+            if self.rootEnv.keyboard.get_key(pg.K_RETURN, "just_pressed"):
                 self.on_enter_pressed(self.value)
-            if self.rootEnv.keyboard.get_key(pg.K_ESCAPE, KEY_MODE_JUST_PRESSED):
+            if self.rootEnv.keyboard.get_key(pg.K_ESCAPE, "just_pressed"):
                 self.rootEnv.selected_util = self if self.rootEnv.selected_util != self else None
             self.update_text()
 

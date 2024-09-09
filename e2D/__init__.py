@@ -12,11 +12,11 @@ sign = lambda val: -1 if val < 0 else (1 if val > 0 else 0)
 
 class Vector2D:
     round_values_on_print = 2
-    def __init__(self, x, y) -> None:
+    def __init__(self, x=.0, y=.0) -> None:
         self.x = x
         self.y = y
 
-    def distance_to(self, other, sqrd) -> int|float:
+    def distance_to(self, other, sqrd=True) -> int|float:
         d = (self.x - other.x)**2 + (self.y - other.y)**2
         return (d**(1/2) if sqrd else d)
 
@@ -52,13 +52,13 @@ class Vector2D:
     def length(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** .5
 
-    def floor(self, n) -> "Vector2D":
+    def floor(self, n=1) -> "Vector2D":
         return self.__floor__(n)
 
-    def ceil(self, n) -> "Vector2D":
+    def ceil(self, n=1) -> "Vector2D":
         return self.__ceil__(n)
     
-    def round(self, n) -> "Vector2D":
+    def round(self, n=1) -> "Vector2D":
         return self.__round__(n)
 
     @classmethod
@@ -106,20 +106,20 @@ class Vector2D:
     def complex_to_cartesian(cls, complex_n) -> "Vector2D":
         return cls(complex_n.real, complex_n.imag)
 
-    def lerp(self, other, t) -> "Vector2D":
+    def lerp(self, other, t=.1) -> "Vector2D":
         other = Vector2D.__normalize__(other)
         if not 0 <= t <= 1:
             raise ValueError("t must be between 0 and 1 for linear interpolation.")
         return Vector2D(self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t)
 
-    def rotate(self, angle, center) -> "Vector2D":
+    def rotate(self, angle, center=None) -> "Vector2D":
         if center is None: center = Vector2D.zero()
         translated = self - center
         cos_angle = _mt.cos(angle)
         sin_angle = _mt.sin(angle)
         return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
 
-    def no_zero_div_error(self, n, error_mode) -> "Vector2D":
+    def no_zero_div_error(self, n, error_mode="zero") -> "Vector2D":
         if isinstance(n, (int, float)):
             if n == 0:
                 return Vector2D(0 if error_mode ==  "zero" else (self.x if error_mode == "null" else _mt.nan), 0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan))
@@ -136,7 +136,7 @@ class Vector2D:
     def max(self, other) -> "Vector2D":
         return Vector2D(max(self.x, other.x), max(self.y, other.y))
 
-    def advanced_stringify(self, precision, use_scientific_notation, return_as_list) -> str|list[str]:
+    def advanced_stringify(self, precision=None, use_scientific_notation=False, return_as_list=False) -> str|list[str]:
         precision = self.round_values_on_print if precision == None else precision
         def optimize(value) -> str:
             abs_value = abs(value)
@@ -156,41 +156,71 @@ class Vector2D:
     def __repr__(self) -> str:
         return f"x:{self.x:.{self.round_values_on_print}f}\ty:{self.y:.{self.round_values_on_print}f}"
 
-    def __call__(self) -> tuple:
-        return self.x, self.y
+    def __call__(self) -> list:
+        return [self.x, self.y]
+    
+    # fast operations     Vector2D.operation(both,x,y)
+    def add(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x + (x + both), self.y + (y + both))
+    
+    def sub(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x - (x + both), self.y - (y + both))
+    
+    def mult(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x * (x + both), self.y * (y + both))
+    
+    def pow(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x ** (x + both), self.y ** (y + both))
+    
+    def mod(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x % (x + both), self.y % (y + both))
+    
+    def div(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x / (x + both), self.y / (y + both))
+    
+    def fdiv(self, both=.0, x=.0, y=.0) -> Vector2D:
+        return Vector2D(self.x // (x + both), self.y // (y + both))
 
-    # fast operations     Vector2D.operation(x,y,both)
-    def set(self, x, y, both) -> None:
+    # fast inplace operations     Vector2D.ioperation(both,x,y)
+    def set(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x = x + both
         self.y = y + both
+        return self
 
-    def add(self, x, y, both) -> None:
+    def iadd(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x += x + both
         self.y += y + both
+        return self
     
-    def sub(self, x, y, both) -> None:
+    def isub(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x -= x + both
         self.y -= y + both
+        return self
     
-    def mult(self, x, y, both) -> None:
-        self.x += x + both
-        self.y += y + both
+    def imult(self, both=.0, x=.0, y=.0) -> Vector2D:
+        self.x *= x + both
+        self.y *= y + both
+        return self
     
-    def pow(self, x, y, both) -> None:
+    def ipow(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x **= x + both
         self.y **= y + both
+        return self
     
-    def mod(self, x, y, both) -> None:
+    def imod(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x %= x + both
         self.y %= y + both
+        return self
     
-    def div(self, x, y, both) -> None:
+    def idiv(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x /= x + both
         self.y /= y + both
+        return self
     
-    def fdiv(self, x, y, both) -> None:
+    def ifdiv(self, both=.0, x=.0, y=.0) -> Vector2D:
         self.x //= x + both
         self.y //= y + both
+        return self
 
     # normal operations     Vector2D + a
     def __add__(self, other) -> "Vector2D":
@@ -303,17 +333,17 @@ class Vector2D:
     def __abs__(self) -> "Vector2D":
         return Vector2D(abs(self.x), abs(self.y))
 
-    def __round__(self, n) -> "Vector2D":
+    def __round__(self, n=1) -> "Vector2D":
         n = Vector2D.__normalize__(n)
         return Vector2D(round(self.x / n.x) * n.x, round(self.y / n.y) * n.y)
 
-    def __floor__(self, n) -> "Vector2D":
+    def __floor__(self, n=1) -> "Vector2D":
         n = Vector2D.__normalize__(n)
-        return Vector2D(_mt.floor(self.x / n.x) * n.x, _mt.floor(self.y / n.y) * n.y)
+        return Vector2D((self.x / n.x).__floor__() * n.x, (self.y / n.y).__floor__() * n.y)
 
-    def __ceil__(self, n) -> "Vector2D":
+    def __ceil__(self, n=1) -> "Vector2D":
         n = Vector2D.__normalize__(n)
-        return Vector2D(_mt.ceil(self.x / n.x) * n.x, _mt.ceil(self.y / n.y) * n.y)
+        return Vector2D((self.x / n.x).__ceil__() * n.x, (self.y / n.y).__ceil__() * n.y)
     
     def __float__(self) -> "Vector2D":
         return Vector2D(float(self.x), float(self.y))
@@ -365,6 +395,22 @@ class Vector2D:
     def down(cls) -> "Vector2D": return V2down
     @classmethod
     def left(cls) -> "Vector2D": return V2left
+    @classmethod
+    def up_right(cls) -> "Vector2D": return V2up_right
+    @classmethod
+    def down_right(cls) -> "Vector2D": return V2down_right
+    @classmethod
+    def up_left(cls) -> "Vector2D": return V2up_left
+    @classmethod
+    def down_left(cls) -> "Vector2D": return V2down_left
+    @classmethod
+    def up_right_norm(cls) -> "Vector2D": return V2up_right_norm
+    @classmethod
+    def down_right_norm(cls) -> "Vector2D": return V2down_right_norm
+    @classmethod
+    def up_left_norm(cls) -> "Vector2D": return V2up_left_norm
+    @classmethod
+    def down_left_norm(cls) -> "Vector2D": return V2down_left_norm
 
     @classmethod
     def new_zero(cls) -> "Vector2D": return V2zero.copy
@@ -392,6 +438,22 @@ class Vector2D:
     def new_down(cls) -> "Vector2D": return V2down.copy
     @classmethod
     def new_left(cls) -> "Vector2D": return V2left.copy
+    @classmethod
+    def new_up_right(cls) -> "Vector2D": return V2up_right.copy
+    @classmethod
+    def new_down_right(cls) -> "Vector2D": return V2down_right.copy
+    @classmethod
+    def new_up_left(cls) -> "Vector2D": return V2up_left.copy
+    @classmethod
+    def new_down_left(cls) -> "Vector2D": return V2down_left.copy
+    @classmethod
+    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy
+    @classmethod
+    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy
+    @classmethod
+    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy
+    @classmethod
+    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
 
 from .cvb import *
 
@@ -414,8 +476,22 @@ V2right = Vector2D(1, 0)
 V2down = Vector2D(0, -1)
 V2left = Vector2D(-1, 0)
 
-def lerp(starting, ending, step) -> float:
-    return starting + (ending - starting) * step
+V2up_right = Vector2D(1, 1)
+V2down_right = Vector2D(1, -1)
+V2up_left = Vector2D(-1, 1)
+V2down_left = Vector2D(-1, -1)
+
+V2up_right_norm = V2up_right.normalize
+V2down_right_norm = V2down_right.normalize
+V2up_left_norm = V2up_left.normalize
+V2down_left_norm = V2down_left.normalize
+
+VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
+VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
+VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
+VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
+VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)
+
 
 def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)
@@ -437,9 +513,17 @@ def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
 #     distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
 #     return (distance ** .5) if sqrd else distance
 
-def angular_interpolation(starting_angle, final_angle, step) -> float:
-    distances = (final_angle - starting_angle, final_angle - DOUBLE_PI - starting_angle, final_angle + DOUBLE_PI - starting_angle)
-    return min(distances, key=abs) * step
+def lerp(starting, ending, step=.1) -> float:
+    return starting + (ending - starting) * step
+
+def angular_interpolation(starting_angle, final_angle, step=.1) -> float:
+    # my way
+    # delta = final_angle - starting_angle
+    # return starting_angle + min((delta, delta - DOUBLE_PI, delta + DOUBLE_PI), key=abs) * step
+    
+    # math way
+    shortest_angle = ((((final_angle - starting_angle) % DOUBLE_PI) + DOUBLE_PI * 1.5) % DOUBLE_PI) - PI
+    return starting_angle + shortest_angle * step
 
 def bezier_cubic_interpolation(t, p0, p1) -> float:
     return t*p0.y*3*(1 - t)**2 + p1.y*3*(1 - t) * t**2 + t**3
@@ -450,7 +534,7 @@ def bezier_quadratic_interpolation(t, p0) -> float:
 def avg_position(*others) -> Vector2D:
     return sum(others) / len(others) #type: ignore
 
-def inter_points(ray, lines, return_inter_lines, sort, return_empty) -> list[tuple[Vector2D | None, tuple[Vector2D, Vector2D]]] | list[Vector2D | None] | list[Vector2D]:
+def inter_points(ray, lines, return_inter_lines=False, sort=False, return_empty=False) -> list[tuple[Vector2D | None, tuple[Vector2D, Vector2D]]] | list[Vector2D | None] | list[Vector2D]:
     def lineLineIntersect(P0, P1, Q0, Q1) -> "Vector2D | None":
         d = (P1.x-P0.x) * (Q1.y-Q0.y) + (P1.y-P0.y) * (Q0.x-Q1.x)
         if d == 0:
@@ -468,20 +552,20 @@ def inter_points(ray, lines, return_inter_lines, sort, return_empty) -> list[tup
         collisions = [ip for line in lines if ((ip:=lineLineIntersect(line[1], line[0], ray[1], ray[0]))!=None or return_empty)]
         return sorted(collisions, key=lambda x: ray[0].distance_to(x, False) if x != None else _mt.inf) if sort else collisions
 
-def get_points(position, size, rotation, pos_in_middle, return_list, clockwise_return) -> tuple["Vector2D", "Vector2D", "Vector2D", "Vector2D"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
+def get_points(position, size, rotation=0, pos_in_middle=True, return_list=False, clockwise_return=False) -> tuple["Vector2D", "Vector2D", "Vector2D", "Vector2D"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
     if pos_in_middle:
         d,a = size.length/2, size.angle
         d1, d2 = Vector2D.zero().point_from_angle_and_radius(rotation+a, d), Vector2D.zero().point_from_angle_and_radius(rotation-a, d)
         A, B, C, D = position+d1, position+d2, position-d2, position-d1
     else:
-        A, B, C, D = position.copy(),\
+        A, B, C, D = position.copy,\
                      position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(Vector2D(size.x, 0)), Vector2D.zero().distance_to(Vector2D(size.x, 0))),\
                      position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(Vector2D(0, size.y)), Vector2D.zero().distance_to(Vector2D(0, size.y))),\
                      position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(size),                Vector2D.zero().distance_to(size))
     points = (A, B, C, D) if not clockwise_return else (A, B, D, C)
     return points if not return_list else tuple(x() for x in points)
 
-def get_lines(position, size, rotation, pos_in_middle) -> list[list]:
+def get_lines(position, size, rotation=0, pos_in_middle=True) -> list[list]:
     A, B, C, D = get_points(position, size, rotation, pos_in_middle)
     return [[A, B], [A, C], [C, D], [D, B]]
 

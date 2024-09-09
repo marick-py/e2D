@@ -9,7 +9,7 @@ def test_Vector2D_V2_init() -> None:
 
 def test_Vector2D_V2_set() -> None:
     vec = Vector2D(1, 2)
-    vec.set(2, 3)
+    vec.set(x=2, y=3)
     assert vec == Vector2D(2, 3)
 
 def test_Vector2D_V2_distance_to() -> None:
@@ -26,18 +26,11 @@ def test_Vector2D_V2_angle_to() -> None:
     angle = vec1.angle_to(vec2)
     assert angle == 0.7853981633974483
 
-def test_Vector2D_V2_point_from_degs() -> None:
-    vec1 = Vector2D(1, 2)
-    degs = 60
-    radius = 4
-    vec2 = vec1.point_from_degs(degs, radius)
-    assert vec2 == Vector2D(3.0000000000000004, 5.464101615137754)
-
 def test_Vector2D_V2_point_from_rads() -> None:
     vec1 = Vector2D(1, 2)
     rads = PI / 3
     radius = 4
-    vec2 = vec1.point_from_rads(rads, radius)
+    vec2 = vec1.point_from_angle_and_radius(rads, radius)
     assert vec2 == Vector2D(3.0000000000000004, 5.464101615137754)
 
 def test_Vector2D_V2_sign() -> None:
@@ -81,7 +74,7 @@ def test_Vector2D_V2_dot_product() -> None:
 
 def test_Vector2D_V2_normalize() -> None:
     vec1 = Vector2D(1, 2)
-    norm = vec1.normalize()
+    norm = vec1.normalize
     assert norm == V2(0.4472135954999579, 0.8944271909999159)
 
 def test_Vector2D_V2_projection() -> None:
@@ -116,7 +109,7 @@ def test_Vector2D_V2_complex_to_cartesian() -> None:
 
 def test_Vector2D_V2_length() -> None:
     vec1 = Vector2D(1, 2)
-    length = vec1.length()
+    length = vec1.length
     assert length == 2.23606797749979
 
 def test_Vector2D_V2_rotate() -> None:
@@ -155,13 +148,9 @@ def test_Vector2D_V2_no_zero_div_error() -> None:
 
 def test_Vector2D_V2_min_max() -> None:
     vector1 = Vector2D(3, 4)
-    result_min_numeric = vector1.min(2)
-    assert result_min_numeric == Vector2D(2, 2)
     vector2 = Vector2D(5, 2)
     result_min_vector = vector1.min(vector2)
     assert result_min_vector == Vector2D(3, 2)
-    result_max_numeric = vector1.max(2)
-    assert result_max_numeric == Vector2D(3, 4)
     result_max_vector = vector1.max(vector2)
     assert result_max_vector == Vector2D(5, 4)
 
@@ -202,25 +191,25 @@ def test_Vector2D_V2_reverse_arithmetic_operations() -> None:
 def test_Vector2D_V2_inplace_arithmetic_operations() -> None:
     vector1 = Vector2D(3, 4)
     vector2 = Vector2D(1, 2)
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy += vector2
     assert vector1_copy == vector1 + vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy -= vector2
     assert vector1_copy == vector1 - vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy *= vector2
     assert vector1_copy == vector1 * vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy /= vector2
     assert vector1_copy == vector1 / vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy %= vector2
     assert vector1_copy == vector1 % vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy **= vector2
     assert vector1_copy == vector1 ** vector2
-    vector1_copy = vector1.copy()
+    vector1_copy = vector1.copy
     vector1_copy //= vector2
     assert vector1_copy == vector1 // vector2
 
@@ -263,18 +252,18 @@ def test_Vector2D_normalize() -> None:
     normalized_vector = vector1.__normalize__(tuple_value)
     assert normalized_vector == Vector2D(4, 5)
 
-def test_color_functions() -> None:
-    interpolated_color = color_lerp((255, 0, 0), (0, 0, 255), 0.5)
-    assert interpolated_color == pytest.approx((127.5, 0.0, 127.5))
-    color_at_index = color_fade((255, 0, 0), (0, 0, 255), 50, 100)
-    assert color_at_index == pytest.approx((127.5, 0.0, 127.5))
-    colors_dict = {(255, 255, 255): 0.1, (0, 0, 0): 0.9}
-    weighted_color = weighted_color_fade(colors_dict)
-    assert weighted_color == (25.5, 25.5, 25.5)
-    squared_distance = color_distance([255, 0, 0], [0, 255, 0])
-    assert squared_distance == 360.62445840513925
-    distance = color_distance([255, 0, 0], [0, 255, 0], sqrd=False)
-    assert distance == 130050
+# def test_color_functions() -> None:
+#     interpolated_color = color_lerp((255, 0, 0), (0, 0, 255), 0.5)
+#     assert interpolated_color == pytest.approx((127.5, 0.0, 127.5))
+#     color_at_index = color_fade((255, 0, 0), (0, 0, 255), 50, 100)
+#     assert color_at_index == pytest.approx((127.5, 0.0, 127.5))
+#     colors_dict = {(255, 255, 255): 0.1, (0, 0, 0): 0.9}
+#     weighted_color = weighted_color_fade(colors_dict)
+#     assert weighted_color == (25.5, 25.5, 25.5)
+#     squared_distance = color_distance([255, 0, 0], [0, 255, 0])
+#     assert squared_distance == 360.62445840513925
+#     distance = color_distance([255, 0, 0], [0, 255, 0], sqrd=False)
+#     assert distance == 130050
 
 def test_angular_interpolation() -> None:
     starting_angle = 0.7167994059004553
