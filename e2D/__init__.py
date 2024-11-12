@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import math as _mt
 import random as _rnd
+from typing import Any, Generator, Literal
 
 PI = _mt.pi
-HALF_PI = PI/2
-QUARTER_PI = PI/4
-DOUBLE_PI = PI*2
+PI_HALF = PI/2
+PI_QUARTER = PI/4
+PI_DOUBLE = PI*2
 
 sign = lambda val: -1 if val < 0 else (1 if val > 0 else 0)
 
@@ -51,6 +52,10 @@ class Vector2D:
     @property
     def length(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** .5
+    
+    @property
+    def length_sqrd(self) -> float:
+        return self.x ** 2 + self.y ** 2
 
     def floor(self, n=1) -> "Vector2D":
         return self.__floor__(n)
@@ -356,6 +361,10 @@ class Vector2D:
         else:
             raise IndexError("V2 has only x,y...")
     
+    def __iter__(self) -> Generator[float, Any, None]:
+        yield self.x
+        yield self.y
+    
     @classmethod
     def __normalize__(cls, other) -> "Vector2D":
         if isinstance(other, Vector2D):
@@ -496,22 +505,22 @@ VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_nor
 def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)
 
-# def color_lerp(current_c:list|tuple, final_c:list|tuple, step=.1) -> tuple[float, float, float]:
-#     return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c)) #type: ignore
+def color_lerp(current_c:list|tuple, final_c:list|tuple, step=.1) -> tuple[float, float, float]:
+    return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c)) #type: ignore
 
-# def color_fade(starting_c:list|tuple, final_c:list|tuple, index, max_index) -> tuple[float, float, float]:
-#     return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3)) #type: ignore
+def color_fade(starting_c:list|tuple, final_c:list|tuple, index, max_index) -> tuple[float, float, float]:
+    return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3)) #type: ignore
 
-# def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
-#     colors = colors_dict.keys()
-#     weights = colors_dict.values()
+def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
+    colors = colors_dict.keys()
+    weights = colors_dict.values()
 
-#     if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
-#     return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3)) #type: ignore
+    if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
+    return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3)) #type: ignore
 
-# def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd) -> float:
-#     distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
-#     return (distance ** .5) if sqrd else distance
+def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd) -> float:
+    distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
+    return (distance ** .5) if sqrd else distance
 
 def lerp(starting, ending, step=.1) -> float:
     return starting + (ending - starting) * step
@@ -522,7 +531,7 @@ def angular_interpolation(starting_angle, final_angle, step=.1) -> float:
     # return starting_angle + min((delta, delta - DOUBLE_PI, delta + DOUBLE_PI), key=abs) * step
     
     # math way
-    shortest_angle = ((((final_angle - starting_angle) % DOUBLE_PI) + DOUBLE_PI * 1.5) % DOUBLE_PI) - PI
+    shortest_angle = ((((final_angle - starting_angle) % PI_DOUBLE) + PI_DOUBLE * 1.5) % PI_DOUBLE) - PI
     return starting_angle + shortest_angle * step
 
 def bezier_cubic_interpolation(t, p0, p1) -> float:

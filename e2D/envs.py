@@ -41,13 +41,13 @@ class RootEnv:
                  show_fps = True,
                  quit_on_key_pressed : None|int = pg.K_x,
                  vsync : bool = True,
-                 window_flag : int = 0,
+                 window_flags : int = pg.DOUBLEBUF,
                  clear_screen_each_frame : bool = True) -> None:
         self.quit = False
         self.__screen_size__ :Vector2D= screen_size
 
         self.__vsync__ = vsync
-        self.__flags__ = window_flag
+        self.__flags__ = window_flags
         self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__)
 
         self.clock = pg.time.Clock()
@@ -108,7 +108,7 @@ class RootEnv:
     
     @property
     def runtime_seconds(self) -> float:
-        return pg.time.get_ticks()
+        return pg.time.get_ticks() / 1e3
     
     def init(self, sub_env:DefEnv) -> None:
         self.env = sub_env
@@ -147,11 +147,12 @@ class RootEnv:
         self.clock.tick(self.target_fps)
         self.current_fps = self.clock.get_fps()
         if self.clear_screen_each_frame: self.clear()
-        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=(0,0,0))
         
         self.env.draw()
         for util in self.utils.values(): util.draw()
-        pg.display.update()
+        
+        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=(0,0,0))
+        pg.display.flip()
     
     def __update__(self) -> None:
         self.mouse.update()
