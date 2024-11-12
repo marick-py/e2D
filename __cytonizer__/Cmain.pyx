@@ -1,315 +1,515 @@
-from libc.math cimport cos, sin, atan2, pi
-from libc.stdlib cimport rand, RAND_MAX
+from __future__ import annotations
+
+import math as _mt
+import random as _rnd
+from typing import Any, Generator
+
+PI = _mt.pi
+PI_HALF = PI / 2
+PI_QUARTER = PI / 4
+PI_float = PI * 2
+
+sign = lambda val: -1 if val < 0 else (1 if val > 0 else 0)
 
 cdef class Vector2D:
-    #cdef int _storage_type
+    cdef double _x, _y
+    cdef double _round_values_on_print
 
-    cdef float _x
-    cdef float _y
+    def __init__(self, double x=0.0, double y=0.0) -> None:
+        self._x = x
+        self._y = y
+        self._round_values_on_print = 2
 
-    def __init__(self, x=0, y=0):
-        self.set(x, y)
+    # Property for x
+    @property
+    def x(self):
+        return self._x
+    @x.setter
+    def x(self, double value):
+        self._x = value
+    @property
+    def y(self):
+        return self._y
+    @y.setter
+    def y(self, double value):
+        self._y = value
+    @property
+    def round_values_on_print(self):
+        return self._round_values_on_print
+    @round_values_on_print.setter
+    def round_values_on_print(self, double value):
+        self._round_values_on_print = value
+
+    def distance_to(self, Vector2D other, bint rooted=True) -> double:
+        cdef double d = (self._x - other._x)**2 + (self._y - other._y)**2
+        return d**0.5 if rooted else d
+
+    def angle_to(self, Vector2D other) -> double:
+        return _mt.atan2(other._y - self._y, other._x - self._x)
+
+    def point_from_angle_and_radius(self, double rad, double radius) -> Vector2D:
+        return Vector2D(radius * _mt.cos(rad) + self._x, radius * _mt.sin(rad) + self._y)
+
+    @property
+    def angle(self):
+        return _mt.atan2(self._y, self._x)
+
+    @angle.setter
+    def angle(self, new_angle) -> None:
+        self.rotate(new_angle - self.angle)
+
+    @property
+    def sign(self):
+        return Vector2D(sign(self._x), sign(self._y))
+
+    @property
+    def length(self):
+        return (self._x ** 2 + self._y ** 2) ** 0.5
     
-    property x:
-        def __get__(self):
-            return self._x
-
-        def __set__(self, value):
-            self._x = <float>value
-            #self._update_storage_type()
-
-    property y:
-        def __get__(self):
-            return self._y
-
-        def __set__(self, value):
-            self._y = <float>value
-            #self._update_storage_type()
-
-    def set(self, x=0, y=0):
-        self._x = <float>x
-        self._y = <float>y
-        #self._update_storage_type()
-
-#    cdef void _update_storage_type(self):
-#        if float(self._x) == self._x and float(self._y) == self._y:
-#            self._storage_type = 0
-#        else:
-#            self._storage_type = 1
-
-    def distance_to(self, other):
-        d = (self._x - other.x)**2 + (self._y - other.y)**2
-        return (d**(1/2))
-    
-    def angle_to(self, other):
-        other = self.__normalize__(other)
-        return atan2(other.y - self._y, other.x - self._x)
-
-    def point_from_degs(self, degs, radius):
-        cdef float rads = pi / 180 * degs
-        cdef float x = radius * cos(rads) + self._x
-        cdef float y = radius * sin(rads) + self._y
-        return Vector2D(x, y)
-
-    def point_from_rads(self, rad, radius):
-        cdef float x = radius * cos(rad) + self._x
-        cdef float y = radius * sin(rad) + self._y
-        return Vector2D(x, y)
+    @property
+    def length_sqrd(self):
+        return self._x ** 2 + self._y ** 2
 
     def copy(self):
         return Vector2D(self._x, self._y)
 
-    @property
-    def sign(self):
-        return self.no_zero_div_error(abs(self), "zero")
-
-    def floor(self, n=1):
-        return self.__floor__(n)
-
-    def ceil(self, n=1):
-        return self.__ceil__(n)
-
-    def round(self, n=1):
-        return self.__round__(n)
-
-    @staticmethod
-    def randomize(start=None, end=None):
-        cdef Vector2D start_vector, end_vector
-        if isinstance(start, Vector2D):
-            start_vector = start
-        elif isinstance(start, (int, float)):
-            start_vector = Vector2D(start, start)
-        elif start is None:
-            start_vector = Vector2D(0, 0)
-        else:
-            raise Exception(f"\nArg start must be in [Vector2D, int, float, None] not a [{type(start)}]\n")
-        if isinstance(end, Vector2D):
-            end_vector = end
-        elif isinstance(end, (int, float)):
-            end_vector = Vector2D(end, end)
-        elif end is None:
-            end_vector = Vector2D(1, 1)
-        else:
-            raise Exception(f"\nArg end must be in [Vector2D, int, float, None] not a [{type(end)}]\n")
-        cdef float rand_value = rand() / RAND_MAX
-        cdef Vector2D random_vector = start_vector + Vector2D(rand_value, rand_value) * (end_vector - start_vector)
-        return random_vector
-
-    def dot_product(self, other):
-        other = self.__normalize__(other)
-        return self._x * other.x + self._y * other.y
-
     def normalize(self):
-        mag = self.length()
-        if mag == 0: return self
+        cdef double mag = self.length
+        if mag == 0: return self.copy
         return Vector2D(self._x / mag, self._y / mag)
 
-    def projection(self, other):
-        other = self.__normalize__(other)
-        dot_product = self.dot_product(other)
-        magnitude_product = other.length() ** 2
-        if magnitude_product == 0: raise ValueError("Cannot calculate projection for zero vectors.")
+    def floor(self, int n=1) -> Vector2D:
+        return self.__floor__(n)
+
+    def ceil(self, int n=1) -> Vector2D:
+        return self.__ceil__(n)
+
+    def round(self, int n=1) -> Vector2D:
+        return self.__round__(n)
+
+    @classmethod
+    def randomize(cls, start, end) -> Vector2D:
+        if not isinstance(start, Vector2D):
+            if isinstance(start, (int, float)):
+                start = Vector2D(start, start)
+            else:
+                raise TypeError(f"\nArg start must be in [Vector2D, int, float] not [{type(start)}]\n")
+        if not isinstance(end, Vector2D):
+            if isinstance(end, (int, float)):
+                end = Vector2D(end, end)
+            else:
+                raise TypeError(f"\nArg end must be in [Vector2D, int, float] not [{type(end)}]\n")
+        cdef d = end - start
+        return Vector2D(start._x + _rnd.random() * d._x, start._y + _rnd.random() * d._y)
+
+    def dot_product(self, Vector2D other) -> double:
+        return self._x * other._x + self._y * other._y
+
+    def projection(self, Vector2D other) -> Vector2D:
+        cdef double dot_product = self.dot_product(other)
+        cdef double magnitude_product = other.length_sqrd
+        if magnitude_product == 0:
+            raise ValueError("Cannot calculate projection for zero vectors.")
         return other * (dot_product / magnitude_product)
 
-    def reflection(self, normal):
-        normal = self.__normalize__(normal)
-        projection = self.projection(normal)
-        return self - projection * 2
+    def reflection(self, Vector2D normal) -> Vector2D:
+        return self - self.projection(normal) * 2
+    
+    def cartesian_to_polar(self) -> tuple[float, float]:
+        return self.length, _mt.atan2(self._y, self._x)
 
-    def cartesian_to_polar(self):
-        r = self.length()
-        theta = atan2(self._y, self._x)
-        return r, theta
+    @classmethod
+    def polar_to_cartesian(cls, double r, double theta) -> Vector2D:
+        return cls(r * _mt.cos(theta), r * _mt.sin(theta))
 
-    @staticmethod
-    def polar_to_cartesian(r, theta):
-        cdef float x = r * cos(theta)
-        cdef float y = r * sin(theta)
-        return Vector2D(x, y)
-
-    def cartesian_to_complex(self):
+    def cartesian_to_complex(self) -> complex:
         return self._x + self._y * 1j
 
-    @staticmethod
-    def complex_to_cartesian(complex_n):
-        return Vector2D(complex_n.real, complex_n.imag)
+    @classmethod
+    def complex_to_cartesian(cls, complex complex_n) -> Vector2D:
+        return cls(complex_n.real, complex_n.imag)
 
-    def length(self):
-        return (self._x ** 2 + self._y ** 2) ** .5
+    def lerp(self, Vector2D other, double t=.1) -> Vector2D:
+        return Vector2D(self._x + (other._x - self._x) * t, self._y + (other._y - self._y) * t)
 
-    def lerp(self, other, t):
-        other = self.__normalize__(other)
-        if not 0 <= t <= 1:
-            raise ValueError("t must be between 0 and 1 for linear interpolation.")
-        return Vector2D(self._x + (other.x - self._x) * t, self._y + (other.y - self._y) * t)
+    def rotate(self, double angle, Vector2D center=None) -> None:
+        if center == None: center = Vector2D.zero()
+        cdef translated = self - center
+        cdef cos_angle = _mt.cos(angle)
+        cdef sin_angle = _mt.sin(angle)
+        self._x = translated._x * cos_angle - translated._y * sin_angle + center._x
+        self._y = translated._x * sin_angle + translated._y * cos_angle + center._y
 
-    def rotate(self, angle, center=None):
-        if center is None: center = Vector2D(0,0)
-        else: center = self.__normalize__(center)
-        translated = self - center
-        cos_angle = cos(angle)
-        sin_angle = sin(angle)
-        return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
-    def no_zero_div_error(self, n, error_mode="zero"):
-        cdef Vector2D result
+    def no_zero_div_error(self, n, str error_mode="zero") -> Vector2D:
+        cdef double result_x, result_y
+        cdef bint n_is_zero
+        cdef double nan_val = float('nan')
         if isinstance(n, (int, float)):
             if n == 0:
-                result = Vector2D(0 if error_mode == "zero" else (self._x if error_mode == "null" else float('nan')),
-                                 0 if error_mode == "zero" else (self._y if error_mode == "null" else float('nan')))
-            else: result = self / n
-        elif isinstance(n, Vector2D):
-            result = Vector2D(
-                (0 if error_mode == "zero" else (self._x if error_mode == "null" else float('nan'))) if n._x == 0 else self._x / n._x,
-                (0 if error_mode == "zero" else (self._y if error_mode == "null" else float('nan'))) if n._y == 0 else self._y / n._y)
-        else: raise Exception(f"\nArg n must be in [Vector2D, int, float] not a [{type(n)}]\n")
-        return result
-    def min(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(min(self._x, other.x), min(self._y, other.y))
-    def max(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(max(self._x, other.x), max(self._y, other.y))
-
-    def advanced_stringify(self, precision=2, use_scientific_notation=False, return_as_list=False):
-        def optimize(value):
-            cdef abs_value = abs(value)
-            if abs_value < 1/10**precision and abs_value != 0:
-                return f"{value:.{precision}e}"
-            elif abs_value < 10**precision:
-                return f"{value:.{precision}f}".rstrip('0').rstrip('.')
+                result_x = 0 if error_mode == "zero" else (self._x if error_mode == "null" else nan_val)
+                result_y = 0 if error_mode == "zero" else (self._y if error_mode == "null" else nan_val)
+                return Vector2D(result_x, result_y)
             else:
-                return f"{value:.{precision}e}"
+                return self / n
+        elif isinstance(n, Vector2D):
+            n_is_zero = (n._x == 0) or (n._y == 0)
+            result_x = 0 if (n._x == 0 and error_mode == "zero") else (self._x if error_mode == "null" else nan_val) if n._x == 0 else self._x / n._x
+            result_y = 0 if (n._y == 0 and error_mode == "zero") else (self._y if error_mode == "null" else nan_val) if n._y == 0 else self._y / n._y
+            return Vector2D(result_x, result_y)
+        else:
+            raise ValueError(f"Arg n must be in [Vector2D, int, float], not [{type(n)}]")
+        
+    def min(self, Vector2D other) -> Vector2D:
+        return Vector2D(min(self._x, other._x), min(self._y, other._y))
+    
+    def max(self, Vector2D other) -> Vector2D:
+        return Vector2D(max(self._x, other._x), max(self._y, other._y))
+
+    def advanced_stringify(self, precision=None, bint use_scientific_notation=False, bint return_as_list=False) -> object:
+        cdef int prec = self._round_values_on_print if precision is None else precision
+        cdef double abs_x = abs(self._x)
+        cdef double abs_y = abs(self._y)
+
+        def optimize(double value, int prec) -> str:
+            cdef double abs_value = abs(value)
+            if abs_value < 1 / 10**prec and abs_value != 0:
+                return "{:.{}e}".format(value, prec)
+            elif abs_value < 10**prec:
+                return "{:.{}f}".format(value, prec).rstrip('0').rstrip('.')
+            else:
+                return "{:.{}e}".format(value, prec)
+
         if return_as_list:
-            return [optimize(self._x), optimize(self._y)] if use_scientific_notation else [f"{self._x:.{precision}f}", f"{self._y:.{precision}f}"]
-        return f"{optimize(self._x)}, {optimize(self._y)}" if use_scientific_notation else f"{self._x:.{precision}f}, {self._y:.{precision}f}"
+            if use_scientific_notation:
+                return [optimize(self._x, prec), optimize(self._y, prec)]
+            else:
+                return ["{:.{}f}".format(self._x, prec), "{:.{}f}".format(self._y, prec)]
+        
+        if use_scientific_notation:
+            return "{}, {}".format(optimize(self._x, prec), optimize(self._y, prec))
+        else:
+            return "{:.{}f}, {:.{}f}".format(self._x, prec, self._y, prec)
 
-    def __str__(self):
-        return f"{self._x}, {self._y}"
+    def __str__(self) -> str:
+        return "{:.{}f}, {:.{}f}".format(self._x, self._round_values_on_print, self._y, self._round_values_on_print)
 
-    def __repr__(self):
-        return f"x:{self._x}\ty:{self._y}"
+    def __repr__(self) -> str:
+        return "x:{:.{}f}\ty:{:.{}f}".format(self._x, self._round_values_on_print, self._y, self._round_values_on_print)
+    
+    def __call__(self) -> list:
+        return [self._x, self._y]
 
-    def __call__(self, return_tuple=False):
-        return (self._x, self._y) if return_tuple else [self._x, self._y]
+    # fast operations     Vector2D.operation(both,x,y)
+    def add(self, double both=0.0, double x=0.0, double y=0.0) -> Vector2D:
+        return Vector2D(self._x + (x + both), self._y + (y + both))
+
+    def sub(self, double both=0.0, double x=0.0, double y=0.0) -> Vector2D:
+        return Vector2D(self._x - (x + both), self._y - (y + both))
+
+    def mult(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        return Vector2D(self._x * (x + both), self._y * (y + both))
+
+    def pow(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        return Vector2D(self._x ** (x + both), self._y ** (y + both))
+
+    def mod(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        return Vector2D(self._x % (x + both), self._y % (y + both))
+
+    def div(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        return Vector2D(self._x / (x + both), self._y / (y + both))
+    
+    def fdiv(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        return Vector2D(self._x // (x + both), self._y // (y + both))
+
+    # fast inplace operations     Vector2D.ioperation(both,x,y)
+    def set(self, double both=0.0, double x=0.0, double y=0.0) -> Vector2D:
+        self._x = x + both
+        self._y = y + both
+        return self
+
+    def iadd(self, double both=0.0, double x=0.0, double y=0.0) -> Vector2D:
+        self._x += x + both
+        self._y += y + both
+        return self
+
+    def isub(self, double both=0.0, double x=0.0, double y=0.0) -> Vector2D:
+        self._x -= x + both
+        self._y -= y + both
+        return self
+
+    def imult(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        self._x *= x + both
+        self._y *= y + both
+        return self
+
+    def ipow(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        self._x **= x + both
+        self._y **= y + both
+        return self
+
+    def imod(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        self._x %= x + both
+        self._y %= y + both
+        return self
+
+    def idiv(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        self._x /= x + both
+        self._y /= y + both
+        return self
+
+    def ifdiv(self, double both=1.0, double x=1.0, double y=1.0) -> Vector2D:
+        self._x //= x + both
+        self._y //= y + both
+        return self
 
     # normal operations     Vector2D + a
     def __add__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x + other.x, self._y + other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x + o._x, self._y + o._y)
+
     def __sub__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x - other.x, self._y - other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x - o._x, self._y - o._y)
+
     def __mul__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x * other.x, self._y * other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x * o._x, self._y * o._y)
+
     def __mod__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x % other.x, self._y % other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x % o._x, self._y % o._y)
+
     def __pow__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x ** other.x, self._y ** other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x ** o._x, self._y ** o._y)
+
     def __truediv__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x / other.x, self._y / other.y)
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x / o._x, self._y / o._y)
+
     def __floordiv__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(self._x // other.x, self._y // other.y)
-    
-    # right operations      a + Vector2D
-    def __radd__(self, other):
-        return self.__add__(other)
-    def __rsub__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(other.x - self._x, other.y - self._y)
-    def __rmul__(self, other):
-        return self.__mul__(other)
-    def __rmod__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(other.x % self._x, other.y % self._y)
-    def __rpow__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(other.x ** self._x, other.y ** self._y)
-    def __rtruediv__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(other.x / self._x, other.y / self._y)
-    def __rfloordiv__(self, other):
-        other = self.__normalize__(other)
-        return Vector2D(other.x // self._x, other.y // self._y)
-    
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(self._x // o._x, self._y // o._y)
+
     # in-place operations   Vector2D += a
     def __iadd__(self, other):
-        other = self.__normalize__(other)
-        self._x += other.x
-        self._y += other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x += o._x
+        self._y += o._y
         return self
+
     def __isub__(self, other):
-        other = self.__normalize__(other)
-        self._x -= other.x
-        self._y -= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x -= o._x
+        self._y -= o._y
         return self
+
     def __imul__(self, other):
-        other = self.__normalize__(other)
-        self._x *= other.x
-        self._y *= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x *= o._x
+        self._y *= o._y
         return self
+
     def __itruediv__(self, other):
-        other = self.__normalize__(other)
-        self._x /= other.x
-        self._y /= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x /= o._x
+        self._y /= o._y
         return self
+
     def __imod__(self, other):
-        other = self.__normalize__(other)
-        self._x %= other.x
-        self._y %= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x %= o._x
+        self._y %= o._y
         return self
+
     def __ipow__(self, other):
-        other = self.__normalize__(other)
-        self._x **= other.x
-        self._y **= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x **= o._x
+        self._y **= o._y
         return self
+
     def __ifloordiv__(self, other):
-        other = self.__normalize__(other)
-        self._x //= other.x
-        self._y //= other.y
+        cdef Vector2D o = self.__normalize__(other)
+        self._x //= o._x
+        self._y //= o._y
         return self
 
     # comparasion
-    def __eq__(self, other):
-        try: other = self.__normalize__(other)
-        except: return False
-        return self._x == other.x and self._y == other.y
-    def __ne__(self, other):
+    def __eq__(self, other) -> bool:
+        try:
+            o = self.__normalize__(other)
+        except TypeError:
+            return False
+        return self._x == o._x and self._y == o._y
+
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
-    def __abs__(self):
+    # absolute value
+    def __abs__(self) -> Vector2D:
         return Vector2D(abs(self._x), abs(self._y))
-    def __round__(self, n=1):
-        n = self.__normalize__(n)
-        return Vector2D(round(self._x / n.x) * n.x, round(self._y / n.y) * n.y)
-    def __floor__(self, n=1):
-        n = self.__normalize__(n)
-        return Vector2D((self._x / n.x).__floor__() * n.x, (self._y / n.y).__floor__() * n.y)
-    def __ceil__(self, n=1):
-        n = self.__normalize__(n)
-        return Vector2D((self._x / n.x).__ceil__() * n.x, (self._y / n.y).__ceil__() * n.y)
-    def __float__(self):
+
+    # rounding operations
+    def __round__(self, other=1) -> Vector2D:
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D(round(self._x / o._x) * o._x, round(self._y / o._y) * o._y)
+
+    def __floor__(self, other=1) -> Vector2D:
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D((self._x // o._x) * o._x, (self._y // o._y) * o._y)
+
+    def __ceil__(self, other=1) -> Vector2D:
+        cdef Vector2D o = self.__normalize__(other)
+        return Vector2D((-(-self._x // o._x)) * o._x, (-(-self._y // o._y)) * o._y)
+
+    def __float__(self) -> Vector2D:
         return Vector2D(float(self._x), float(self._y))
-    def __getitem__(self, n):
-        if n in [0, "x"]:
+
+    def __getitem__(self, n) -> float:
+        if n == 0 or n == "x":
             return self._x
-        elif n in [1, "y"]:
+        elif n == 1 or n == "y":
             return self._y
         else:
-            raise IndexError("V2 has only x,y...")
-    cdef __normalize__(self, other):
-        if not isinstance(other, Vector2D):
-            if any(isinstance(other, cls) for cls in (int, float)):
-                return Vector2D(<float>other, <float>other)
-            elif any(isinstance(other, cls) for cls in (list, tuple)):
-                return Vector2D(<float>other[0], <float>other[1])
-            else:
-                try:
-                    return Vector2D(<float>other.x, <float>other.y)
-                except:
-                    raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")
-        return other
+            raise IndexError("Vector2D has only 'x' and 'y'.")
+
+    def __iter__(self) -> Generator[float, Any, None]:
+        yield self._x
+        yield self._y
+
+    cpdef Vector2D __normalize__(self, object other):
+        if isinstance(other, Vector2D):
+            return other
+        elif isinstance(other, (int, float)):
+            return Vector2D(float(other), float(other))
+        elif isinstance(other, (list, tuple)):
+            return Vector2D(float(other[0]), float(other[1]))
+        else:
+            try:
+                return Vector2D(float(other.x), float(other.y))
+            except AttributeError:
+                raise TypeError(
+                    f"The value {other} of type {type(other)} is not a compatible type: "
+                    "[int, float, list, tuple, or Vector2D-compatible object]"
+                )
+
+    @classmethod
+    def zero(cls) -> Vector2D: return V2zero
+    @classmethod
+    def one(cls) -> Vector2D: return V2one
+    @classmethod
+    def two(cls) -> Vector2D: return V2two
+    @classmethod
+    def pi(cls) -> Vector2D: return V2pi
+    @classmethod
+    def inf(cls) -> Vector2D: return V2inf
+    @classmethod
+    def neg_one(cls) -> Vector2D: return V2neg_one
+    @classmethod
+    def neg_two(cls) -> Vector2D: return V2neg_two
+    @classmethod
+    def neg_pi(cls) -> Vector2D: return V2neg_pi
+    @classmethod
+    def neg_inf(cls) -> Vector2D: return V2neg_inf
+    @classmethod
+    def up(cls) -> Vector2D: return V2up
+    @classmethod
+    def right(cls) -> Vector2D: return V2right
+    @classmethod
+    def down(cls) -> Vector2D: return V2down
+    @classmethod
+    def left(cls) -> Vector2D: return V2left
+    @classmethod
+    def up_right(cls) -> Vector2D: return V2up_right
+    @classmethod
+    def down_right(cls) -> Vector2D: return V2down_right
+    @classmethod
+    def up_left(cls) -> Vector2D: return V2up_left
+    @classmethod
+    def down_left(cls) -> Vector2D: return V2down_left
+    @classmethod
+    def up_right_norm(cls) -> Vector2D: return V2up_right_norm
+    @classmethod
+    def down_right_norm(cls) -> Vector2D: return V2down_right_norm
+    @classmethod
+    def up_left_norm(cls) -> Vector2D: return V2up_left_norm
+    @classmethod
+    def down_left_norm(cls) -> Vector2D: return V2down_left_norm
+
+    @classmethod
+    def new_zero(cls) -> Vector2D: return V2zero.copy()
+    @classmethod
+    def new_one(cls) -> Vector2D: return V2one.copy()
+    @classmethod
+    def new_two(cls) -> Vector2D: return V2two.copy()
+    @classmethod
+    def new_pi(cls) -> Vector2D: return V2pi.copy()
+    @classmethod
+    def new_inf(cls) -> Vector2D: return V2inf.copy()
+    @classmethod
+    def new_neg_one(cls) -> Vector2D: return V2neg_one.copy()
+    @classmethod
+    def new_neg_two(cls) -> Vector2D: return V2neg_two.copy()
+    @classmethod
+    def new_neg_pi(cls) -> Vector2D: return V2neg_pi.copy()
+    @classmethod
+    def new_neg_inf(cls) -> Vector2D: return V2neg_inf.copy()
+    @classmethod
+    def new_up(cls) -> Vector2D: return V2up.copy()
+    @classmethod
+    def new_right(cls) -> Vector2D: return V2right.copy()
+    @classmethod
+    def new_down(cls) -> Vector2D: return V2down.copy()
+    @classmethod
+    def new_left(cls) -> Vector2D: return V2left.copy()
+    @classmethod
+    def new_up_right(cls) -> Vector2D: return V2up_right.copy()
+    @classmethod
+    def new_down_right(cls) -> Vector2D: return V2down_right.copy()
+    @classmethod
+    def new_up_left(cls) -> Vector2D: return V2up_left.copy()
+    @classmethod
+    def new_down_left(cls) -> Vector2D: return V2down_left.copy()
+    @classmethod
+    def new_up_right_norm(cls) -> Vector2D: return V2up_right_norm.copy()
+    @classmethod
+    def new_down_right_norm(cls) -> Vector2D: return V2down_right_norm.copy()
+    @classmethod
+    def new_up_left_norm(cls) -> Vector2D: return V2up_left_norm.copy()
+    @classmethod
+    def new_down_left_norm(cls) -> Vector2D: return V2down_left_norm.copy()
+
+V2 = Vector2D
+
+V2zero = Vector2D(0, 0)
+
+V2one = Vector2D(1.0, 1.0)
+V2two = Vector2D(2.0, 2.0)
+V2pi = Vector2D(PI, PI)
+V2inf = Vector2D(float("inf"), float("inf"))
+
+V2neg_one = Vector2D(1.0, 1.0)
+V2neg_two = Vector2D(2.0, 2.0)
+V2neg_pi = Vector2D(PI, PI)
+V2neg_inf = Vector2D(float("inf"), float("inf"))
+
+V2up = Vector2D(0, 1)
+V2right = Vector2D(1, 0)
+V2down = Vector2D(0, -1)
+V2left = Vector2D(-1, 0)
+
+V2up_right = Vector2D(1, 1)
+V2down_right = Vector2D(1, -1)
+V2up_left = Vector2D(-1, 1)
+V2down_left = Vector2D(-1, -1)
+
+V2up_right_norm = V2up_right.normalize()
+V2down_right_norm = V2down_right.normalize()
+V2up_left_norm = V2up_left.normalize()
+V2down_left_norm = V2down_left.normalize()
+
+VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
+VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
+VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
+VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
+VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)

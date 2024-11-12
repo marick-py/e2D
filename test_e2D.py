@@ -17,7 +17,7 @@ def test_Vector2D_V2_distance_to() -> None:
     vec2 = Vector2D(3, 4)
     result = vec1.distance_to(vec2)
     assert result == 5.0
-    result = vec1.distance_to(vec2, sqrd=False)
+    result = vec1.distance_to(vec2, rooted=False)
     assert result == 25.0
 
 def test_Vector2D_V2_angle_to() -> None:

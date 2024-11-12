@@ -6,7 +6,7 @@ PI_HALF : float
 PI_QUARTER : float
 PI_DOUBLE : float
 
-# regular expression to remove comments:
+# reg expression to remove comments:
 # """([\s\S]*?)"""
 
 # 
@@ -39,31 +39,31 @@ class Vector2D:
         self.x : int|float
         self.y : int|float
 
-    def distance_to(self:"Vector2D", other:"Vector2D", sqrd:bool=True) -> int|float:
+    def distance_to(self:"Vector2D", other:"Vector2D", rooted:bool=True) -> int|float:
         """
         # Calculate the distance between the current Vector2D other and another other.
 
         ## Parameters:
             other (float or int or Vector2D or list|tuple): The other other to which the distance is calculated.
-            squared (bool, optional): If True, return the squared distance. If False, return the actual distance.
+            rooted (bool, optional): If True, return the normal distance. If False, return the square distance.
                                       Default is True.
 
         ## Returns:
-            int|float: The squared distance between the current Vector2D other and the other other if `squared` is True,
-                      otherwise the actual distance.
+            int|float: The distance between the current Vector2D other and the other other if `rooted` is True,
+                      otherwise the squared distance.
 
         ## Example:
             point1 = Vector2D(0, 0)
 
             point2 = Vector2D(3, 4)
 
-            squared_distance = point1.distance_to(point2)
+            normal_distance = point1.distance_to(point2)
 
-            print(f"Squared Distance: {squared_distance}")
+            print(f"Normal Distance: {normal_distance}")
 
-            distance = point1.distance_to(point2, squared=False)
+            squared_distance = point1.distance_to(point2, rooted=False)
 
-            print(f"Actual Distance: {distance}")
+            print(f"Squared  Distance: {distance}")
 
             This will calculate the squared and actual distances between the two points.
 
@@ -71,7 +71,7 @@ class Vector2D:
             The function calculates the squared distance between the current Vector2D other (self) and another other
             (other) using the formula: (self.x - other.x)**2 + (self.y - other.y)**2.
 
-            The result is returned as the squared distance if `squared` is True, or as the actual distance if `squared` is False.
+            The result is returned as the squared distance if `rooted` is False, or as the actual distance if `rooted` is True.
         """
         ...
 
@@ -143,31 +143,7 @@ class Vector2D:
     def angle(self:"Vector2D") -> int|float: ...
 
     @angle.setter
-    def angle(self:"Vector2D", argv) -> None: ...
-
-    @property
-    def copy(self:"Vector2D") -> "Vector2D":
-        """
-        # Create a copy of the current Vector2D other.
-
-        ## Returns:
-            Vector2D: A new Vector2D other with the same x and y coordinates as the current other.
-
-        ## Example:
-            point1 = Vector2D(1, 2)
-
-            point2 = point1.copy()
-
-            print(point2.x, point2.y)
-
-            This will print the x and y coordinates of the copied Vector2D other (1, 2).
-
-        ## Explanation:
-            The function creates a new Vector2D other with the same x and y coordinates as the current other.
-
-            The result is returned as a new Vector2D other, effectively making a copy of the original other.
-        """
-        ...
+    def angle(self:"Vector2D", new_angle:int|float) -> None: ...
 
     @property
     def sign(self:"Vector2D") -> "Vector2D":
@@ -210,8 +186,38 @@ class Vector2D:
             vector points in the same direction as the original vector but has non-negative components.
         """
         ...
-    
+
     @property
+    def length(self:"Vector2D") -> float:
+        ...
+
+    @property
+    def length_sqrd(self:"Vector2D") -> float:
+        ...
+
+    def copy(self:"Vector2D") -> "Vector2D":
+        """
+        # Create a copy of the current Vector2D other.
+
+        ## Returns:
+            Vector2D: A new Vector2D other with the same x and y coordinates as the current other.
+
+        ## Example:
+            point1 = Vector2D(1, 2)
+
+            point2 = point1.copy()
+
+            print(point2.x, point2.y)
+
+            This will print the x and y coordinates of the copied Vector2D other (1, 2).
+
+        ## Explanation:
+            The function creates a new Vector2D other with the same x and y coordinates as the current other.
+
+            The result is returned as a new Vector2D other, effectively making a copy of the original other.
+        """
+        ...
+    
     def normalize(self:"Vector2D") -> "Vector2D":
         """
         # Vector Normalization
@@ -242,14 +248,6 @@ class Vector2D:
         """
         ...
     
-    @property
-    def length(self:"Vector2D") -> float:
-        ...
-
-    @property
-    def length_sqrd(self:"Vector2D") -> float:
-        ...
-
     def floor(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
         ...
 
@@ -391,7 +389,7 @@ class Vector2D:
         """
         ...
 
-    def cartesian_to_polar(self:"Vector2D") -> tuple:
+    def cartesian_to_polar(self:"Vector2D") -> tuple[float, float]:
         """
         # Convert Cartesian Coordinates to Polar Coordinates
 
@@ -483,7 +481,7 @@ class Vector2D:
         """
         ...
 
-    def rotate(self:"Vector2D", angle: int|float, center:"Vector2D|None"=None) -> "Vector2D":
+    def rotate(self:"Vector2D", angle: int|float, center:"Vector2D|None"=None) -> None:
         """
         # Rotate the vector by a given angle around the origin or a specified center.
 
@@ -889,18 +887,18 @@ def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
     """
     ...
 
-def color_distance(starting_c: list|tuple, final_c: list|tuple, sqrd:bool=True) -> float:
+def color_distance(starting_c: list|tuple, final_c: list|tuple, rooted:bool=True) -> float:
     """
     # Calculate the distance between two colors in RGB space.
 
     ## Parameters:
         starting_c (list or tuple): The RGB values of the starting color.
         final_c (list or tuple): The RGB values of the final color.
-        sqrd (bool, optional): If True, return the squared distance. If False, return
+        rooted (bool, optional): If True, return the rooted distance. If False, return
                                the actual distance. Default is True.
 
     ## Returns:
-        float: The squared distance between the two colors if `sqrd` is True, otherwise
+        float: The squared distance between the two colors if `rooted` is False, otherwise
                the actual distance.
 
     ## Example:
@@ -912,7 +910,7 @@ def color_distance(starting_c: list|tuple, final_c: list|tuple, sqrd:bool=True) 
 
         print(f"Squared Distance: {squared_distance}")
 
-        distance = color_distance(starting_c, final_c, sqrd=False)
+        distance = color_distance(starting_c, final_c, rooted=True)
 
         print(f"Actual Distance: {distance}")
 
@@ -924,9 +922,9 @@ def color_distance(starting_c: list|tuple, final_c: list|tuple, sqrd:bool=True) 
         components for each color. The squared distance is obtained by taking the square
         root of this sum.
 
-        The `sqrd` parameter allows the user to choose between returning the squared
-        distance or the actual distance. If `sqrd` is True, the function returns the
-        squared distance, and if `sqrd` is False, it returns the actual distance.
+        The `rooted` parameter allows the user to choose between returning the squared
+        distance or the actual distance. If `rooted` is True, the function returns the
+        actual distance, and if `rooted` is False, it returns the squared distance.
     """
     ...
 

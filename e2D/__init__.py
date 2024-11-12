@@ -17,9 +17,9 @@ class Vector2D:
         self.x = x
         self.y = y
 
-    def distance_to(self, other, sqrd=True) -> int|float:
+    def distance_to(self, other, rooted=True) -> int|float:
         d = (self.x - other.x)**2 + (self.y - other.y)**2
-        return (d**(1/2) if sqrd else d)
+        return d**(1/2) if rooted else d
 
     def angle_to(self, other) -> int|float:
         return _mt.atan2(other.y - self.y, other.x - self.x)
@@ -32,23 +32,13 @@ class Vector2D:
         return _mt.atan2(self.y, self.x)
 
     @angle.setter
-    def angle(self, argv) -> None:
-        print(argv)
-
-    @property
-    def copy(self) -> "Vector2D":
-        return Vector2D(self.x, self.y)
+    def angle(self, new_angle) -> None:
+        self.rotate(new_angle - self.angle)
 
     @property
     def sign(self) -> "Vector2D":
         return Vector2D(sign(self.x), sign(self.y))
-    
-    @property
-    def normalize(self) -> "Vector2D":
-        if (mag:=self.length) == 0:
-            return self.copy
-        return Vector2D(self.x / mag, self.y / mag)
-    
+        
     @property
     def length(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** .5
@@ -56,6 +46,14 @@ class Vector2D:
     @property
     def length_sqrd(self) -> float:
         return self.x ** 2 + self.y ** 2
+
+    def copy(self) -> "Vector2D":
+        return Vector2D(self.x, self.y)
+
+    def normalize(self) -> "Vector2D":
+        if (mag:=self.length) == 0:
+            return self.copy()
+        return Vector2D(self.x / mag, self.y / mag)
 
     def floor(self, n=1) -> "Vector2D":
         return self.__floor__(n)
@@ -93,16 +91,12 @@ class Vector2D:
     def reflection(self, normal) -> "Vector2D":
         return self - self.projection(normal) * 2
 
-    def cartesian_to_polar(self) -> tuple:
-        r = self.length
-        theta = _mt.atan2(self.y, self.x)
-        return r, theta
+    def cartesian_to_polar(self) -> tuple[float, float]:
+        return self.length, _mt.atan2(self.y, self.x)
 
     @classmethod
     def polar_to_cartesian(cls, r, theta) -> "Vector2D":
-        x = r * _mt.cos(theta)
-        y = r * _mt.sin(theta)
-        return cls(x, y)
+        return cls(r * _mt.cos(theta), r * _mt.sin(theta))
 
     def cartesian_to_complex(self) -> complex:
         return self.x + self.y * 1j
@@ -112,19 +106,17 @@ class Vector2D:
         return cls(complex_n.real, complex_n.imag)
 
     def lerp(self, other, t=.1) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        if not 0 <= t <= 1:
-            raise ValueError("t must be between 0 and 1 for linear interpolation.")
         return Vector2D(self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t)
 
-    def rotate(self, angle, center=None) -> "Vector2D":
-        if center is None: center = Vector2D.zero()
+    def rotate(self, angle, center=None) -> None:
+        if center == None: center = Vector2D.zero()
         translated = self - center
         cos_angle = _mt.cos(angle)
         sin_angle = _mt.sin(angle)
-        return Vector2D(translated.x * cos_angle - translated.y * sin_angle, translated.x * sin_angle + translated.y * cos_angle) + center
+        self.x = translated.x * cos_angle - translated.y * sin_angle + center.x
+        self.y = translated.x * sin_angle + translated.y * cos_angle + center.y
 
-    def no_zero_div_error(self, n, error_mode="zero") -> "Vector2D":
+    def no_zero_div_error(self, n, error_mode=Literal["zero", "null", "nan"]) -> "Vector2D":
         if isinstance(n, (int, float)):
             if n == 0:
                 return Vector2D(0 if error_mode ==  "zero" else (self.x if error_mode == "null" else _mt.nan), 0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan))
@@ -335,9 +327,11 @@ class Vector2D:
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
+    # absolute value
     def __abs__(self) -> "Vector2D":
         return Vector2D(abs(self.x), abs(self.y))
 
+    # rounding operations
     def __round__(self, n=1) -> "Vector2D":
         n = Vector2D.__normalize__(n)
         return Vector2D(round(self.x / n.x) * n.x, round(self.y / n.y) * n.y)
@@ -422,49 +416,47 @@ class Vector2D:
     def down_left_norm(cls) -> "Vector2D": return V2down_left_norm
 
     @classmethod
-    def new_zero(cls) -> "Vector2D": return V2zero.copy
+    def new_zero(cls) -> "Vector2D": return V2zero.copy()
     @classmethod
-    def new_one(cls) -> "Vector2D": return V2one.copy
+    def new_one(cls) -> "Vector2D": return V2one.copy()
     @classmethod
-    def new_two(cls) -> "Vector2D": return V2two.copy
+    def new_two(cls) -> "Vector2D": return V2two.copy()
     @classmethod
-    def new_pi(cls) -> "Vector2D": return V2pi.copy
+    def new_pi(cls) -> "Vector2D": return V2pi.copy()
     @classmethod
-    def new_inf(cls) -> "Vector2D": return V2inf.copy
+    def new_inf(cls) -> "Vector2D": return V2inf.copy()
     @classmethod
-    def new_neg_one(cls) -> "Vector2D": return V2neg_one.copy
+    def new_neg_one(cls) -> "Vector2D": return V2neg_one.copy()
     @classmethod
-    def new_neg_two(cls) -> "Vector2D": return V2neg_two.copy
+    def new_neg_two(cls) -> "Vector2D": return V2neg_two.copy()
     @classmethod
-    def new_neg_pi(cls) -> "Vector2D": return V2neg_pi.copy
+    def new_neg_pi(cls) -> "Vector2D": return V2neg_pi.copy()
     @classmethod
-    def new_neg_inf(cls) -> "Vector2D": return V2neg_inf.copy
+    def new_neg_inf(cls) -> "Vector2D": return V2neg_inf.copy()
     @classmethod
-    def new_up(cls) -> "Vector2D": return V2up.copy
+    def new_up(cls) -> "Vector2D": return V2up.copy()
     @classmethod
-    def new_right(cls) -> "Vector2D": return V2right.copy
+    def new_right(cls) -> "Vector2D": return V2right.copy()
     @classmethod
-    def new_down(cls) -> "Vector2D": return V2down.copy
+    def new_down(cls) -> "Vector2D": return V2down.copy()
     @classmethod
-    def new_left(cls) -> "Vector2D": return V2left.copy
+    def new_left(cls) -> "Vector2D": return V2left.copy()
     @classmethod
-    def new_up_right(cls) -> "Vector2D": return V2up_right.copy
+    def new_up_right(cls) -> "Vector2D": return V2up_right.copy()
     @classmethod
-    def new_down_right(cls) -> "Vector2D": return V2down_right.copy
+    def new_down_right(cls) -> "Vector2D": return V2down_right.copy()
     @classmethod
-    def new_up_left(cls) -> "Vector2D": return V2up_left.copy
+    def new_up_left(cls) -> "Vector2D": return V2up_left.copy()
     @classmethod
-    def new_down_left(cls) -> "Vector2D": return V2down_left.copy
+    def new_down_left(cls) -> "Vector2D": return V2down_left.copy()
     @classmethod
-    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy
+    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy()
     @classmethod
-    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy
+    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy()
     @classmethod
-    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy
+    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy()
     @classmethod
-    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
-
-from .cvb import *
+    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy()
 
 V2 = Vector2D
 
@@ -490,17 +482,16 @@ V2down_right = Vector2D(1, -1)
 V2up_left = Vector2D(-1, 1)
 V2down_left = Vector2D(-1, -1)
 
-V2up_right_norm = V2up_right.normalize
-V2down_right_norm = V2down_right.normalize
-V2up_left_norm = V2up_left.normalize
-V2down_left_norm = V2down_left.normalize
+V2up_right_norm = V2up_right.normalize()
+V2down_right_norm = V2down_right.normalize()
+V2up_left_norm = V2up_left.normalize()
+V2down_left_norm = V2down_left.normalize()
 
 VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
 VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
 VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
 VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
 VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)
-
 
 def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)
@@ -518,9 +509,9 @@ def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
     if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
     return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3)) #type: ignore
 
-def color_distance(starting_c:list|tuple, final_c:list|tuple, sqrd) -> float:
+def color_distance(starting_c:list|tuple, final_c:list|tuple, rooted) -> float:
     distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
-    return (distance ** .5) if sqrd else distance
+    return (distance ** .5) if rooted else distance
 
 def lerp(starting, ending, step=.1) -> float:
     return starting + (ending - starting) * step
