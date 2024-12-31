@@ -5,7 +5,7 @@ from .utils import *
 import pygame as pg
 
 """  CODE EXAMPLE FOR RootEnv
-from e2D.envs import *
+from e2D.envs import * #type: ignore
 
 class Env(DefEnv):
     def __init__(self) -> None:

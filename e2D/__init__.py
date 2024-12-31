@@ -36,9 +36,19 @@ class Vector2D:
         self.rotate(new_angle - self.angle)
 
     @property
+    def copy(self) -> "Vector2D":
+        return Vector2D(self.x, self.y)
+
+    @property
     def sign(self) -> "Vector2D":
         return Vector2D(sign(self.x), sign(self.y))
-        
+
+    @property
+    def normalize(self) -> "Vector2D":
+        if (mag:=self.length) == 0:
+            return self.copy
+        return Vector2D(self.x / mag, self.y / mag)
+
     @property
     def length(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** .5
@@ -46,14 +56,6 @@ class Vector2D:
     @property
     def length_sqrd(self) -> float:
         return self.x ** 2 + self.y ** 2
-
-    def copy(self) -> "Vector2D":
-        return Vector2D(self.x, self.y)
-
-    def normalize(self) -> "Vector2D":
-        if (mag:=self.length) == 0:
-            return self.copy()
-        return Vector2D(self.x / mag, self.y / mag)
 
     def floor(self, n=1) -> "Vector2D":
         return self.__floor__(n)
@@ -163,20 +165,20 @@ class Vector2D:
     def sub(self, both=.0, x=.0, y=.0) -> Vector2D:
         return Vector2D(self.x - (x + both), self.y - (y + both))
     
-    def mult(self, both=.0, x=.0, y=.0) -> Vector2D:
-        return Vector2D(self.x * (x + both), self.y * (y + both))
+    def mult(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        return Vector2D(self.x * x * both, self.y * y * both)
     
-    def pow(self, both=.0, x=.0, y=.0) -> Vector2D:
+    def pow(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
         return Vector2D(self.x ** (x + both), self.y ** (y + both))
     
-    def mod(self, both=.0, x=.0, y=.0) -> Vector2D:
+    def mod(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
         return Vector2D(self.x % (x + both), self.y % (y + both))
     
-    def div(self, both=.0, x=.0, y=.0) -> Vector2D:
-        return Vector2D(self.x / (x + both), self.y / (y + both))
+    def div(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        return Vector2D(self.x / x / both, self.y / y / both)
     
-    def fdiv(self, both=.0, x=.0, y=.0) -> Vector2D:
-        return Vector2D(self.x // (x + both), self.y // (y + both))
+    def fdiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        return Vector2D(self.x // x // both, self.y // y // both)
 
     # fast inplace operations     Vector2D.ioperation(both,x,y)
     def set(self, both=.0, x=.0, y=.0) -> Vector2D:
@@ -194,29 +196,29 @@ class Vector2D:
         self.y -= y + both
         return self
     
-    def imult(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x *= x + both
-        self.y *= y + both
+    def imult(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        self.x *= x * both
+        self.y *= y * both
         return self
     
-    def ipow(self, both=.0, x=.0, y=.0) -> Vector2D:
+    def ipow(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
         self.x **= x + both
         self.y **= y + both
         return self
     
-    def imod(self, both=.0, x=.0, y=.0) -> Vector2D:
+    def imod(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
         self.x %= x + both
         self.y %= y + both
         return self
     
-    def idiv(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x /= x + both
-        self.y /= y + both
+    def idiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        self.x /= x * both
+        self.y /= y * both
         return self
     
-    def ifdiv(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x //= x + both
-        self.y //= y + both
+    def ifdiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
+        self.x //= x * both
+        self.y //= y * both
         return self
 
     # normal operations     Vector2D + a
@@ -327,11 +329,9 @@ class Vector2D:
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
-    # absolute value
     def __abs__(self) -> "Vector2D":
         return Vector2D(abs(self.x), abs(self.y))
 
-    # rounding operations
     def __round__(self, n=1) -> "Vector2D":
         n = Vector2D.__normalize__(n)
         return Vector2D(round(self.x / n.x) * n.x, round(self.y / n.y) * n.y)
@@ -416,47 +416,49 @@ class Vector2D:
     def down_left_norm(cls) -> "Vector2D": return V2down_left_norm
 
     @classmethod
-    def new_zero(cls) -> "Vector2D": return V2zero.copy()
+    def new_zero(cls) -> "Vector2D": return V2zero.copy
     @classmethod
-    def new_one(cls) -> "Vector2D": return V2one.copy()
+    def new_one(cls) -> "Vector2D": return V2one.copy
     @classmethod
-    def new_two(cls) -> "Vector2D": return V2two.copy()
+    def new_two(cls) -> "Vector2D": return V2two.copy
     @classmethod
-    def new_pi(cls) -> "Vector2D": return V2pi.copy()
+    def new_pi(cls) -> "Vector2D": return V2pi.copy
     @classmethod
-    def new_inf(cls) -> "Vector2D": return V2inf.copy()
+    def new_inf(cls) -> "Vector2D": return V2inf.copy
     @classmethod
-    def new_neg_one(cls) -> "Vector2D": return V2neg_one.copy()
+    def new_neg_one(cls) -> "Vector2D": return V2neg_one.copy
     @classmethod
-    def new_neg_two(cls) -> "Vector2D": return V2neg_two.copy()
+    def new_neg_two(cls) -> "Vector2D": return V2neg_two.copy
     @classmethod
-    def new_neg_pi(cls) -> "Vector2D": return V2neg_pi.copy()
+    def new_neg_pi(cls) -> "Vector2D": return V2neg_pi.copy
     @classmethod
-    def new_neg_inf(cls) -> "Vector2D": return V2neg_inf.copy()
+    def new_neg_inf(cls) -> "Vector2D": return V2neg_inf.copy
     @classmethod
-    def new_up(cls) -> "Vector2D": return V2up.copy()
+    def new_up(cls) -> "Vector2D": return V2up.copy
     @classmethod
-    def new_right(cls) -> "Vector2D": return V2right.copy()
+    def new_right(cls) -> "Vector2D": return V2right.copy
     @classmethod
-    def new_down(cls) -> "Vector2D": return V2down.copy()
+    def new_down(cls) -> "Vector2D": return V2down.copy
     @classmethod
-    def new_left(cls) -> "Vector2D": return V2left.copy()
+    def new_left(cls) -> "Vector2D": return V2left.copy
     @classmethod
-    def new_up_right(cls) -> "Vector2D": return V2up_right.copy()
+    def new_up_right(cls) -> "Vector2D": return V2up_right.copy
     @classmethod
-    def new_down_right(cls) -> "Vector2D": return V2down_right.copy()
+    def new_down_right(cls) -> "Vector2D": return V2down_right.copy
     @classmethod
-    def new_up_left(cls) -> "Vector2D": return V2up_left.copy()
+    def new_up_left(cls) -> "Vector2D": return V2up_left.copy
     @classmethod
-    def new_down_left(cls) -> "Vector2D": return V2down_left.copy()
+    def new_down_left(cls) -> "Vector2D": return V2down_left.copy
     @classmethod
-    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy()
+    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy
     @classmethod
-    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy()
+    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy
     @classmethod
-    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy()
+    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy
     @classmethod
-    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy()
+    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
+
+from .cvb import *
 
 V2 = Vector2D
 
@@ -482,16 +484,17 @@ V2down_right = Vector2D(1, -1)
 V2up_left = Vector2D(-1, 1)
 V2down_left = Vector2D(-1, -1)
 
-V2up_right_norm = V2up_right.normalize()
-V2down_right_norm = V2down_right.normalize()
-V2up_left_norm = V2up_left.normalize()
-V2down_left_norm = V2down_left.normalize()
+V2up_right_norm = V2up_right.normalize
+V2down_right_norm = V2down_right.normalize
+V2up_left_norm = V2up_left.normalize
+V2down_left_norm = V2down_left.normalize
 
 VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
 VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
 VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
 VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
 VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)
+
 
 def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
     return (r,g,b)

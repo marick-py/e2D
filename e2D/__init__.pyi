@@ -6,7 +6,7 @@ PI_HALF : float
 PI_QUARTER : float
 PI_DOUBLE : float
 
-# reg expression to remove comments:
+# regular expression to remove comments:
 # """([\s\S]*?)"""
 
 # 
@@ -143,7 +143,31 @@ class Vector2D:
     def angle(self:"Vector2D") -> int|float: ...
 
     @angle.setter
-    def angle(self:"Vector2D", new_angle:int|float) -> None: ...
+    def angle(self:"Vector2D", argv) -> None: ...
+
+    @property
+    def copy(self:"Vector2D") -> "Vector2D":
+        """
+        # Create a copy of the current Vector2D other.
+
+        ## Returns:
+            Vector2D: A new Vector2D other with the same x and y coordinates as the current other.
+
+        ## Example:
+            point1 = Vector2D(1, 2)
+
+            point2 = point1.copy()
+
+            print(point2.x, point2.y)
+
+            This will print the x and y coordinates of the copied Vector2D other (1, 2).
+
+        ## Explanation:
+            The function creates a new Vector2D other with the same x and y coordinates as the current other.
+
+            The result is returned as a new Vector2D other, effectively making a copy of the original other.
+        """
+        ...
 
     @property
     def sign(self:"Vector2D") -> "Vector2D":
@@ -186,38 +210,8 @@ class Vector2D:
             vector points in the same direction as the original vector but has non-negative components.
         """
         ...
-
-    @property
-    def length(self:"Vector2D") -> float:
-        ...
-
-    @property
-    def length_sqrd(self:"Vector2D") -> float:
-        ...
-
-    def copy(self:"Vector2D") -> "Vector2D":
-        """
-        # Create a copy of the current Vector2D other.
-
-        ## Returns:
-            Vector2D: A new Vector2D other with the same x and y coordinates as the current other.
-
-        ## Example:
-            point1 = Vector2D(1, 2)
-
-            point2 = point1.copy()
-
-            print(point2.x, point2.y)
-
-            This will print the x and y coordinates of the copied Vector2D other (1, 2).
-
-        ## Explanation:
-            The function creates a new Vector2D other with the same x and y coordinates as the current other.
-
-            The result is returned as a new Vector2D other, effectively making a copy of the original other.
-        """
-        ...
     
+    @property
     def normalize(self:"Vector2D") -> "Vector2D":
         """
         # Vector Normalization
@@ -248,6 +242,14 @@ class Vector2D:
         """
         ...
     
+    @property
+    def length(self:"Vector2D") -> float:
+        ...
+
+    @property
+    def length_sqrd(self:"Vector2D") -> float:
+        ...
+
     def floor(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
         ...
 
@@ -491,7 +493,7 @@ class Vector2D:
                 If None, the vector is rotated around the origin (0, 0).
 
         ## Returns:
-            Vector2D or V2: The rotated vector.
+            None
 
         ## Example:
             v = Vector2D(3, 4)
@@ -579,32 +581,32 @@ class Vector2D:
     
     def sub(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
     
-    def mult(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
+    def mult(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def pow(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
+    def pow(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def mod(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
+    def mod(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def div(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
+    def div(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def fdiv(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
+    def fdiv(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
 
     # fast inplace operations     Vector2D.ioperation(both,x,y)
-    def set(self, both=int|float, x:int|float, y:int|float) -> Vector2D: ...
+    def set(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
 
-    def iadd(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def iadd(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
     
-    def isub(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def isub(self, both:int|float=.0, x:int|float=.0, y:int|float=.0) -> Vector2D: ...
     
-    def imult(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def imult(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def ipow(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def ipow(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def imod(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def imod(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def idiv(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def idiv(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
     
-    def ifdiv(self, both:int|float, x:int|float, y=int|float) -> Vector2D: ...
+    def ifdiv(self, both:int|float=1.0, x:int|float=1.0, y:int|float=1.0) -> Vector2D: ...
 
     # normal operations     Vector2D + a
     def __add__(self:"Vector2D", other:"int|float|Vector2D|list|tuple") -> "Vector2D": ...

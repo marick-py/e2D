@@ -18,7 +18,7 @@ class WinRec:
         return self.rootEnv.current_frame/self.fps
 
     def draw(self, draw_on_screen=False) -> None:
-        text = f"[cfps:{self.rootEnv.current_frame} || realtime:{round(self.get_rec_seconds(),2)} || apptime:{round(self.rootEnv.get_time_from_start(),2)}]"
+        text = f"[cfps:{self.rootEnv.current_frame} || realtime:{round(self.get_rec_seconds(),2)} || apptime:{round(self.rootEnv.runtime_seconds,2)}]"
         pg.display.set_caption(text)
         if draw_on_screen: self.rootEnv.print(text, self.rootEnv.screen_size, pivot_position='bottom_right')
     

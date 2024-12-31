@@ -3,6 +3,8 @@ from typing import Any, Callable, Literal
 import pygame as pg
 from e2D import *
 
+import math as _mt
+
 pg.font.init()
 
 __KEY_MODE_TYPES_DICT__ = dict(zip(["pressed", "just_pressed", "just_released"], range(3)))
@@ -95,6 +97,7 @@ class Util:
         self.rootEnv = None
         self.surface : pg.Surface
         self.id : int|str
+        self.is_hovered :bool= False
     def draw(self) -> None: pass
     def update(self) -> None: pass
 
@@ -153,14 +156,15 @@ class InputCell(Util):
             if self.border_width:
                 pg.draw.rect(self.text_surface, self.border_color, self.margin_rect, self.border_width, -1, *self.border_radius)
         else:
-            pg.draw.rect(self.text_surface, [127 + 127 * _mt.sin(self.rootEnv.get_time_from_start() * 10)]*3, self.margin_rect, self.border_width if self.border_width else 10, -1, *self.border_radius)
+            pg.draw.rect(self.text_surface, [127 + 127 * _mt.sin(self.rootEnv.runtime_seconds * 10)]*3, self.margin_rect, self.border_width if self.border_width else 10, -1, *self.border_radius)
 
         self.surface.blit(self.text_surface, self.position())
         
     def update(self) -> None:
+        self.is_hovered = self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and\
+                          self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y
         if self.rootEnv.mouse.get_key(0, "just_pressed"):
-            if self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and\
-               self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y:
+            if self.is_hovered:
                 self.rootEnv.selected_util = self if self.rootEnv.selected_util != self else None
                 self.update_text()
         if self.rootEnv.selected_util == self:

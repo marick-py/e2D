@@ -127,8 +127,8 @@ class MathFunction(Function):
                  id:int|str,
                  function:Callable[[int|float, int|float], int|float],
                  domain:list[float]=[-np.inf, np.inf],
-                 codomain:list[float]=[-np.inf, np.inf], colo
-                 :list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+                 codomain:list[float]=[-np.inf, np.inf],
+                 color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
         super().__init__()
         self.id = id
         self.color = color
@@ -398,7 +398,7 @@ class Plot:
         self.focus_using_corners(top_left_plot_coord, bottom_right_plot_coord)
 
     def set_borders_by_position_and_zoom(self) -> None:
-        self.top_left_plot_coord = self.current_offset - 2**(-.1*self.current_zoom) * self.__y_axis_multiplier__
+        self.top_left_plot_coord = self.current_offset - 2**(self.current_zoom.mult(-.1)) * self.__y_axis_multiplier__
         self.bottom_right_plot_coord = self.current_offset + 2**(-.1*self.current_zoom) * self.__y_axis_multiplier__
         self.top_left_x, self.top_left_y = self.top_left_plot_coord
         self.bottom_right_x, self.bottom_right_y = self.bottom_right_plot_coord
