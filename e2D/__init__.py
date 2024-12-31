@@ -458,8 +458,6 @@ class Vector2D:
     @classmethod
     def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
 
-from .cvb import *
-
 V2 = Vector2D
 
 V2zero = Vector2D(0, 0)
