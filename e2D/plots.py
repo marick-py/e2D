@@ -125,7 +125,7 @@ class Point(Object):
 class MathFunction(Function):
     def __init__(self,
                  id:int|str,
-                 function:Callable[[int|float, int|float], int|float],
+                 function:Callable[[np.ndarray, np.ndarray], np.ndarray],
                  domain:list[float]=[-np.inf, np.inf],
                  codomain:list[float]=[-np.inf, np.inf],
                  color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:

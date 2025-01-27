@@ -458,6 +458,7 @@ class Vector2D:
     @classmethod
     def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
 
+
 V2 = Vector2D
 
 V2zero = Vector2D(0, 0)
@@ -467,10 +468,10 @@ V2two = Vector2D(2.0, 2.0)
 V2pi = Vector2D(PI, PI)
 V2inf = Vector2D(float("inf"), float("inf"))
 
-V2neg_one = Vector2D(1.0, 1.0)
-V2neg_two = Vector2D(2.0, 2.0)
-V2neg_pi = Vector2D(PI, PI)
-V2neg_inf = Vector2D(float("inf"), float("inf"))
+V2neg_one = V2one.mult(-1)
+V2neg_two = V2two.mult(-1)
+V2neg_pi = V2pi.mult(-1)
+V2neg_inf = V2inf.mult(-1)
 
 V2up = Vector2D(0, 1)
 V2right = Vector2D(1, 0)
