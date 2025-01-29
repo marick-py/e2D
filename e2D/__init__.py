@@ -56,6 +56,10 @@ class Vector2D:
     @property
     def length_sqrd(self) -> float:
         return self.x ** 2 + self.y ** 2
+    
+    @property
+    def inverse(self) -> "Vector2D":
+        return self.mult(-1)
 
     def floor(self, n=1) -> "Vector2D":
         return self.__floor__(n)

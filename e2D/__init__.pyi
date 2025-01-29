@@ -249,6 +249,10 @@ class Vector2D:
     @property
     def length_sqrd(self:"Vector2D") -> float:
         ...
+    
+    @property
+    def inverse(self:"Vector2D") -> "Vector2D":
+        ...
 
     def floor(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
         ...

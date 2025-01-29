@@ -451,6 +451,9 @@ class Color:
     def green(cls) -> "Color": return Color(0,255,0)
     @classmethod
     def blue(cls) -> "Color": return Color(0,0,255)
+    
+    # @classmethod
+    # def (cls) -> "Color": return Color(0,0,255)
 
     @classmethod
     def randomize(cls) -> "Color":

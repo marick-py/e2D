@@ -59,7 +59,7 @@ class RootEnv:
         self.current_frame = 0
         self.show_fps = show_fps
         self.events :list[pg.event.Event]= []
-        self.background_color = Color.black()
+        self.background_color = BLACK_COLOR_PYG
         self.clear_screen_each_frame = clear_screen_each_frame
         self.utils :dict[int|str, Util]= {}
         self.selected_util :Util|None = None
@@ -115,7 +115,7 @@ class RootEnv:
         self.env = sub_env
 
     def clear(self) -> None:
-        self.screen.fill(self.background_color())
+        self.screen.fill(self.background_color)
 
     def clear_rect(self, position:Vector2D, size:Vector2D) -> None:
         self.screen.fill(self.background_color, position() + size())
@@ -123,25 +123,25 @@ class RootEnv:
     def print(self, 
             text : str, 
             position : Vector2D, 
-            color : Color = Color.white(), 
+            color : pg.color.Color = WHITE_COLOR_PYG,
             pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
             font : pg.font.Font = FONT_ARIAL_32,
-            bg_color : None|Color = None,
-            border_color : Color = Color.white(),
+            bg_color : None|pg.color.Color = None,
+            border_color : pg.color.Color = WHITE_COLOR_PYG,
             border_width : float = 0.0,
             border_radius : int|list[int]|tuple[int,int,int,int] = -1,
             margin : Vector2D = Vector2D.zero(),
             personalized_surface : pg.Surface|None = None
             ) -> None:
-        text_box = font.render(text, True, color())
+        text_box = font.render(text, True, color)
         size = Vector2D(*text_box.get_size()) + margin * 2
         pivotted_position = position - size * __PIVOT_POSITIONS_MULTIPLIER__[pivot_position] + margin
         if not any(isinstance(border_radius, cls) for cls in {tuple, list}): border_radius = [border_radius]*4
         surface = (self.screen if personalized_surface == None else personalized_surface)
         if bg_color != None:
-            pg.draw.rect(surface, bg_color(), (pivotted_position - margin)() + size(), 0, -1, *border_radius)
+            pg.draw.rect(surface, bg_color, (pivotted_position - margin)() + size(), 0, -1, *border_radius)
         if border_width:
-            pg.draw.rect(surface, border_color(), (pivotted_position - margin)() + size(), border_width, -1, *border_radius)
+            pg.draw.rect(surface, border_color, (pivotted_position - margin)() + size(), border_width, -1, *border_radius)
         surface.blit(text_box, pivotted_position())
 
     def __draw__(self) -> None:
@@ -152,7 +152,7 @@ class RootEnv:
         self.env.draw()
         for util in self.utils.values(): util.draw()
 
-        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=Color.black())
+        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=BLACK_COLOR_PYG)
         pg.display.flip()
 
     def __update__(self) -> None:
