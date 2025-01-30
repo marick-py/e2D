@@ -17,7 +17,7 @@ class Vector2D:
         self.x = x
         self.y = y
 
-    def distance_to(self, other, rooted=True) -> int|float:
+    def distance_to(self, other, rooted=True) -> float:
         d = (self.x - other.x)**2 + (self.y - other.y)**2
         return d**(1/2) if rooted else d
 
@@ -497,27 +497,6 @@ VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
 VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
 VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
 VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)
-
-
-def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
-    return (r,g,b)
-
-def color_lerp(current_c:list|tuple, final_c:list|tuple, step=.1) -> tuple[float, float, float]:
-    return tuple(c + (final_c[i] - c) * step for i,c in enumerate(current_c)) #type: ignore
-
-def color_fade(starting_c:list|tuple, final_c:list|tuple, index, max_index) -> tuple[float, float, float]:
-    return tuple((starting_c[i] - final_c[i]) / max_index * (max_index - index) + final_c[i] for i in range(3)) #type: ignore
-
-def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
-    colors = colors_dict.keys()
-    weights = colors_dict.values()
-
-    if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
-    return tuple(sum(n[i]*w for n,w in zip(colors, weights)) / sum(weights) for i in range(3)) #type: ignore
-
-def color_distance(starting_c:list|tuple, final_c:list|tuple, rooted) -> float:
-    distance = sum([(starting_c[i]-final_c[i])**2 for i in range(3)])
-    return (distance ** .5) if rooted else distance
 
 def lerp(starting, ending, step=.1) -> float:
     return starting + (ending - starting) * step

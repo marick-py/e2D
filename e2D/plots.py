@@ -50,7 +50,7 @@ class Object:
         self.plot.canvas.blit(self.__layer_surface__, (0,0))
 
 class Line(Object):
-    def __init__(self, id:int|str, point_a:Vector2D|Point, point_b:Vector2D|Point, color:list[float]|tuple[float,float,float]=(255,255,255), width:float=1) -> None:
+    def __init__(self, id:int|str, point_a:Vector2D|Point, point_b:Vector2D|Point, color:pg.Color=WHITE_COLOR_PYG, width:float=1) -> None:
         super().__init__()
         self.id = id
         if isinstance(point_a, Point):
@@ -79,13 +79,13 @@ class Point(Object):
                 position : Vector2D,
                 label : str = "",
                 radius : float = 1,
-                color : list[float]|tuple[float,float,float] = (255,255,255),
-                label_color : tuple[float, float, float] = (255, 255, 255),
+                color : pg.Color = WHITE_COLOR_PYG,
+                label_color : pg.Color = WHITE_COLOR_PYG,
                 label_position_offset : Vector2D = Vector2D.zero(),
                 label_pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
                 label_font : pg.font.Font = FONT_ARIAL_32,
-                label_bg_color : tuple[int,int,int]|list[int]|None = None,
-                label_border_color : tuple[int,int,int]|list[int]|None = None,
+                label_bg_color : pg.Color|None = None,
+                label_border_color : pg.Color|None = None,
                 label_border_width : float = 0,
                 label_border_radius : int|list[int]|tuple[int,int,int,int] = -1,
                 label_margin : Vector2D = Vector2D.zero()
@@ -128,7 +128,7 @@ class MathFunction(Function):
                  function:Callable[[np.ndarray, np.ndarray], np.ndarray],
                  domain:list[float]=[-np.inf, np.inf],
                  codomain:list[float]=[-np.inf, np.inf],
-                 color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+                 color:pg.Color=WHITE_COLOR_PYG) -> None:
         super().__init__()
         self.id = id
         self.color = color
@@ -162,7 +162,7 @@ class MathFunction(Function):
             self.points = self.get_points()
             self.__render__()
     
-    def get_derivative(self, delta:float=.01, color:None|list[float]|tuple[float,float,float]=None) -> MathFunction:
+    def get_derivative(self, delta:float=.01, color:None|pg.Color=None) -> MathFunction:
         return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color) #type: ignore
 
     def __render__(self) -> None:
@@ -181,7 +181,7 @@ class MathFunction(Function):
                 self.__layer_surface__.set_at(point, self.color) #type: ignore
 
 class TimeFunction(Function):
-    def __init__(self, id:int|str, function, t_range:list[float]=[0,0, 1.0], t_step:float=.01, color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self, id:int|str, function, t_range:list[float]=[0,0, 1.0], t_step:float=.01, color:pg.Color=WHITE_COLOR_PYG) -> None:
         super().__init__()
         self.id = id
         self.color = color
@@ -222,7 +222,7 @@ class TimeFunction(Function):
                 self.__layer_surface__.set_at(point, self.color) #type: ignore
 
 class PointsFunction(Function):
-    def __init__(self, id:int|str, points:list[Vector2D]=[], points_color:list[float]|tuple[float,float,float]=(255,0,0), color:list[float]|tuple[float,float,float]=(255,255,255)) -> None:
+    def __init__(self, id:int|str, points:list[Vector2D]=[], points_color:pg.Color=RED_COLOR_PYG, color:pg.Color=WHITE_COLOR_PYG) -> None:
         super().__init__()
         self.id = id
         self.color = color
@@ -251,7 +251,7 @@ def no_error_complex_function(function, args) -> Vector2D:
     return Vector2D(res.real, res.imag)
 sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
 class ComplexFunction:
-    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=(255,255,255), auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
+    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=WHITE_COLOR_PYG, auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
         self.auto_connect_treshold = auto_connect_treshold
         self.plot = plot
         self.starting_t = starting_t
@@ -288,7 +288,7 @@ class ComplexFunction:
 class __PlotSettings__:
     def __init__(self, plot:Plot) -> None:
         self.plot = plot
-        self.settings :dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|tuple|list|pg.font.Font]= {
+        self.settings :dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|pg.Color|pg.font.Font]= {
             # axes
                 "distance_to_axis_for_scalar_zoom" : 10,
 
@@ -305,11 +305,11 @@ class __PlotSettings__:
                 
                 # axes
                     "change_axes_colors_on_mouse_hover" : True,
-                    "mouse_hover_axes_color" : rgb(200, 200, 200),
+                    "mouse_hover_axes_color" : Color(200, 200, 200)(),
                     "show_axes" : True,
                     "show_x_axis" : True,
                     "show_y_axis" : True,
-                    "axes_default_color" : rgb(100, 100, 100),
+                    "axes_default_color" : Color(100, 100, 100)(),
                     "x_axis_color" : None,
                     "y_axis_color" : None,
                     "axes_default_width" : 5,
@@ -320,22 +320,22 @@ class __PlotSettings__:
                 # grid
                     "show_grid" : True,
                     "grid_step" : Vector2D(PI, 1),
-                    "grid_color" : rgb(17, 65, 68),
+                    "grid_color" : Color(17, 65, 68)(),
                     "grid_width" : 1,
             
                 # pointer
                     "show_pointer" : True,
                     "pointer_radius" : 15,
-                    "pointer_color" : rgb(255, 255, 255),
+                    "pointer_color" : WHITE_COLOR_PYG,
                 
                 # cursor
                     "show_cursor_coords" : False,
 
                 # rect
                     "render_bg" : True,
-                    "bg_color" : rgb(28, 29, 34),
+                    "bg_color" : Color(28, 29, 34)(),
                     "draw_rect" : True,
-                    "rect_color" : rgb(255, 255, 255),
+                    "rect_color" : WHITE_COLOR_PYG,
                     "rect_width" : 5,
                     "show_corners_coords" : True,
 
@@ -364,17 +364,17 @@ class __PlotSettings__:
     def toggle(self, key:__LITERAL_SETTINGS_KEYS__) -> None:
         self.set(key, not self.get(key))
 
-    def set(self, key:__LITERAL_SETTINGS_KEYS__, new_value:int|float|bool|Vector2D|tuple|list|pg.font.Font) -> None:
+    def set(self, key:__LITERAL_SETTINGS_KEYS__, new_value:int|float|bool|Vector2D|pg.Color|pg.font.Font) -> None:
         if not (key in self.settings): raise ValueError(f"The key [{key}] does not exist...")
         self.settings[key] = new_value
 
-    def multiple_set(self, new_key_and_values_dict:dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|tuple|list|pg.font.Font]) -> None:
+    def multiple_set(self, new_key_and_values_dict:dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|pg.Color|pg.font.Font]) -> None:
         self.settings.update(new_key_and_values_dict)
     
-    def get(self, key:__LITERAL_SETTINGS_KEYS__) -> int|float|bool|Vector2D|tuple|list|pg.font.Font:
+    def get(self, key:__LITERAL_SETTINGS_KEYS__) -> int|float|bool|Vector2D|pg.Color|pg.font.Font:
         return self.settings[key]
 
-    def multiple_get(self, keys:list[__LITERAL_SETTINGS_KEYS__]) -> list[int|float|bool|Vector2D|tuple|list|pg.font.Font]:
+    def multiple_get(self, keys:list[__LITERAL_SETTINGS_KEYS__]) -> list[int|float|bool|Vector2D|pg.Color|pg.font.Font]:
         return [self.get(key) for key in keys]
 
 class Plot:
@@ -483,10 +483,10 @@ class Plot:
             pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1) #type: ignore
 
         if self.settings.get("show_corners_coords"):
-            self.rootEnv.print(self.top_left_plot_coord.advanced_stringify(4, True), Vector2D.zero(), bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(Vector2D(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(0, 1), pivot_position="bottom_left", bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(self.bottom_right_plot_coord.advanced_stringify(4, True), self.size.copy, pivot_position="bottom_right", bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(Vector2D(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(1, 0), pivot_position="top_right", bg_color=(0,0,0), border_color=(255,255,255), border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(self.top_left_plot_coord.advanced_stringify(4, True), Vector2D.zero(), bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(Vector2D(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(0, 1), pivot_position="bottom_left", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(self.bottom_right_plot_coord.advanced_stringify(4, True), self.size.copy, pivot_position="bottom_right", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
+            self.rootEnv.print(Vector2D(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(1, 0), pivot_position="top_right", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
     
     def update(self) -> None:
         # update mouse and center positions

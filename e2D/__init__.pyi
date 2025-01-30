@@ -39,7 +39,7 @@ class Vector2D:
         self.x : int|float
         self.y : int|float
 
-    def distance_to(self:"Vector2D", other:"Vector2D", rooted:bool=True) -> int|float:
+    def distance_to(self:"Vector2D", other:"Vector2D", rooted:bool=True) -> float:
         """
         # Calculate the distance between the current Vector2D other and another other.
 
@@ -800,139 +800,7 @@ VECTORS_4_SEMIDIRECTIONS_NORM : tuple[Vector2D, Vector2D, Vector2D, Vector2D,]
 VECTORS_8_DIRECTIONS : tuple[Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D]
 VECTORS_8_DIRECTIONS_NORM : tuple[Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D, Vector2D]
 
-
-def rgb(r:float, g:float, b:float) -> tuple[float, float, float]:
-    return (r,g,b)
-
 def lerp(starting: int|float, ending: int|float, step: int|float=.1) -> float: ...
-
-def color_lerp(current_c: list|tuple, final_c: list|tuple, step: int|float=.1) -> tuple[float, float, float]:
-    """
-    # Linearly interpolate between two colors.
-
-    ## Parameters:
-        current_c (tuple or list): The RGB values of the current color as a tuple or list.
-        final_c (tuple or list): The RGB values of the target color as a tuple or list.
-        step (int or float): The interpolation step, ranging from 0.0 (current color) to 1.0 (target color).
-
-    ## Returns:
-        tuple: The RGB values of the interpolated color as a tuple.
-
-    ## Example:
-        current_c = (255, 0, 0)
-
-        final_c = (0, 0, 255)
-
-        step = 0.5
-
-        interpolated_color = color_lerp(current_c, final_c, step)
-
-        print(f"At step {step}: RGB {interpolated_color}")
-        
-    This will calculate the color at an interpolation step of 0.5 between (255, 0, 0) and (0, 0, 255).
-    """
-    ...
-
-def color_fade(starting_c: list|tuple, final_c: list|tuple, index: int|float, max_index: int|float) -> tuple[float, float, float]:
-    """
-    # Calculate the color at a specific index of a color fade between two given colors.
-
-    ## Parameters:
-        starting_c (tuple or list): The RGB values of the starting color as a tuple or list.
-        final_c (tuple or list): The RGB values of the final color as a tuple or list.
-        index (int or float): The current index of the color fade, representing a position
-                              between the starting and final colors.
-        max_index (int or float): The maximum index of the color fade, indicating the endpoint
-                                  position between the starting and final colors.
-
-    ## Returns:
-        tuple: The RGB values of the color at the specified index as a tuple.
-
-    ## Example:
-        starting_c = (255, 0, 0)
-
-        final_c = (0, 0, 255)
-
-        max_index = 100
-
-        for i in range(max_index + 1):
-        
-            color_at_index = color_fade(starting_c, final_c, i, max_index)
-
-            print(f"At index {i}: RGB {color_at_index}")
-            
-        This will print the colors transitioning from (255, 0, 0) to (0, 0, 255).
-    """
-    ...
-
-def weighted_color_fade(colors_dict:dict) -> tuple[float, float, float]:
-    """
-    # Calculate the weighted color based on a dictionary of colors and their corresponding weights.
-
-    ## Parameters:
-        colors_dict (dict): A dictionary where keys represent RGB color values as tuples,
-                            and values represent the weights (floats) for each color.
-
-    ## Returns:
-        tuple: The RGB values of the calculated weighted color as a tuple.
-
-    ## Example:
-        colors_dict = {
-        
-            (255, 255, 255): 0.1,
-
-            (0, 0, 0): 0.9,
-
-        }
-
-        weighted_color = weighted_color_fade(colors_dict)
-
-        print(f"Weighted color: RGB {weighted_color}")
-
-        This will print the weighted color based on the provided dictionary.
-    """
-    ...
-
-def color_distance(starting_c: list|tuple, final_c: list|tuple, rooted:bool=True) -> float:
-    """
-    # Calculate the distance between two colors in RGB space.
-
-    ## Parameters:
-        starting_c (list or tuple): The RGB values of the starting color.
-        final_c (list or tuple): The RGB values of the final color.
-        rooted (bool, optional): If True, return the rooted distance. If False, return
-                               the actual distance. Default is True.
-
-    ## Returns:
-        float: The squared distance between the two colors if `rooted` is False, otherwise
-               the actual distance.
-
-    ## Example:
-        starting_c = [255, 0, 0]
-
-        final_c = [0, 255, 0]
-
-        squared_distance = color_distance(starting_c, final_c)
-
-        print(f"Squared Distance: {squared_distance}")
-
-        distance = color_distance(starting_c, final_c, rooted=True)
-
-        print(f"Actual Distance: {distance}")
-
-        This will calculate the squared and actual distances between the colors.
-
-    ## Explanation:
-        The function first calculates the squared distance between the two colors in RGB
-        space. It does this by computing the sum of the squared differences of the RGB
-        components for each color. The squared distance is obtained by taking the square
-        root of this sum.
-
-        The `rooted` parameter allows the user to choose between returning the squared
-        distance or the actual distance. If `rooted` is True, the function returns the
-        actual distance, and if `rooted` is False, it returns the squared distance.
-    """
-    ...
 
 def angular_interpolation(starting_angle: int|float, final_angle: int|float, step: int|float=.1) -> float:
     """

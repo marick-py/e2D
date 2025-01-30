@@ -86,6 +86,22 @@ class Color:
     def __init__(self, *values, mode:__LITERAL_COLOR_MODES__=RGB_COLOR_MODE) -> None:
         self.__dict__ = dict(zip(mode, values))
         self.mode :__LITERAL_COLOR_MODES__= mode
+
+    def lerp(self, other:"Color", step=.1) -> "Color":
+        return (self + (other - self).mult(step))
+
+    @staticmethod
+    def weighted_lerp(colors_dict:dict["Color", float]) -> "Color":
+        """Colors HAVE to be in the rgb format."""
+
+        colors = colors_dict.keys()
+        weights = colors_dict.values()
+        if float("inf") in weights: return list(colors)[list(weights).index(float("inf"))]
+        return sum(n.mult(w) for n,w in zip(colors, weights)).div(sum(weights))
+
+    def distance_to(self, other:"Color", rooted=True) -> float:
+        d = sum((self.to_rgb() - other.to_rgb()).pow(2))
+        return (d ** .5) if rooted else d
     
     @classmethod
     def new_rgb(cls, r:int|float, g:int|float, b:int|float) -> "Color":
@@ -163,134 +179,107 @@ class Color:
         return "Color(" + ", ".join(f"{k}:{v}" for k, v in self.items) + ")"
 
     def __call__(self) -> __color_pygame__:
-        return __color_pygame__(*map(int, self.to_rgba().values))
+        return __color_pygame__(int(self.r), int(self.g), int(self.b))
     
     # fast operations     Vector2D.operation(both,x,y)
     def add(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r + (r + all3), c_color.g + (g + all3), c_color.b + (b + all3)).to_mode(self.mode) # type: ignore
+        return Color(self.r + (r + all3), self.g + (g + all3), self.b + (b + all3))
     
     def sub(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r - (r + all3), c_color.g - (g + all3), c_color.b - (b + all3)).to_mode(self.mode) # type: ignore
+        return Color(self.r - (r + all3), self.g - (g + all3), self.b - (b + all3))
     
     def mult(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r * r * all3, c_color.g * g * all3, c_color.b * b * all3).to_mode(self.mode) # type: ignore
+        return Color(self.r * r * all3, self.g * g * all3, self.b * b * all3)
     
     def pow(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r ** (r + all3), c_color.g ** (g + all3), c_color.b ** (b + all3)).to_mode(self.mode) # type: ignore
+        return Color(self.r ** (r + all3), self.g ** (g + all3), self.b ** (b + all3))
     
     def mod(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r % (r + all3), c_color.g % (g + all3), c_color.b % (b + all3)).to_mode(self.mode) # type: ignore
+        return Color(self.r % (r + all3), self.g % (g + all3), self.b % (b + all3))
     
     def div(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r / r / all3, c_color.g / g / all3, c_color.b / b / all3).to_mode(self.mode) # type: ignore
+        return Color(self.r / r / all3, self.g / g / all3, self.b / b / all3)
     
     def fdiv(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        return Color(c_color.r // r // all3, c_color.g // g // all3, c_color.b // b // all3).to_mode(self.mode) # type: ignore
+        return Color(self.r // r // all3, self.g // g // all3, self.b // b // all3)
 
     # fast inplace operations     Vector2D.ioperation(both,x,y)
-    def set(self, both=.0, x=.0, y=.0) -> "Color":
-        self.x = x + both
-        self.y = y + both
+    def set(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
+        self.r = r + all3
+        self.g = g + all3
+        self.b = b + all3
         return self
 
     def iadd(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r += r + all3 # type: ignore
-        c_color.g += g + all3 # type: ignore
-        c_color.b += b + all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r += r + all3
+        self.g += g + all3
+        self.b += b + all3
         return self
     
     def isub(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r -= r + all3 # type: ignore
-        c_color.g -= g + all3 # type: ignore
-        c_color.b -= b + all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r -= r + all3
+        self.g -= g + all3
+        self.b -= b + all3
         return self
     
     def imult(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r *= r * all3 # type: ignore
-        c_color.g *= g * all3 # type: ignore
-        c_color.b *= b * all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r *= r * all3
+        self.g *= g * all3
+        self.b *= b * all3
         return self
     
     def ipow(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r **= r + all3 # type: ignore
-        c_color.g **= g + all3 # type: ignore
-        c_color.b **= b + all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r **= r + all3
+        self.g **= g + all3
+        self.b **= b + all3
         return self
     
     def imod(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r %= r + all3 # type: ignore
-        c_color.g %= g + all3 # type: ignore
-        c_color.b %= b + all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r %= r + all3
+        self.g %= g + all3
+        self.b %= b + all3
         return self
     
     def idiv(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r /= r * all3 # type: ignore
-        c_color.g /= g * all3 # type: ignore
-        c_color.b /= b * all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r /= r * all3
+        self.g /= g * all3
+        self.b /= b * all3
         return self
     
     def ifdiv(self, all3=1.0, r=1.0, g=1.0, b=1.0) -> "Color":
-        c_color = self.to_rgb()
-        c_color.r //= r * all3 # type: ignore
-        c_color.g //= g * all3 # type: ignore
-        c_color.b //= b * all3 # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r //= r * all3
+        self.g //= g * all3
+        self.b //= b * all3
         return self
 
     # normal operations     Vector2D + a
     def __add__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r + other.r, c_color.g + other.g, c_color.b + other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r + other.r, self.g + other.g, self.b + other.b)
     
     def __sub__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r - other.r, c_color.g - other.g, c_color.b - other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r - other.r, self.g - other.g, self.b - other.b)
     
     def __mul__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r * other.r, c_color.g * other.g, c_color.b * other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r * other.r, self.g * other.g, self.b * other.b)
 
     def __mod__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r % other.r, c_color.g % other.g, c_color.b % other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r % other.r, self.g % other.g, self.b % other.b)
     
     def __pow__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r ** other.r, c_color.g ** other.g, c_color.b ** other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r ** other.r, self.g ** other.g, self.b ** other.b)
 
     def __truediv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r / other.r, c_color.g / other.g, c_color.b / other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r / other.r, self.g / other.g, self.b / other.b)
 
     def __floordiv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(c_color.r // other.r, c_color.g // other.g, c_color.b // other.b).to_mode(self.mode) # type: ignore
+        return Color(self.r // other.r, self.g // other.g, self.b // other.b)
     
     # right operations      a + Vector2D
     def __radd__(self, other) -> "Color":
@@ -298,128 +287,104 @@ class Color:
     
     def __rsub__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(other.r - c_color.r, other.g - c_color.g, other.b - c_color.b).to_mode(self.mode) # type: ignore
+        return Color(other.r - self.r, other.g - self.g, other.b - self.b)
     
     def __rmul__(self, other) -> "Color":
         return self.__mul__(other)
 
     def __rmod__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(other.r % c_color.r, other.g % c_color.g, other.b % c_color.b).to_mode(self.mode) # type: ignore
+        return Color(other.r % self.r, other.g % self.g, other.b % self.b)
     
     def __rpow__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(other.r ** c_color.r, other.g ** c_color.g, other.b ** c_color.b).to_mode(self.mode) # type: ignore
+        return Color(other.r ** self.r, other.g ** self.g, other.b ** self.b)
 
     def __rtruediv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(other.r / c_color.r, other.g / c_color.g, other.b / c_color.b).to_mode(self.mode) # type: ignore
+        return Color(other.r / self.r, other.g / self.g, other.b / self.b)
 
     def __rfloordiv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        return Color(other.r // c_color.r, other.g // c_color.g, other.b // c_color.b).to_mode(self.mode) # type: ignore
+        return Color(other.r // self.r, other.g // self.g, other.b // self.b)
     
     # in-place operations   Vector2D += a
     def __iadd__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r += other.r # type: ignore
-        c_color.g += other.g # type: ignore
-        c_color.b += other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r += other.r
+        self.g += other.g
+        self.b += other.b
         return self
 
     def __isub__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r -= other.r # type: ignore
-        c_color.g -= other.g # type: ignore
-        c_color.b -= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r -= other.r
+        self.g -= other.g
+        self.b -= other.b
         return self
     
     def __imul__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r *= other.r # type: ignore
-        c_color.g *= other.g # type: ignore
-        c_color.b *= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r *= other.r
+        self.g *= other.g
+        self.b *= other.b
         return self
 
     def __itruediv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r **= other.r # type: ignore
-        c_color.g **= other.g # type: ignore
-        c_color.b **= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r **= other.r
+        self.g **= other.g
+        self.b **= other.b
         return self
     
     def __imod__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r %= other.r # type: ignore
-        c_color.g %= other.g # type: ignore
-        c_color.b %= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r %= other.r
+        self.g %= other.g
+        self.b %= other.b
         return self
     
     def __ipow__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r /= other.r # type: ignore
-        c_color.g /= other.g # type: ignore
-        c_color.b /= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r /= other.r
+        self.g /= other.g
+        self.b /= other.b
         return self
 
     def __ifloordiv__(self, other) -> "Color":
         other = Color.__normalize__(other)
-        c_color = self.to_rgb()
-        c_color.r //= other.r # type: ignore
-        c_color.g //= other.g # type: ignore
-        c_color.b //= other.b # type: ignore
-        self.__dict__ = c_color.to_mode(self.mode).__dict__
+        self.r //= other.r
+        self.g //= other.g
+        self.b //= other.b
         return self
 
     # comparasion
     def __eq__(self, other) -> bool:
         try: other = Color.__normalize__(other)
         except: return False
-        c_color = self.to_rgb()
-        return c_color.r == other.r and c_color.g == other.g and c_color.b == other.b # type: ignore
+        return self.r == other.r and self.g == other.g and self.b == other.b
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     def __abs__(self) -> "Color":
-        c_color = self.to_rgb()
-        return Color(abs(c_color.r), abs(c_color.g), abs(c_color.b)).to_mode(self.mode) # type: ignore
+        self = self.to_rgb()
+        return Color(abs(self.r), abs(self.g), abs(self.b))
 
     def __round__(self, n=1) -> "Color":
         n = Color.__normalize__(n)
-        c_color = self.to_rgb()
-        return Color(round(c_color.r / n.r) * n.r, round(c_color.g / n.g) * n.g, round(c_color.b / n.b) * n.b).to_mode(self.mode) # type: ignore
+        return Color(round(self.r / n.r) * n.r, round(self.g / n.g) * n.g, round(self.b / n.b) * n.b)
 
     def __floor__(self, n=1) -> "Color":
         n = Color.__normalize__(n)
-        c_color = self.to_rgb()
-        return Color((c_color.r / n.r).__floor__() * n.r, (c_color.g / n.g).__floor__() * n.g, (c_color.b / n.b).__floor__() * n.b).to_mode(self.mode) # type: ignore
+        return Color((self.r / n.r).__floor__() * n.r, (self.g / n.g).__floor__() * n.g, (self.b / n.b).__floor__() * n.b)
 
     def __ceil__(self, n=1) -> "Color":
         n = Color.__normalize__(n)
-        c_color = self.to_rgb()
-        return Color((c_color.r / n.r).__ceil__() * n.r, (c_color.g / n.g).__ceil__() * n.g, (c_color.b / n.b).__ceil__() * n.b).to_mode(self.mode) # type: ignore
+        return Color((self.r / n.r).__ceil__() * n.r, (self.g / n.g).__ceil__() * n.g, (self.b / n.b).__ceil__() * n.b)
     
     def __float__(self) -> "Color":
-        c_color = self.to_rgb()
-        return Color(float(c_color.r), float(c_color.g), float(c_color.b)).to_mode(self.mode) # type: ignore
+        return Color(float(self.r), float(self.g), float(self.b))
 
     def __getitem__(self, n) -> int|float:
         return self.values[n] if isinstance(n, int) else self.values[self.keys.index(n)]
@@ -432,6 +397,8 @@ class Color:
     def __normalize__(cls, other) -> "Color":
         if isinstance(other, Color):
             return other
+        if isinstance(other, __color_pygame__):
+            return cls(*other[:], mode="rgba")
         if isinstance(other, (int, float)):
             return cls(other, other, other)
         if isinstance(other, (list, tuple)):
@@ -459,8 +426,15 @@ class Color:
     def randomize(cls) -> "Color":
         return Color(__randint__(0,255), __randint__(0,255), __randint__(0,255))
 
-WHITE_COLOR_PYG = Color.white()()
-BLACK_COLOR_PYG = Color.black()()
-RED_COLOR_PYG = Color.red()()
-GREEN_COLOR_PYG = Color.green()()
-BLUE_COLOR_PYG = Color.blue()()
+
+WHITE_COLOR = Color.white()
+BLACK_COLOR = Color.black()
+RED_COLOR = Color.red()
+GREEN_COLOR = Color.green()
+BLUE_COLOR = Color.blue()
+
+WHITE_COLOR_PYG = WHITE_COLOR()
+BLACK_COLOR_PYG = BLACK_COLOR()
+RED_COLOR_PYG = RED_COLOR()
+GREEN_COLOR_PYG = GREEN_COLOR()
+BLUE_COLOR_PYG = BLUE_COLOR()
