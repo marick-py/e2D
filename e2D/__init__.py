@@ -17,7 +17,7 @@ class Vector2D:
         self.x = x
         self.y = y
 
-    def distance_to(self, other, rooted=True) -> float:
+    def distance_to(self, other, rooted=True) -> int|float:
         d = (self.x - other.x)**2 + (self.y - other.y)**2
         return d**(1/2) if rooted else d
 
@@ -71,7 +71,7 @@ class Vector2D:
         return self.__round__(n)
 
     @classmethod
-    def randomize(cls, start, end) -> "Vector2D":
+    def randomize(cls, start, end, func=lambda val:val) -> "Vector2D":
         if not isinstance(start, Vector2D):
             if isinstance(start, (int, float)):
                 start = Vector2D(start, start)
@@ -82,7 +82,7 @@ class Vector2D:
                 end = Vector2D(end, end)
             else:
                 raise Exception(f"\nArg end must be in [Vector2D, int, float, tuple, list] not a [{type(end)}]\n")
-        return start + Vector2D(_rnd.random(), _rnd.random()) * (end - start)
+        return start + Vector2D(func(_rnd.random()), func(_rnd.random())) * (end - start)
     
     def dot_product(self, other) -> float:
         return self.x * other.x + self.y * other.y

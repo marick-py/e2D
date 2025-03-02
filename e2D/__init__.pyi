@@ -39,7 +39,7 @@ class Vector2D:
         self.x : int|float
         self.y : int|float
 
-    def distance_to(self:"Vector2D", other:"Vector2D", rooted:bool=True) -> float:
+    def distance_to(self:"Vector2D", other:"Vector2D", rooted:bool=True) -> int|float:
         """
         # Calculate the distance between the current Vector2D other and another other.
 
@@ -264,7 +264,7 @@ class Vector2D:
         ...
 
     @classmethod
-    def randomize(cls, start:"int|float|Vector2D", end:"int|float|Vector2D") -> "Vector2D":
+    def randomize(cls, start:"int|float|Vector2D", end:"int|float|Vector2D", func:Callable[[int|float], int|float]=lambda val:val) -> "Vector2D":
         """
         # Generate a random Vector2D point within the specified range.
 
