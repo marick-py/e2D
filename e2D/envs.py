@@ -59,12 +59,21 @@ class RootEnv:
         self.current_frame = 0
         self.show_fps = show_fps
         self.events :list[pg.event.Event]= []
-        self.background_color = BLACK_COLOR_PYG
+        
+        self.__background_color__ :Color= BLACK_COLOR_PYG
+        
         self.clear_screen_each_frame = clear_screen_each_frame
         self.utils :dict[int|str, Util]= {}
         self.selected_util :Util|None = None
         self.__quit_on_key_pressed__ = quit_on_key_pressed
 
+    @property
+    def background_color(self) -> Color:
+        return unpygamize_color(self.__background_color__)
+    @background_color.setter
+    def background_color(self, color: Color|pg.Color) -> None:
+        self.__background_color__ = pygamize_color(color)
+    
     @property
     def screen_size(self) -> Vector2D:
         return self.__screen_size__
@@ -96,6 +105,8 @@ class RootEnv:
         for util in utils:
             if util.surface == None: util.surface = self.screen
             util.rootEnv = self
+            util.id = self.__new_util_id__()
+            util.render()
             self.utils[util.id] = util
 
     def remove_utils(self, *utils:int|str|Util) -> None:
@@ -106,6 +117,18 @@ class RootEnv:
                 del self.utils[uid.id]
             else:
                 raise Exception(f"Unknown util type: {uid}")
+    
+    def __new_util_id__(self) -> int:
+        if not self.utils: return 0
+        else: return max(self.utils.keys()) + 1
+
+    def get_util(self, uid:int|str) -> Util|None:
+        if isinstance(uid, Util):
+            return self.utils.get(uid.id)
+        elif isinstance(uid, int) or isinstance(uid, str):
+            return self.utils.get(uid)
+        else:
+            raise Exception(f"Unknown util type: {uid}")
 
     @property
     def runtime_seconds(self) -> float:
@@ -115,24 +138,25 @@ class RootEnv:
         self.env = sub_env
 
     def clear(self) -> None:
-        self.screen.fill(self.background_color)
+        self.screen.fill(self.__background_color__)
 
     def clear_rect(self, position:Vector2D, size:Vector2D) -> None:
-        self.screen.fill(self.background_color, position() + size())
+        self.screen.fill(self.__background_color__, position() + size())
 
     def print(self, 
-            text : str, 
-            position : Vector2D, 
-            color : pg.color.Color = WHITE_COLOR_PYG,
-            pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
-            font : pg.font.Font = FONT_ARIAL_32,
-            bg_color : None|pg.color.Color = None,
-            border_color : pg.color.Color = WHITE_COLOR_PYG,
-            border_width : float = 0.0,
-            border_radius : int|list[int]|tuple[int,int,int,int] = -1,
-            margin : Vector2D = Vector2D.zero(),
-            personalized_surface : pg.Surface|None = None
+              text : str, 
+              position : Vector2D, 
+              color : pg.color.Color = WHITE_COLOR_PYG,
+              pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
+              font : pg.font.Font = FONT_ARIAL_32,
+              bg_color : None|pg.color.Color = None,
+              border_color : pg.color.Color = WHITE_COLOR_PYG,
+              border_width : float = 0.0,
+              border_radius : int|list[int]|tuple[int,int,int,int] = -1,
+              margin : Vector2D = Vector2D.zero(),
+              personalized_surface : pg.Surface|None = None
             ) -> None:
+
         text_box = font.render(text, True, color)
         size = Vector2D(*text_box.get_size()) + margin * 2
         pivotted_position = position - size * __PIVOT_POSITIONS_MULTIPLIER__[pivot_position] + margin

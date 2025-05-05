@@ -82,6 +82,12 @@ __conversion_table__ :dict[__LITERAL_COLOR_MODES__, dict[__LITERAL_COLOR_MODES__
         },
 }
 
+def pygamize_color(color: "__color_pygame__|Color") -> "__color_pygame__":
+    return color() if isinstance(color, Color) else color
+
+def unpygamize_color(color: "__color_pygame__|Color") -> "Color":
+    return Color(*color[:], mode=RGBA_COLOR_MODE) if isinstance(color, __color_pygame__) else color
+
 class Color:
     def __init__(self, *values, mode:__LITERAL_COLOR_MODES__=RGB_COLOR_MODE) -> None:
         self.__dict__ = dict(zip(mode, values))
@@ -179,7 +185,7 @@ class Color:
         return "Color(" + ", ".join(f"{k}:{v}" for k, v in self.items) + ")"
 
     def __call__(self) -> __color_pygame__:
-        return __color_pygame__(int(self.r), int(self.g), int(self.b))
+        return __color_pygame__(int(self.r), int(self.g), int(self.b)) if self.mode == RGB_COLOR_MODE else __color_pygame__(int(self.r), int(self.g), int(self.b), int(self.a))
     
     # fast operations     Vector2D.operation(both,x,y)
     def add(self, all3=.0, r=.0, g=.0, b=.0) -> "Color":
@@ -409,6 +415,8 @@ class Color:
             raise TypeError(f"The value {other} of type {type(other)} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
     
     @classmethod
+    def transparent(cls) -> "Color": return Color(0,0,0,0, mode=RGBA_COLOR_MODE)
+    @classmethod
     def white(cls) -> "Color": return Color(255,255,255)
     @classmethod
     def black(cls) -> "Color": return Color(0,0,0)
@@ -427,12 +435,14 @@ class Color:
         return Color(__randint__(0,255), __randint__(0,255), __randint__(0,255))
 
 
+TRANSPARENT_COLOR = Color.transparent()
 WHITE_COLOR = Color.white()
 BLACK_COLOR = Color.black()
 RED_COLOR = Color.red()
 GREEN_COLOR = Color.green()
 BLUE_COLOR = Color.blue()
 
+TRANSPARENT_COLOR_PYG = TRANSPARENT_COLOR() 
 WHITE_COLOR_PYG = WHITE_COLOR()
 BLACK_COLOR_PYG = BLACK_COLOR()
 RED_COLOR_PYG = RED_COLOR()

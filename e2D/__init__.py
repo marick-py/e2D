@@ -10,6 +10,7 @@ PI_QUARTER = PI/4
 PI_DOUBLE = PI*2
 
 sign = lambda val: -1 if val < 0 else (1 if val > 0 else 0)
+clamp = lambda x, minn, maxx: x if x > minn and x < maxx else (minn if x < minn else maxx)
 
 class Vector2D:
     round_values_on_print = 2
@@ -42,6 +43,13 @@ class Vector2D:
     @property
     def sign(self) -> "Vector2D":
         return Vector2D(sign(self.x), sign(self.y))
+    
+    def clamp(self, min_val: Vector2D, max_val: Vector2D) -> "Vector2D":
+        return Vector2D(clamp(self.x, min_val.x, max_val.x), clamp(self.y, min_val.y, max_val.y))
+
+    def iclamp(self, min_val: Vector2D, max_val: Vector2D) -> None:
+        self.x = clamp(self.x, min_val.x, max_val.x)
+        self.y = clamp(self.y, min_val.y, max_val.y)
 
     @property
     def normalize(self) -> "Vector2D":

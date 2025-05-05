@@ -12,6 +12,7 @@ PI_DOUBLE : float
 # 
 
 sign : Callable[[int|float], Literal[-1,0,1]]
+clamp: Callable[[int|float, int|float, int|float], int|float]
 
 class Vector2D:
     round_values_on_print : int|float
@@ -208,6 +209,54 @@ class Vector2D:
 
             Note: The "absolute round" operation does not perform standard mathematical rounding; instead, it ensures the resulting
             vector points in the same direction as the original vector but has non-negative components.
+        """
+        ...
+    
+    def clamp(self, min_val: Vector2D, max_val: Vector2D) -> "Vector2D":
+        """
+        # Clamp the vector's components between the corresponding components of two other vectors.
+
+        ## Parameters:
+            min_val (Vector2D): The minimum vector for clamping.
+            max_val (Vector2D): The maximum vector for clamping.
+
+        ## Returns:
+            Vector2D: A new vector with its components clamped between the corresponding components of `min_val` and `max_val`.
+
+        ## Example:
+            v = Vector2D(5, 10)
+            min_val = Vector2D(0, 8)
+            max_val = Vector2D(6, 12)
+            clamped_v = v.clamp(min_val, max_val)
+            print(clamped_v)  # Output: (5, 10)
+
+        ## Explanation:
+            This method clamps the x and y components of the current vector between the corresponding x and y components
+            of the `min_val` and `max_val` vectors. The resulting vector is returned as a new Vector2D instance.
+        """
+        ...
+
+    def iclamp(self, min_val: Vector2D, max_val: Vector2D) -> None:
+        """
+        # Clamp the vector's components in place between the corresponding components of two other vectors.
+
+        ## Parameters:
+            min_val (Vector2D): The minimum vector for clamping.
+            max_val (Vector2D): The maximum vector for clamping.
+
+        ## Returns:
+            None
+
+        ## Example:
+            v = Vector2D(5, 10)
+            min_val = Vector2D(0, 8)
+            max_val = Vector2D(6, 12)
+            v.iclamp(min_val, max_val)
+            print(v)  # Output: (5, 10)
+
+        ## Explanation:
+            This method clamps the x and y components of the current vector in place between the corresponding x and y components
+            of the `min_val` and `max_val` vectors. The method modifies the current vector directly.
         """
         ...
     
