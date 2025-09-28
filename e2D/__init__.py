@@ -35,6 +35,22 @@ class Vector2D:
     @angle.setter
     def angle(self, new_angle) -> None:
         self.rotate(new_angle - self.angle)
+    
+    @property
+    def aspect_x(self) -> float:
+        return self.x / self.y if self.y != 0 else 0
+
+    @aspect_x.setter
+    def aspect_x(self, new_aspect) -> None:
+        self.x = self.y * new_aspect
+
+    @property
+    def aspect_y(self) -> float:
+        return self.y / self.x if self.x != 0 else 0
+
+    @aspect_y.setter
+    def aspect_y(self, new_aspect) -> None:
+        self.y = self.x * new_aspect
 
     @property
     def copy(self) -> "Vector2D":
@@ -52,7 +68,7 @@ class Vector2D:
         self.y = clamp(self.y, min_val.y, max_val.y)
 
     @property
-    def normalize(self) -> "Vector2D":
+    def normalized(self) -> "Vector2D":
         if (mag:=self.length) == 0:
             return self.copy
         return Vector2D(self.x / mag, self.y / mag)
@@ -60,11 +76,31 @@ class Vector2D:
     @property
     def length(self) -> float:
         return (self.x ** 2 + self.y ** 2) ** .5
-    
+
+    @length.setter
+    def length(self, new_length: float) -> None:
+        current_length = self.length
+        if current_length == 0:
+            self.x = new_length
+            self.y = 0
+        else:
+            self.x *= new_length / current_length
+            self.y *= new_length / current_length
+
     @property
     def length_sqrd(self) -> float:
         return self.x ** 2 + self.y ** 2
-    
+
+    @length_sqrd.setter
+    def length_sqrd(self, new_length_sqrd: float) -> None:
+        current_length = self.length
+        if current_length == 0:
+            self.x = _mt.sqrt(new_length_sqrd)
+            self.y = 0
+        else:
+            self.x *= _mt.sqrt(new_length_sqrd) / current_length
+            self.y *= _mt.sqrt(new_length_sqrd) / current_length
+
     @property
     def inverse(self) -> "Vector2D":
         return self.mult(-1)
@@ -118,6 +154,13 @@ class Vector2D:
     @classmethod
     def complex_to_cartesian(cls, complex_n) -> "Vector2D":
         return cls(complex_n.real, complex_n.imag)
+
+    def cartesian_to_linear(self, size) -> int:
+        return int(self.x + self.y * size)
+
+    @classmethod
+    def linear_to_cartesian(cls, linear, size) -> "Vector2D":
+        return cls(linear % size, linear // size)
 
     def lerp(self, other, t=.1) -> "Vector2D":
         return Vector2D(self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t)
@@ -495,10 +538,10 @@ V2down_right = Vector2D(1, -1)
 V2up_left = Vector2D(-1, 1)
 V2down_left = Vector2D(-1, -1)
 
-V2up_right_norm = V2up_right.normalize
-V2down_right_norm = V2down_right.normalize
-V2up_left_norm = V2up_left.normalize
-V2down_left_norm = V2down_left.normalize
+V2up_right_norm = V2up_right.normalized
+V2down_right_norm = V2down_right.normalized
+V2up_left_norm = V2up_left.normalized
+V2down_left_norm = V2down_left.normalized
 
 VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
 VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)

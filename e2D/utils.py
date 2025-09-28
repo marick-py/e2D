@@ -33,32 +33,51 @@ __PIVOT_POSITIONS_MULTIPLIER__ = dict(zip(("top_left", "top_center", "top_right"
 class Mouse:
     def __init__(self, parent) -> None:
         self.parent = parent
-        self.__last_frame_position_count__ = 0
-        self.__last_frame_position__ = Vector2D.new_zero()
-        self.__last_frame_movement_count__ = 0
-        self.__last_frame_movement__ = Vector2D.new_zero()
-        
+        self.__last_frame_position_number__ :int= 0
+        self.__last_frame_position__ :Vector2D= Vector2D.new_zero()
+        self.__last_frame_movement_number__ :int= 0
+        self.__last_frame_movement__ :Vector2D= Vector2D.new_zero()
+        self.__last_frame_wheel_number__ :int= 0
+        self.__last_frame_wheel_delta__ :int= 0
+
         self.__pressed__ : tuple[bool, bool, bool] = (False, False, False)
-        self.update()    
+        self.update()
+
+    @property
+    def wheel_delta(self) -> int:
+        for event in self.parent.events:
+            if event.type == pg.MOUSEWHEEL:
+                if self.__last_frame_wheel_number__ != self.parent.current_frame:
+                    self.__last_frame_wheel_delta__ = event.y
+                    self.__last_frame_wheel_number__ = self.parent.current_frame
+                return self.__last_frame_wheel_delta__
+        
+        self.__last_frame_wheel_delta__ = 0
+        self.__last_frame_wheel_number__ = self.parent.current_frame
+        return self.__last_frame_wheel_delta__
 
     @property
     def position(self) -> Vector2D:
-        if self.__last_frame_position_count__ != self.parent.current_frame:
+        if self.__last_frame_position_number__ != self.parent.current_frame:
             self.__last_frame_position__ = Vector2D(*pg.mouse.get_pos())
-            self.__last_frame_position_count__ = self.parent.current_frame
+            self.__last_frame_position_number__ = self.parent.current_frame
         return self.__last_frame_position__
     @position.setter
     def position(self, new_position:Vector2D) -> None:
-        self.__last_frame_position_count__ = self.parent.current_frame
+        self.__last_frame_position_number__ = self.parent.current_frame
         self.__last_frame_position__ = new_position
         pg.mouse.set_pos(self.__last_frame_position__())
     
     @property
     def last_frame_movement(self) -> Vector2D:
-        if self.__last_frame_movement_count__ != self.parent.current_frame:
+        if self.__last_frame_movement_number__ != self.parent.current_frame:
             self.__last_frame_movement__ = Vector2D(*pg.mouse.get_rel())
-            self.__last_frame_movement_count__ = self.parent.current_frame
+            self.__last_frame_movement_number__ = self.parent.current_frame
         return self.__last_frame_movement__
+    @last_frame_movement.setter
+    def last_frame_movement(self, new_movement:Vector2D) -> None:
+        self.__last_frame_movement_number__ = self.parent.current_frame
+        self.__last_frame_movement__ = new_movement
 
     def update(self) -> None:
         self.__last_pressed__ = self.__pressed__
@@ -95,8 +114,8 @@ class Keyboard:
 
 class Util:
     def __init__(self) -> None:
-        self.rootEnv = None
-        self.surface : pg.Surface = pg.SurfaceType
+        self.rootEnv : Any
+        self.surface : pg.Surface= None # type: ignore
         self.id : int|str
         self.is_hovered :bool= False
         self.hidden :bool= False
@@ -104,9 +123,9 @@ class Util:
         self.hidden = True
     def show(self) -> None:
         self.hidden = False
-    def render(self) -> None: pass
-    def draw(self) -> None: pass
-    def update(self) -> None: pass
+    def __render__(self) -> None: pass
+    def __draw__(self) -> None: pass
+    def __update__(self) -> None: pass
 
 class InputCell(Util):
     def __init__(self,
@@ -176,7 +195,7 @@ class InputCell(Util):
     def border_color(self, new_color:Color|pg.Color) -> None:
         self.__border_color__ = pygamize_color(new_color)
 
-    def draw(self) -> None:
+    def __draw__(self) -> None:
         if self.hidden: return
         self.text_surface.fill(TRANSPARENT_COLOR_PYG)
         
@@ -194,7 +213,7 @@ class InputCell(Util):
 
         self.surface.blit(self.text_surface, self.position())
         
-    def update(self) -> None:
+    def __update__(self) -> None:
         if self.hidden: return
         self.is_hovered = self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and\
                           self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y
@@ -261,7 +280,7 @@ class Slider(Util):
         self.text_pivot = text_pivot
 
         self.handleRadius = handleRadius
-        self.surface = personalized_surface
+        self.surface = personalized_surface # type: ignore
 
         self.hidden = False
 
@@ -281,21 +300,21 @@ class Slider(Util):
     def handleColour(self, new_color:Color|pg.Color) -> None:
         self.__handleColour__ = pygamize_color(new_color)
 
-    def draw(self) -> None:
+    def __draw__(self) -> None:
         if self.hidden: return
-        pg.draw.rect(self.rootEnv.screen, self.__color__, self.position() + self.size())
+        pg.draw.rect(self.surface, self.__color__, self.position() + self.size())
 
         if self.radius:
-            pg.draw.circle(self.rootEnv.screen, self.__color__, (self.position.x, self.position.y + self.size.y // 2), self.radius)
-            pg.draw.circle(self.rootEnv.screen, self.__color__, (self.position.x + self.size.x, self.position.y + self.size.y // 2), self.radius)
+            pg.draw.circle(self.surface, self.__color__, (self.position.x, self.position.y + self.size.y // 2), self.radius)
+            pg.draw.circle(self.surface, self.__color__, (self.position.x + self.size.x, self.position.y + self.size.y // 2), self.radius)
 
         circle = V2(int(self.position.x + (self.value - self.min) / (self.max - self.min) * self.size.x), self.position.y + self.size.y // 2)
 
-        pg.draw.circle(self.rootEnv.screen, self.__color__, circle(), self.handleRadius * 1.25)
-        pg.draw.circle(self.rootEnv.screen, self.__handleColour__, circle(), self.handleRadius)
+        pg.draw.circle(self.surface, self.__color__, circle(), self.handleRadius * 1.25)
+        pg.draw.circle(self.surface, self.__handleColour__, circle(), self.handleRadius)
         self.rootEnv.print(self.text.format(round(self.value, 2)), self.position + self.size * self.text_offset, pivot_position=self.text_pivot)
     
-    def update(self) -> None:
+    def __update__(self) -> None:
         if self.hidden: return
         x,y = self.rootEnv.mouse.position
 
@@ -324,22 +343,22 @@ class Button(Util):
                 text : str,
                 position : V2|Vector2D,
                 size : V2|Vector2D,
-                callback : Callable[[...], None]|Callable[[], None],
-                default_color : Color|pg.Color,
-                hovered_color : Color|pg.Color,
-                border_color : Color|pg.Color,
+                callback : Callable[[], None]|Callable[[], None] = lambda: None,
+                default_bg_color : Color|pg.Color = BLUE_COLOR_PYG,
+                hovered_bg_color : Color|pg.Color = CYAN_COLOR_PYG,
+                border_color : Color|pg.Color = WHITE_COLOR_PYG,
                 text_color : Color|pg.Color = WHITE_COLOR_PYG,
                 font : pg.font.Font = FONT_ARIAL_32,
                 border_radius : float = 10,
                 border_width : float = 10,
-                starting_hiddden : bool = False,
+                starting_hidden : bool = False,
                 args : list = [],
                 activation_mode : __LITERAL_KEY_MODE_TYPES__ = "just_pressed",
                 pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
                 personalized_surface : pg.Surface|None = None,
             ) -> None:
         super().__init__()
-        
+
         self.text = text
         self.font = font
 
@@ -348,10 +367,11 @@ class Button(Util):
         self.border_radius = border_radius
         self.__size__ = size
         self.__border_width__ = border_width
-        
-        self.update_position(position, pivot_position)
 
-        self.hidden = starting_hiddden
+        self.pivot_position :__LITERAL_PIVOT_POSITIONS__= pivot_position    
+        self.update_position(position)
+
+        self.hidden = starting_hidden
         self.args = args
 
         self.activation_mode = activation_mode
@@ -359,19 +379,23 @@ class Button(Util):
         self.hovered = False
 
         self.text_color = text_color
-        self.default_color = default_color
+        self.default_bg_color = default_bg_color
         self.border_color = border_color
-        self.hovered_color = hovered_color
+        self.hovered_bg_color = hovered_bg_color
 
-        self.surface = personalized_surface
+        self.surface = personalized_surface #type: ignore
         self.update_surface()
     
-    def update_position(self, new_position:V2, pivot_position:__LITERAL_PIVOT_POSITIONS__="top_left") -> None:
-        self.position = new_position - (self.__size__ + self.border_width * 2) * __PIVOT_POSITIONS_MULTIPLIER__[pivot_position]
+    def update_position(self, new_position:V2) -> None:
+        self.position = new_position - self.__size__ * __PIVOT_POSITIONS_MULTIPLIER__[self.pivot_position]
+
+    def update_pivoting(self, new_pivot_position:__LITERAL_PIVOT_POSITIONS__) -> None:
+        self.pivot_position = new_pivot_position
+        self.update_position(self.position)
     
     def update_surface(self, render=False) -> None:
         self.buffer_surface = pg.Surface((self.__size__ + self.__border_width__ * 2)(), pg.SRCALPHA, 32).convert_alpha()
-        if render: self.render()
+        if render: self.__render__()
 
     @property
     def size(self) -> V2:
@@ -386,6 +410,7 @@ class Button(Util):
         return self.__border_width__
     @border_width.setter
     def border_width(self, new_width:float) -> None:
+        # self.position -= (self.__border_width__ - new_width) * .5
         self.__border_width__ = new_width
         self.update_surface(render=True)
     
@@ -396,11 +421,11 @@ class Button(Util):
     def text_color(self, new_color:Color|pg.Color) -> None:
         self.__text_color__ = pygamize_color(new_color)
     @property
-    def default_color(self) -> Color:
-        return unpygamize_color(self.__default_color__)
-    @default_color.setter
-    def default_color(self, new_color:Color|pg.Color) -> None:
-        self.__default_color__ = pygamize_color(new_color)
+    def default_bg_color(self) -> Color:
+        return unpygamize_color(self.__default_bg_color__)
+    @default_bg_color.setter
+    def default_bg_color(self, new_color:Color|pg.Color) -> None:
+        self.__default_bg_color__ = pygamize_color(new_color)
     @property
     def border_color(self) -> Color:
         return unpygamize_color(self.__border_color__)
@@ -408,27 +433,28 @@ class Button(Util):
     def border_color(self, new_color:Color|pg.Color) -> None:
         self.__border_color__ = pygamize_color(new_color)
     @property
-    def hovered_color(self) -> Color:
-        return unpygamize_color(self.__hovered_color__)
-    @hovered_color.setter
-    def hovered_color(self, new_color:Color|pg.Color) -> None:
-        self.__hovered_color__ = pygamize_color(new_color)
+    def hovered_bg_color(self) -> Color:
+        return unpygamize_color(self.__hovered_bg_color__)
+    @hovered_bg_color.setter
+    def hovered_bg_color(self, new_color:Color|pg.Color) -> None:
+        self.__hovered_bg_color__ = pygamize_color(new_color)
 
-    def render(self) -> None:
-        print("rendering button")
+    def __render__(self) -> None:
         self.buffer_surface.fill(TRANSPARENT_COLOR_PYG)
 
-        color = self.__hovered_color__ if self.hovered else self.__default_color__
+        color = self.__hovered_bg_color__ if self.hovered else self.__default_bg_color__
         pg.draw.rect(self.buffer_surface, self.__border_color__, V2.zero()() + (self.size + self.border_width * 2)(), border_radius=self.border_radius)
         pg.draw.rect(self.buffer_surface, color, (V2.zero() + self.border_width)() + self.size(), border_radius=self.border_radius)
 
+        # TODO:
+        # not only size * .5 but also internal pivoting on the corners and sides
         self.rootEnv.print(self.text, self.border_width + self.size * .5, color=self.__text_color__, font=self.font, pivot_position="center_center", personalized_surface=self.buffer_surface)
 
-    def draw(self) -> None:
+    def __draw__(self) -> None:
         if self.hidden: return
         self.surface.blit(self.buffer_surface, (self.position)())
 
-    def update(self) -> None:
+    def __update__(self) -> None:
         if self.hidden: return
 
         old_overed = self.hovered
@@ -436,15 +462,15 @@ class Button(Util):
             self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and \
             self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y
         if self.hovered != old_overed:
-            self.render()
+            self.__render__()
         
         if self.hovered and self.rootEnv.mouse.get_key(0, self.activation_mode):
             self.callback(*self.args)
             self.rootEnv.selected_util = self
-            self.render()
+            self.__render__()
         elif self.rootEnv.selected_util == self:
             self.rootEnv.selected_util = None
-            self.render()
+            self.__render__()
 
 class Label(Util):
     def __init__(self,
@@ -457,7 +483,7 @@ class Label(Util):
                 font : pg.font.Font = FONT_ARIAL_32,
                 border_radius : float = 10,
                 border_width : float = 10,
-                starting_hiddden : bool = False,
+                starting_hidden : bool = False,
                 personalized_surface : pg.Surface|None = None,
                 pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
             ) -> None:
@@ -470,23 +496,28 @@ class Label(Util):
         self.__size__ = size
         self.__border_width__ = border_width
         
-        self.position = self.update_position(position, pivot_position)
+        self.pivot_position :__LITERAL_PIVOT_POSITIONS__= pivot_position
+        self.update_position(position)
 
-        self.hidden = starting_hiddden
+        self.hidden = starting_hidden
 
         self.text_color = text_color
         self.default_color = default_color
         self.border_color = border_color
 
-        self.surface = personalized_surface
+        self.surface = personalized_surface # type: ignore
         self.update_surface()
     
-    def update_position(self, new_position:V2, pivot_position:__LITERAL_PIVOT_POSITIONS__="top_left") -> None:
-        self.position = new_position - (self.__size__ + self.border_width * 2) * __PIVOT_POSITIONS_MULTIPLIER__[pivot_position]
-    
+    def update_position(self, new_position:V2) -> None:
+        self.position = new_position - (self.__size__ + self.border_width * 2) * __PIVOT_POSITIONS_MULTIPLIER__[self.pivot_position]
+
+    def update_pivoting(self, new_pivot_position:__LITERAL_PIVOT_POSITIONS__="top_left") -> None:
+        self.pivot_position = new_pivot_position
+        self.update_position(self.position)
+
     def update_surface(self, render=False) -> None:
         self.buffer_surface = pg.Surface((self.__size__ + self.__border_width__ * 2)(), pg.SRCALPHA, 32).convert_alpha()
-        if render: self.render()
+        if render: self.__render__()
 
     @property
     def text(self) -> str:
@@ -494,7 +525,7 @@ class Label(Util):
     @text.setter
     def text(self, new_text:str) -> None:
         self.__text__ = new_text
-        self.render()
+        self.__render__()
 
     @property
     def size(self) -> V2:
@@ -531,15 +562,16 @@ class Label(Util):
     def border_color(self, new_color:Color|pg.Color) -> None:
         self.__border_color__ = pygamize_color(new_color)
 
-    def render(self) -> None:
-        print("rendering label")
+    def __render__(self) -> None:
         self.buffer_surface.fill(TRANSPARENT_COLOR_PYG)
 
         pg.draw.rect(self.buffer_surface, self.__border_color__, V2.zero()() + (self.size + self.border_width * 2)(), border_radius=self.border_radius)
         pg.draw.rect(self.buffer_surface, self.__default_color__, (V2.zero() + self.border_width)() + self.size(), border_radius=self.border_radius)
 
+        # TODO:
+        # not only size * .5 but also internal pivoting on the corners and sides
         self.rootEnv.print(self.text, self.border_width + self.size * .5, color=self.__text_color__, font=self.font, pivot_position="center_center", personalized_surface=self.buffer_surface)
 
-    def draw(self) -> None:
+    def __draw__(self) -> None:
         if self.hidden: return
         self.surface.blit(self.buffer_surface, (self.position)())

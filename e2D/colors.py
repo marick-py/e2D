@@ -1,7 +1,8 @@
+from __future__ import annotations
 from colorsys import hsv_to_rgb as __hsv_to_rgb_def__, hls_to_rgb as __hls_to_rgb_def__, rgb_to_hls as __rgb_to_hls__, rgb_to_hsv as __rgb_to_hsv__
 from typing import Any, Callable, Generator, Literal
 from pygame.color import Color as __color_pygame__
-from random import randint as __randint__
+from random import random as __rand__
 
 RGB_COLOR_MODE = "rgb"
 RGBA_COLOR_MODE = "rgba"
@@ -15,11 +16,11 @@ HLS_COLOR_MODE = "hls"
 
 __LITERAL_COLOR_MODES__ = Literal["rgb","rgba","bgr","bgra","g","hsv","hls"] #,"cmyk","lab"]
 
-def __hsv_to_rgb__(h:int|float, s:int|float, v:int|float) -> tuple[int|float, int|float, int|float]:
+def __hsv_to_rgb__(h:"int|float", s:"int|float", v:"int|float") -> tuple["int|float", "int|float", "int|float"]:
     r,g,b = __hsv_to_rgb_def__(h, s, v)
     return r*255, g*255, b*255
 
-def __hls_to_rgb__(h:int|float, s:int|float, v:int|float) -> tuple[int|float, int|float, int|float]:
+def __hls_to_rgb__(h:"int|float", s:"int|float", v:"int|float") -> tuple["int|float", "int|float", "int|float"]:
     r,g,b = __hls_to_rgb_def__(h, s, v)
     return r*255, g*255, b*255
     
@@ -110,35 +111,35 @@ class Color:
         return (d ** .5) if rooted else d
     
     @classmethod
-    def new_rgb(cls, r:int|float, g:int|float, b:int|float) -> "Color":
+    def new_rgb(cls, r:"int|float", g:"int|float", b:"int|float") -> "Color":
         return Color(r,g,b, mode=RGB_COLOR_MODE)
     @classmethod
-    def new_rgba(cls, r:int|float, g:int|float, b:int|float, a:int|float) -> "Color":
+    def new_rgba(cls, r:"int|float", g:"int|float", b:"int|float", a:"int|float") -> "Color":
         return Color(r,g,b,a, mode=RGBA_COLOR_MODE)
     @classmethod
-    def new_bgr(cls, b:int|float, g:int|float, r:int|float) -> "Color":
+    def new_bgr(cls, b:"int|float", g:"int|float", r:"int|float") -> "Color":
         return Color(b,g,r, mode=BGR_COLOR_MODE)
     @classmethod
-    def new_bgra(cls, b:int|float, g:int|float, r:int|float, a:int|float) -> "Color":
+    def new_bgra(cls, b:"int|float", g:"int|float", r:"int|float", a:"int|float") -> "Color":
         return Color(b,g,r,a, mode=BGRA_COLOR_MODE)
     @classmethod
     def new_g(cls, g) -> "Color":
         return Color(g, mode=GRAY_COLOR_MODE)
     @classmethod
-    def new_hsv(cls, h:int|float, s:int|float, v:int|float) -> "Color":
+    def new_hsv(cls, h:"int|float", s:"int|float", v:"int|float") -> "Color":
         return Color(h,s,v, mode=HSV_COLOR_MODE)
     @classmethod
-    def new_hls(cls, h:int|float, l:int|float, s:int|float) -> "Color":
+    def new_hls(cls, h:"int|float", l:"int|float", s:"int|float") -> "Color":
         return Color(h,l,s, mode=HLS_COLOR_MODE)
     # @classmethod
-    # def new_cmyk(cls, c:int|float, m:int|float, y:int|float, k:int|float) -> Color:
+    # def new_cmyk(cls, c:"int|float", m:"int|float", y:"int|float", k:"int|float") -> Color:
     #     return Color(c,m,y,k, mode=CMYK_COLOR_MODE)
     # @classmethod
-    # def new_lab(cls, l:int|float, a:int|float, b:int|float) -> Color:
+    # def new_lab(cls, l:"int|float", a:"int|float", b:"int|float") -> Color:
     #     return Color(l,a,b, mode=LAB_COLOR_MODE)
 
     @property
-    def values(self) -> tuple[int|float, ...]:
+    def values(self) -> tuple["int|float", ...]:
         return tuple(self.__dict__.values())[:-1]
 
     @property
@@ -146,7 +147,7 @@ class Color:
         return tuple(self.__dict__.keys())[:-1]
     
     @property
-    def items(self) -> tuple[tuple[str, int|float], ...]:
+    def items(self) -> tuple[tuple[str, "int|float"], ...]:
         return tuple(self.__dict__.items())[:-1]
 
     def copy(self) -> "Color":
@@ -392,7 +393,7 @@ class Color:
     def __float__(self) -> "Color":
         return Color(float(self.r), float(self.g), float(self.b))
 
-    def __getitem__(self, n) -> int|float:
+    def __getitem__(self, n) -> "int|float":
         return self.values[n] if isinstance(n, int) else self.values[self.keys.index(n)]
     
     def __iter__(self) -> Generator[float, Any, None]:
@@ -412,7 +413,7 @@ class Color:
         try:
             return cls(*other.values, mode=other.mode)
         except:
-            raise TypeError(f"The value {other} of type {type(other)} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
+            raise TypeError(f"The value {other} of type {type(other)} is not a num type: [{"int|float"}] nor an array type: [{list|tuple}]")
     
     @classmethod
     def transparent(cls) -> "Color": return Color(0,0,0,0, mode=RGBA_COLOR_MODE)
@@ -426,13 +427,26 @@ class Color:
     def green(cls) -> "Color": return Color(0,255,0)
     @classmethod
     def blue(cls) -> "Color": return Color(0,0,255)
-    
-    # @classmethod
-    # def (cls) -> "Color": return Color(0,0,255)
+    @classmethod
+    def cyan(cls) -> "Color": return Color(0,255,255)
+    @classmethod
+    def magenta(cls) -> "Color": return Color(255,0,255)
+    @classmethod
+    def yellow(cls) -> "Color": return Color(255,255,0)
 
     @classmethod
-    def randomize(cls) -> "Color":
-        return Color(__randint__(0,255), __randint__(0,255), __randint__(0,255))
+    def randomize(cls, start=0, end=255, func=lambda val:val) -> "Color":
+        if not isinstance(start, Color):
+            if isinstance(start, (int, float)):
+                start = Color(start, start, start)
+            else:
+                raise Exception(f"\nArg start must be in [Color, int, float, tuple, list] not a [{type(start)}]\n")
+        if not isinstance(end, Color):
+            if isinstance(end, (int, float)):
+                end = Color(end, end, end)
+            else:
+                raise Exception(f"\nArg end must be in [Color, int, float, tuple, list] not a [{type(end)}]\n")
+        return start + Color(func(__rand__()), func(__rand__()), func(__rand__())) * (end - start)
 
 
 TRANSPARENT_COLOR = Color.transparent()
@@ -441,6 +455,9 @@ BLACK_COLOR = Color.black()
 RED_COLOR = Color.red()
 GREEN_COLOR = Color.green()
 BLUE_COLOR = Color.blue()
+CYAN_COLOR = Color.cyan()
+MAGENTA_COLOR = Color.magenta()
+YELLOW_COLOR = Color.yellow()
 
 TRANSPARENT_COLOR_PYG = TRANSPARENT_COLOR() 
 WHITE_COLOR_PYG = WHITE_COLOR()
@@ -448,3 +465,6 @@ BLACK_COLOR_PYG = BLACK_COLOR()
 RED_COLOR_PYG = RED_COLOR()
 GREEN_COLOR_PYG = GREEN_COLOR()
 BLUE_COLOR_PYG = BLUE_COLOR()
+CYAN_COLOR_PYG = CYAN_COLOR()
+MAGENTA_COLOR_PYG = MAGENTA_COLOR()
+YELLOW_COLOR_PYG = YELLOW_COLOR()

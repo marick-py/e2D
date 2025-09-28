@@ -141,10 +141,59 @@ class Vector2D:
         ...
 
     @property
-    def angle(self:"Vector2D") -> int|float: ...
+    def angle(self:"Vector2D") -> int|float:
+        """
+        # Vector Angle
+        ## Returns:
+            float: The angle (in radians) of the vector from the positive x-axis.
+        ## Example:
+            v = Vector2D(1, 1)
+            angle = v.angle
+            print(angle)  # Output: 0.7853981633974483
+        ## Explanation:
+            This property calculates the angle of the vector from the positive x-axis using the `atan2` function.
+        """
+        ...
 
     @angle.setter
-    def angle(self:"Vector2D", argv) -> None: ...
+    def angle(self:"Vector2D", argv) -> None:
+        ...
+
+    @property
+    def aspect_x(self: "Vector2D") -> float:
+        """
+        # Aspect Ratio (X over Y)
+        ## Returns:
+            float: The aspect ratio of the vector, calculated as the x component divided by the y component. Returns 0 if the y component is zero.
+        ## Example:
+            v = Vector2D(4, 2)
+            aspect = v.aspect_x
+            print(aspect)  # Output: 2.0
+        ## Explanation:
+            This property computes the ratio of the x component to the y component of the vector. If the y component is zero, it returns 0 to avoid division by zero.
+        """
+        ...
+
+    @aspect_x.setter
+    def aspect_x(self: "Vector2D", new_aspect) -> None: ...
+
+    @property
+    def aspect_y(self: "Vector2D") -> float:
+        """
+        # Aspect Ratio (Y over X)
+        ## Returns:
+            float: The aspect ratio of the vector, calculated as the y component divided by the x component. Returns 0 if the x component is zero.
+        ## Example:
+            v = Vector2D(2, 4)
+            aspect = v.aspect_y
+            print(aspect)  # Output: 2.0
+        ## Explanation:
+            This property computes the ratio of the y component to the x component of the vector. If the x component is zero, it returns 0 to avoid division by zero.
+        """
+        ...
+
+    @aspect_y.setter
+    def aspect_y(self: "Vector2D", new_aspect) -> None: ...
 
     @property
     def copy(self:"Vector2D") -> "Vector2D":
@@ -261,7 +310,7 @@ class Vector2D:
         ...
     
     @property
-    def normalize(self:"Vector2D") -> "Vector2D":
+    def normalized(self:"Vector2D") -> "Vector2D":
         """
         # Vector Normalization
 
@@ -273,7 +322,7 @@ class Vector2D:
 
         ## Example:
             v = Vector2D(3, 4)
-            normalized_v = v.normalize()  # Normalize the vector (3, 4)
+            normalized_v = v.normalized()  # Normalize the vector (3, 4)
             print(normalized_v)  # Output: (0.6, 0.8)
 
         ## Explanation:
@@ -293,23 +342,123 @@ class Vector2D:
     
     @property
     def length(self:"Vector2D") -> float:
+        """
+        # Vector Length
+
+        ## Returns:
+            float: The length (magnitude) of the vector.
+
+        ## Example:
+            v = Vector2D(3, 4)
+            length = v.length
+            print(length)  # Output: 5.0
+
+        ## Explanation:
+            This property calculates the length (magnitude) of the vector using the Pythagorean theorem.
+        """
         ...
 
     @property
     def length_sqrd(self:"Vector2D") -> float:
+        """
+        # Vector Length Squared
+
+        ## Returns:
+            float: The squared length (magnitude) of the vector.
+
+        ## Example:
+            v = Vector2D(3, 4)
+            length_sqrd = v.length_sqrd
+            print(length_sqrd)  # Output: 25
+
+        ## Explanation:
+            This property calculates the squared length (magnitude) of the vector.
+            It is more efficient than calculating the actual length, as it avoids the
+            square root calculation.
+        """
         ...
     
     @property
     def inverse(self:"Vector2D") -> "Vector2D":
+        """
+        # Vector Inversion
+
+        ## Returns:
+            Vector2D: A new vector with inverted components.
+
+        ## Example:
+            v = Vector2D(3, 4)
+            inverted_v = v.inverse()
+            print(inverted_v)  # Output: (-3, -4)
+
+        ## Explanation:
+            This method calculates the inverted version of the current vector, which means a new vector with the same magnitude
+            but opposite direction.
+
+            The inverted vector is obtained by negating each component of the current vector.
+
+            The resulting inverted vector is returned.
+        """
         ...
 
     def floor(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
+        """
+        # Round the Vector2D components down to the nearest integer or specified decimal place.
+
+        ## Parameters:
+            n (int|float|Vector2D, optional): The decimal place to round down to. Default is 1.
+
+        ## Returns:
+            Vector2D: A new vector with rounded-down components.
+
+        ## Example:
+            v = Vector2D(3.14159, 2.71828)
+            rounded_v = v.floor(2)
+            print(rounded_v)  # Output: (3.14, 2.71)
+
+        ## Explanation:
+            This method rounds each component of the vector down to the nearest integer or specified decimal place.
+        """
         ...
 
     def ceil(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
+        """
+        # Round the Vector2D components up to the nearest integer or specified decimal place.
+
+        ## Parameters:
+            n (int|float|Vector2D, optional): The decimal place to round up to. Default is 1.
+
+        ## Returns:
+            Vector2D: A new vector with rounded-up components.
+
+        ## Example:
+            v = Vector2D(3.14159, 2.71828)
+            rounded_v = v.ceil(2)
+            print(rounded_v)  # Output: (3.15, 2.72)
+
+        ## Explanation:
+            This method rounds each component of the vector up to the nearest integer or specified decimal place.
+        """
         ...
     
     def round(self:"Vector2D", n:"int|float|Vector2D"=1) -> "Vector2D":
+        """
+        # Round the Vector2D components to the nearest integer or specified decimal place.
+
+        ## Parameters:
+            n (int|float|Vector2D, optional): The decimal place to round to. Default is 1.
+
+        ## Returns:
+            Vector2D: A new vector with rounded components.
+
+        ## Example:
+            v = Vector2D(3.14159, 2.71828)
+            rounded_v = v.round(2)
+            print(rounded_v)  # Output: (3.14, 2.72)
+
+        ## Explanation:
+            This method rounds each component of the vector to the nearest integer or specified decimal place.
+        """
         ...
 
     @classmethod
@@ -500,7 +649,65 @@ class Vector2D:
     def cartesian_to_complex(self:"Vector2D") -> complex: ...
 
     @classmethod
-    def complex_to_cartesian(cls, complex_n: complex) -> "Vector2D": ...
+    def complex_to_cartesian(cls, complex_n: complex) -> "Vector2D":
+        """
+        # Convert a Complex Number to Cartesian Coordinates
+
+        ## Parameters:
+            complex_n (complex): The complex number to convert.
+
+        ## Returns:
+            Vector2D: The corresponding (x, y) coordinates as a Vector2D.
+
+        ## Example:
+            v = Vector2D.complex_to_cartesian(3 + 4j)  # v = Vector2D(3, 4)
+
+        ## Explanation:
+            This class method converts a complex number (a + bi) to Cartesian coordinates (x, y).
+            The real part 'a' becomes the x-coordinate, and the imaginary part 'b' becomes the y-coordinate.
+        """
+        ...
+
+    def cartesian_to_linear(self:"Vector2D", size:int|float) -> int:
+        """
+        # Convert 2D Cartesian coordinates to a linear index.
+
+        ## Parameters:
+            size (int|float): The width of the grid (number of columns).
+
+        ## Returns:
+            int: The linear index corresponding to the (x, y) coordinates.
+
+        ## Example:
+            v = Vector2D(3, 2)
+            idx = v.cartesian_to_linear(5)  # idx = 3 + 2*5 = 13
+
+        ## Explanation:
+            This method converts the (x, y) coordinates of the vector to a single linear index,
+            assuming row-major order in a 2D grid of the given width.
+        """
+        ...
+
+    @classmethod
+    def linear_to_cartesian(cls, linear:int, size:int|float) -> "Vector2D":
+        """
+        # Convert a linear index to 2D Cartesian coordinates.
+
+        ## Parameters:
+            linear (int): The linear index.
+            size (int|float): The width of the grid (number of columns).
+
+        ## Returns:
+            Vector2D: The corresponding (x, y) coordinates as a Vector2D.
+
+        ## Example:
+            v = Vector2D.linear_to_cartesian(13, 5)  # v = Vector2D(3, 2)
+
+        ## Explanation:
+            This class method converts a linear index to (x, y) coordinates,
+            assuming row-major order in a 2D grid of the given width.
+        """
+        ...
 
     def lerp(self:"Vector2D", other:"int|float|Vector2D|list|tuple", t:float=.1) -> "Vector2D":
         """
@@ -1095,4 +1302,37 @@ def distance_line_point(line_point_a:Vector2D, line_point_b:Vector2D, point_c:Ve
     ...
 
 def optimize_value_string(value: int|float, precision: int) -> str:
+    """
+    # Optimize the string representation of a numeric value based on its magnitude and the specified precision.
+
+    ## Parameters:
+        value (int | float): The numeric value to be formatted.
+        precision (int): The number of decimal places or significant digits to use in the formatted string.
+
+    ## Returns:
+        str: The optimized string representation of the value.
+
+    ## Example:
+        value = 0.000012345
+        precision = 3
+        result = optimize_value_string(value, precision)
+        print(result)
+        # Output: '1.235e-05'
+
+        value = 123.456789
+        precision = 2
+        result = optimize_value_string(value, precision)
+        print(result)
+        # Output: '123.46'
+
+    ## Explanation:
+        The function formats the input value as a string, choosing between fixed-point and scientific notation
+        based on the magnitude of the value relative to the specified precision:
+            - If the absolute value is very small (less than 1 divided by 10 to the power of precision, but not zero),
+                scientific notation is used.
+            - If the absolute value is less than 10 to the power of precision, fixed-point notation is used,
+                with trailing zeros and decimal points removed for brevity.
+            - Otherwise, scientific notation is used.
+        This ensures that the string representation is concise and readable, while maintaining the requested precision.
+    """
     ...

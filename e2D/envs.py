@@ -42,13 +42,15 @@ class RootEnv:
                  quit_on_key_pressed : None|int = pg.K_x,
                  vsync : bool = True,
                  window_flags : int = pg.DOUBLEBUF,
+                 display_index : int = 0,
                  clear_screen_each_frame : bool = True) -> None:
         self.quit = False
         self.__screen_size__ :Vector2D= screen_size
 
         self.__vsync__ = vsync
         self.__flags__ = window_flags
-        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__)
+        self.__display_index__ = display_index
+        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__, display=self.__display_index__)
 
         self.clock = pg.time.Clock()
         self.keyboard = Keyboard()
@@ -56,6 +58,7 @@ class RootEnv:
 
         self.target_fps = target_fps
         self.current_fps = self.target_fps if self.target_fps != 0 else 1
+        self.__dt__ = 1 / self.current_fps
         self.current_frame = 0
         self.show_fps = show_fps
         self.events :list[pg.event.Event]= []
@@ -66,6 +69,13 @@ class RootEnv:
         self.utils :dict[int|str, Util]= {}
         self.selected_util :Util|None = None
         self.__quit_on_key_pressed__ = quit_on_key_pressed
+
+        self.fps_label = Label(str(round(self.current_fps,2)), self.screen_size * .01, V2(250, 50), BLACK_COLOR_PYG, TRANSPARENT_COLOR_PYG, WHITE_COLOR_PYG, border_width=0, starting_hidden=(not self.show_fps), pivot_position="top_left", font=FONT_ARIAL_32)
+        self.add_utils(self.fps_label)
+
+    def init_rec(self, fps:int=30, path:str='output.mp4') -> None:
+        from .winrec import WinRec
+        self.__winrecorder__ = WinRec(self, fps=fps, path=path)
 
     @property
     def background_color(self) -> Color:
@@ -81,19 +91,24 @@ class RootEnv:
     @screen_size.setter
     def screen_size(self, new_size:Vector2D) -> None:
         self.__screen_size__ = new_size
-        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__)
+        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__, display=self.__display_index__)
+
+    def update_screen_to_new_size(self) -> None:
+        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__, display=self.__display_index__)
 
     @property
     def delta(self) -> int:
-        return self.clock.get_time() / 1000
+        return self.__dt__
 
     def get_teoric_max_fps(self) -> float:
         rawdelta = self.clock.get_rawtime()
         return (1000 / rawdelta) if rawdelta != 0 else 1
 
-    def update_screen_mode(self, vsync:None|bool=None, flags=None) -> None:
+    def update_screen_mode(self, vsync:None|bool=None, flags=None, display_index=None) -> None:
         self.__vsync__ = vsync
         self.__flags__ = flags
+        self.__display_index__ = display_index
+        self.screen = pg.display.set_mode(self.__screen_size__(), vsync=self.__vsync__, flags=self.__flags__, display=self.__display_index__)
 
     def sleep(self, seconds:int|float, precise_delay=False) -> None:
         if precise_delay:
@@ -106,7 +121,7 @@ class RootEnv:
             if util.surface == None: util.surface = self.screen
             util.rootEnv = self
             util.id = self.__new_util_id__()
-            util.render()
+            util.__render__()
             self.utils[util.id] = util
 
     def remove_utils(self, *utils:int|str|Util) -> None:
@@ -169,24 +184,32 @@ class RootEnv:
         surface.blit(text_box, pivotted_position())
 
     def __draw__(self) -> None:
-        self.clock.tick(self.target_fps)
+        self.__dt__ = self.clock.tick(self.target_fps) / 1000.0
         self.current_fps = self.clock.get_fps()
+        self.fps_label.text = str(round(self.current_fps, 2))
+
         if self.clear_screen_each_frame: self.clear()
 
         self.env.draw()
-        for util in self.utils.values(): util.draw()
+        for util in self.utils.values(): util.__draw__()
 
-        if self.show_fps: self.print(str(round(self.current_fps,2)), self.screen_size * .01, bg_color=BLACK_COLOR_PYG)
         pg.display.flip()
 
     def __update__(self) -> None:
         self.mouse.update()
         self.keyboard.update()
         self.env.update()
-        for util in self.utils.values(): util.update()
+        for util in self.utils.values(): util.__update__()
+
+        if hasattr(self, "__winrecorder__"):
+            self.__winrecorder__.update()
+            self.__winrecorder__.draw()
 
     def frame(self) -> None:
-        self.events = pg.event.get()
+        try:
+            self.events = pg.event.get()
+        except SystemError:
+            raise Warning(f"Pygame error with event drivers. Try restarting the program. If the error persists, try restarting your computer.")
         self.current_frame += 1
         self.__update__()
         self.__draw__()
@@ -194,4 +217,5 @@ class RootEnv:
         for event in self.events:
             if event.type == pg.QUIT or ((event.type == pg.KEYDOWN and event.key == self.__quit_on_key_pressed__ and self.selected_util == None) if self.__quit_on_key_pressed__ != None else False):
                 pg.quit()
+                if hasattr(self, "__winrecorder__"): self.__winrecorder__.quit()
                 self.quit = True
