@@ -413,7 +413,7 @@ class Color:
         try:
             return cls(*other.values, mode=other.mode)
         except:
-            raise TypeError(f"The value {other} of type {type(other)} is not a num type: [{"int|float"}] nor an array type: [{list|tuple}]")
+            raise TypeError(f"The value {other} of type {type(other)} is not a num type: [int|float] nor an array type: [list|tuple]")
     
     @classmethod
     def transparent(cls) -> "Color": return Color(0,0,0,0, mode=RGBA_COLOR_MODE)
