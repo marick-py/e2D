@@ -1,0 +1,31 @@
+# Include Cython source files for compilation during install
+include e2D/*.pyx
+include e2D/*.pxd
+include e2D/*.c
+
+# Include shader files
+recursive-include e2D/shaders *.glsl
+
+# Include documentation
+include README.md
+include LICENSE
+include QUICKSTART.md
+
+# Include configuration files
+include pyproject.toml
+include setup.py
+include setup.cfg
+
+# Include examples
+recursive-include examples *.py
+
+# Exclude build artifacts
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude *.so
+global-exclude *.pyd
+global-exclude .DS_Store
+
+# SECURITY: Exclude version management scripts (contain API keys)
+exclude new_version.bat
+exclude new_version.py

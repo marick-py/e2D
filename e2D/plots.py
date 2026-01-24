@@ -1,619 +1,584 @@
-from __future__ import annotations
-from .envs import *
+from typing import Optional
 import numpy as np
+import moderngl
+import struct
+from dataclasses import dataclass
+from enum import Enum
+import os
 
-__LITERAL_PIVOT_POSITIONS__ = Literal["top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"]
-__PIVOT_POSITIONS_MULTIPLIER__ = dict(zip(("top_left", "top_center", "top_right", "center_left", "center_center", "center_right", "bottom_left", "bottom_center", "bottom_right"), (Vector2D(x,y) for y in [0, .5, 1] for x in [0, .5, 1])))
-
-__LITERAL_SETTINGS_KEYS__ = Literal['distance_to_axis_for_scalar_zoom','zoom_on_center','warp_mouse','movable','zoomable','use_inter_pixel_correction','use_real_time_rendering','change_axes_colors_on_mouse_hover','mouse_hover_axes_color','show_axes','show_x_axis','show_y_axis','axes_default_color','x_axis_color','y_axis_color','axes_default_width','x_axis_width','y_axis_width','render_axes_on_top','show_grid','grid_step','grid_color','grid_width','show_pointer','pointer_radius','pointer_color','show_cursor_coords','render_bg','bg_color','draw_rect','rect_color','rect_width','show_corners_coords','show_zoom_info','top_left_info_position','info_interline_space','info_font','info_precision']
-
-class Function:
-    def __init__(self) -> None:
-        self.plot : Plot
-        self.id = int|str
-        self.__layer_surface__ :pg.Surface= None #type: ignore
+class ShaderManager:
+    """Cache and manage shader files for the plots module."""
+    _cache = {}
     
-    def __post_load_init__(self, plot:Plot) -> None:
-        self.plot = plot
-        self.__layer_surface__ = pg.Surface(self.plot.size(), pg.SRCALPHA, 32).convert_alpha()
-        self.update()
-        self.plot.functions[self.id] = self
-    
-    def update(self) -> None: pass
-    
-    def __render__(self) -> None: pass
-    
-    def draw(self) -> None:
-        self.plot.canvas.blit(self.__layer_surface__, (0,0))
-
-class Object:
-    def __init__(self) -> None:
-        self.plot : Plot
-        self.id : int|str
-        self.__layer_surface__ :pg.Surface= None #type: ignore
-        self.__controller__ = None
-    
-    def __post_load_init__(self, plot:Plot, controller:Plot|Object) -> None:
-        self.plot = plot
-        self.__layer_surface__ = pg.Surface(self.plot.size(), pg.SRCALPHA, 32).convert_alpha()
-        self.__controller__ = controller
-        self.plot.objects[self.id] = self
-        if isinstance(self, Line):
-            self.point_a.__post_load_init__(self.plot, self)
-            self.point_b.__post_load_init__(self.plot, self)
-    
-    def update(self) -> None: pass
-    
-    def __render__(self) -> None: pass
-    
-    def draw(self) -> None:
-        self.plot.canvas.blit(self.__layer_surface__, (0,0))
-
-class Line(Object):
-    def __init__(self, id:int|str, point_a:Vector2D|Point, point_b:Vector2D|Point, color:pg.Color=WHITE_COLOR_PYG, width:float=1) -> None:
-        super().__init__()
-        self.id = id
-        if isinstance(point_a, Point):
-            self.point_a = point_a
-        else:
-            self.point_a = Point(point_a)
-        if isinstance(point_b, Point):
-            self.point_b = point_b
-        else:
-            self.point_b = Point(point_b)
-        self.color = color
-        self.width = width
-    
-    def update(self) -> None:
-        self.__render__()
-
-    def __render__(self) -> None:
-        self.__layer_surface__.fill((0,0,0,0))
-        if self.point_a.__controller__ == self: self.point_a.update()
-        if self.point_b.__controller__ == self: self.point_b.update()
-        pg.draw.line(self.__layer_surface__, self.color, self.point_a.center(), self.point_b.center(), self.width)
-
-class Point(Object):
-    def __init__(self,
-                id : int|str,
-                position : Vector2D,
-                label : str = "",
-                radius : float = 1,
-                color : pg.Color = WHITE_COLOR_PYG,
-                label_color : pg.Color = WHITE_COLOR_PYG,
-                label_position_offset : Vector2D = Vector2D.zero(),
-                label_pivot_position : __LITERAL_PIVOT_POSITIONS__ = "top_left",
-                label_font : pg.font.Font = FONT_ARIAL_32,
-                label_bg_color : pg.Color|None = None,
-                label_border_color : pg.Color|None = None,
-                label_border_width : float = 0,
-                label_border_radius : int|list[int]|tuple[int,int,int,int] = -1,
-                label_margin : Vector2D = Vector2D.zero()
-                ) -> None:
-        super().__init__()
-        self.id = id
-        self.position = position
-        self.radius = radius
-        self.color = color
-        self.label = label
-        self.label_color = label_color
-        self.label_position_offset = label_position_offset
-        self.label_pivot_position = label_pivot_position
-        self.label_font = label_font
-        self.label_bg_color = label_bg_color
-        self.label_border_color = label_border_color
-        self.label_border_width = label_border_width
-        self.label_border_radius = label_border_radius
-        self.label_margin = label_margin
-
-        self.rect :list[float]= [0, 0, 0, 0]
-        self.center = Vector2D.new_zero()
-
-    def update(self) -> None:
-        radius = self.radius * self.plot.size / (self.plot.bottom_right_plot_coord - self.plot.top_left_plot_coord) * self.plot.__y_axis_multiplier__
-        self.center = self.plot.__plot2real__(self.position)
-        self.text_position = self.plot.__plot2real__(self.position + self.label_position_offset)
-        position = self.center - radius * .5
-        self.rect = position() + radius()
-        self.__render__()
-
-    def __render__(self) -> None:
-        self.__layer_surface__.fill((0,0,0,0))
-        pg.draw.ellipse(self.__layer_surface__, self.color, self.rect)
-        self.plot.rootEnv.print(self.label, self.text_position, color=self.label_color, pivot_position=self.label_pivot_position, font=self.label_font, bg_color=self.label_bg_color, border_color=self.label_border_color, border_width=self.label_border_width, border_radius=self.label_border_radius, margin=self.label_margin, personalized_surface=self.__layer_surface__)
-
-class MathFunction(Function):
-    def __init__(self,
-                 id:int|str,
-                 function:Callable[[np.ndarray, np.ndarray], np.ndarray],
-                 domain:list[float]=[-np.inf, np.inf],
-                 codomain:list[float]=[-np.inf, np.inf],
-                 color:pg.Color=WHITE_COLOR_PYG) -> None:
-        super().__init__()
-        self.id = id
-        self.color = color
-        self.function = function
-        self.domain = domain
-        self.codomain = codomain[::-1]
-
-    def get_points(self) -> list:
-        signs_self = np.sign(self.function(*self.plot.meshgrid))
-        # i create 4 different matrixes? with the signs of f(x,y) pixel, each matrix is shifted according to this list [(0,0), (-1,0), (0,-1), (-1,-1)] and i find the points where summing the matrix i obtain a float => [-4 < x < 4]
-        # credits for the plotting idea:
-        # https://www.youtube.com/watch?v=EvvWOaLgKVU
-        # mattbatwings (https://www.youtube.com/@mattbatwings)
-        domain = tuple(((domain - self.plot.top_left_plot_coord.x) * self.plot.size.x / (self.plot.bottom_right_plot_coord.x - self.plot.top_left_plot_coord.x)) for domain in self.domain)
-        codomain = tuple(((codomain - self.plot.top_left_plot_coord.y) * self.plot.size.y / (self.plot.bottom_right_plot_coord.y - self.plot.top_left_plot_coord.y)) for codomain in self.codomain)
-        
-        signs_sum = signs_self + np.roll(signs_self, axis=1, shift=1) + np.roll(signs_self, axis=0, shift=-1) + np.roll(signs_self, axis=(1,0), shift=(1,-1))
-        coords = np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
-
-        return coords[
-            np.logical_and(
-                np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
-                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))]
-
-    def update(self, new_function:None|Callable[[int|float, int|float], int|float]=None, render=True, domain:list[float]|None=None, codomain:list[float]|None=None) -> None:
-        if new_function != None:
-            self.function = new_function
-        if domain != None: self.domain = domain
-        if codomain != None: self.codomain = codomain
-        if render:
-            self.points = self.get_points()
-            self.__render__()
-    
-    def get_derivative(self, delta:float=.01, color:None|pg.Color=None) -> MathFunction:
-        return MathFunction(lambda x,y: (self.function(x + delta, y) - self.function(x,y))/delta - y, color if color != None else self.color) #type: ignore
-
-    def __render__(self) -> None:
-        self.__layer_surface__.fill((0,0,0,0))
-        offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else Vector2D.zero()
-        if any(x < 1 for x in self.plot.scale):
-            # draw rects
-            for point in self.points:
-                pg.draw.rect(self.__layer_surface__, self.color, (point.tolist() + offset)() + self.plot.pixel_size()) #type: ignore
-        else:
-            # draw points
-            for point in self.points:
-                point = point.astype(int).tolist()
-                if self.plot.dragging != None:
-                    point = round(point + offset)()
-                self.__layer_surface__.set_at(point, self.color) #type: ignore
-
-class TimeFunction(Function):
-    def __init__(self, id:int|str, function, t_range:list[float]=[0,0, 1.0], t_step:float=.01, color:pg.Color=WHITE_COLOR_PYG) -> None:
-        super().__init__()
-        self.id = id
-        self.color = color
-        self.function = function
-        self.t_range = t_range
-        self.t_step = t_step
-    def get_points(self) -> list:
-        signs_self = np.sign(self.function(*self.plot.meshgrid))
-        domain = [((domain - self.plot.top_left_plot_coord.x) * self.plot.size.x / (self.plot.bottom_right_plot_coord.x - self.plot.top_left_plot_coord.x)) for domain in self.domain]
-        codomain = [((codomain - self.plot.top_left_plot_coord.y) * self.plot.size.y / (self.plot.bottom_right_plot_coord.y - self.plot.top_left_plot_coord.y)) for codomain in self.codomain]
-        signs_sum = signs_self + np.roll(signs_self, axis=1, shift=1) + np.roll(signs_self, axis=0, shift=-1) + np.roll(signs_self, axis=(1,0), shift=(1,-1))
-        coords = np.column_stack(np.where(((-4 < signs_sum) & (signs_sum < 4))[:-1, 1:])[::-1]) / self.plot.scale()
-        return coords[
-            np.logical_and(
-                np.logical_and(coords[:, 0] >= domain[0], coords[:, 0] <= domain[1]),
-                np.logical_and(coords[:, 1] >= codomain[0], coords[:, 1] <= codomain[1]))] #type: ignore
-    def update(self, new_function=None, render=True, domain:list[float]|None=None, codomain:list[float]|None=None) -> None:
-        if new_function != None:
-            self.function = new_function
-        if domain != None: self.domain = domain
-        if codomain != None: self.codomain = codomain
-        if render:
-            self.points = self.get_points()
-            self.__render__()
-    def __render__(self) -> None:
-        self.__layer_surface__.fill((0,0,0,0))
-        offset = self.plot.dragging - self.plot.start_dragging if (self.plot.dragging != None) and (not self.plot.settings.get("use_real_time_rendering")) else Vector2D.zero()
-        if any(x < 1 for x in self.plot.scale):
-            # draw rects
-            for point in self.points:
-                pg.draw.rect(self.__layer_surface__, self.color, (point.tolist() + offset)() + self.plot.pixel_size()) #type: ignore
-        else:
-            # draw points
-            for point in self.points:
-                point = point.astype(int).tolist()
-                if self.plot.dragging != None:
-                    point = round(point + offset)()
-                self.__layer_surface__.set_at(point, self.color) #type: ignore
-
-class PointsFunction(Function):
-    def __init__(self, id:int|str, points:list[Vector2D]=[], points_color:pg.Color=RED_COLOR_PYG, color:pg.Color=WHITE_COLOR_PYG) -> None:
-        super().__init__()
-        self.id = id
-        self.color = color
-        self.points = points
-        self.points_color = points_color
-
-    def update(self, points:list[Vector2D]|None=None) -> None:
-        if points != None: self.points = points
-        self.plot_points = [self.plot.__plot2real__(point)() for point in self.points if \
-                        self.plot.top_left_x < point.x < self.plot.bottom_right_x and \
-                        self.plot.bottom_right_y < point.y < self.plot.top_left_y]
-        self.__render__()
-
-    def __render__(self) -> None:
-        self.__layer_surface__.fill((0,0,0,0))
-        if len(self.plot_points)>=2: pg.draw.lines(self.__layer_surface__, self.color, False, self.plot_points) #type: ignore
-        # for point in self.points:
-            # pg.draw.circle(self.__layer_surface__,
-            #                self.points_color,
-            #                self.plot.__plot2real__(point),
-            #                5)
-
-"""
-def no_error_complex_function(function, args) -> Vector2D:
-    res :complex= function(args)
-    return Vector2D(res.real, res.imag)
-sign = lambda value: -1 if value < 0 else (1 if value > 0 else 0)
-class ComplexFunction:
-    def __init__(self, function, plot:"Plot", starting_t:float=-10, ending_t:float=10, step=.01, color=WHITE_COLOR_PYG, auto_connect_treshold=float("inf"), points_radius=2, points_color=None) -> None:
-        self.auto_connect_treshold = auto_connect_treshold
-        self.plot = plot
-        self.starting_t = starting_t
-        self.ending_t = ending_t
-        self.color = color
-        self.step = step
-        self.points_color = points_color
-        self.points_radius = points_radius
-        self.update_function(function)
-    
-    def update_points(self) -> None:
-        self.update_function(self.function)
-    
-    def update_function(self, new_function) -> None:
-        self.function = new_function
-        self.points :list[Vector2D]= [point for t in range(int(self.starting_t / self.step), int(self.ending_t / self.step)) if (self.plot.bottom_right_y < (point:=no_error_complex_function(new_function, t * self.step)).y < self.plot.top_left_y) and (self.plot.top_left_x < point.x < self.plot.bottom_right_x)]
-        self.full_auto_connect = not any(point.distance_to(self.points[i]) > self.auto_connect_treshold for i,point in enumerate(self.points[1:]))
-
-    def draw(self) -> None:
-        if self.points_radius:
-            for point in self.points:
-                pg.draw.circle(self.plot.canvas, self.color if self.points_color == None else self.points_color, self.plot.__plot2real__(point)(), self.points_radius)
-
-        if len(self.points) < 2: return
-        if self.full_auto_connect:
-            pg.draw.lines(self.plot.canvas, self.color, False, [self.plot.__plot2real__(point)() for point in self.points])
-        else:
-            real_points = [self.plot.__plot2real__(point)() for point in self.points]
-            for i,(point, real_point) in enumerate(zip(self.points[1:], real_points[1:])):
-                if point.distance_to(self.points[i]) < self.auto_connect_treshold:
-                    pg.draw.line(self.plot.canvas, self.color, real_points[i], real_point) #type: ignore
-"""
-
-class __PlotSettings__:
-    def __init__(self, plot:Plot) -> None:
-        self.plot = plot
-        self.settings :dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|pg.Color|pg.font.Font]= {
-            # axes
-                "distance_to_axis_for_scalar_zoom" : 10,
-
-            # cursor
-                "zoom_on_center" : False,
-                "warp_mouse" : True,
-                "movable" : True,
-                "zoomable" : True,
-
-            # plot visual options
-                # plot system
-                    "use_inter_pixel_correction" : True,
-                    "use_real_time_rendering" : True,
-                
-                # axes
-                    "change_axes_colors_on_mouse_hover" : True,
-                    "mouse_hover_axes_color" : Color(200, 200, 200)(),
-                    "show_axes" : True,
-                    "show_x_axis" : True,
-                    "show_y_axis" : True,
-                    "axes_default_color" : Color(100, 100, 100)(),
-                    "x_axis_color" : None,
-                    "y_axis_color" : None,
-                    "axes_default_width" : 5,
-                    "x_axis_width" : None,
-                    "y_axis_width" : None,
-                    "render_axes_on_top" : False,
-
-                # grid
-                    "show_grid" : True,
-                    "grid_step" : Vector2D(PI, 1),
-                    "grid_color" : Color(17, 65, 68)(),
-                    "grid_width" : 1,
+    @staticmethod
+    def load_shader(path: str) -> str:
+        """Load a shader file with caching."""
+        if path not in ShaderManager._cache:
+            # Get the directory where this file is located
+            module_dir = os.path.dirname(__file__)
+            full_path = os.path.join(module_dir, path)
             
-                # pointer
-                    "show_pointer" : True,
-                    "pointer_radius" : 15,
-                    "pointer_color" : WHITE_COLOR_PYG,
+            if not os.path.exists(full_path):
+                raise FileNotFoundError(f"Shader file not found: {full_path}")
+            with open(full_path, 'r', encoding='utf-8') as f:
+                ShaderManager._cache[path] = f.read()
+        return ShaderManager._cache[path]
+    
+    @staticmethod
+    def create_program(ctx: moderngl.Context, vertex_path: str, fragment_path: str) -> moderngl.Program:
+        """Create a program from shader files."""
+        vertex_shader = ShaderManager.load_shader(vertex_path)
+        fragment_shader = ShaderManager.load_shader(fragment_path)
+        return ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
+    
+    @staticmethod
+    def create_compute(ctx: moderngl.Context, compute_path: str) -> moderngl.ComputeShader:
+        """Create a compute shader from file."""
+        compute_shader = ShaderManager.load_shader(compute_path)
+        return ctx.compute_shader(compute_shader)
+
+class View2D:
+    """
+    Manages coordinate space (World <-> Clip) via UBO.
+    Binding point: 0
+    Layout std140:
+        vec2 resolution;  // 0
+        vec2 center;      // 8
+        vec2 scale;       // 16 (zoom_x, zoom_y)
+        float aspect;     // 24
+        float _pad;       // 28
+    """
+    def __init__(self, ctx: moderngl.Context, binding: int = 0) -> None:
+        self.ctx = ctx
+        self.binding = binding
+        self.center = np.array([0.0, 0.0], dtype='f4')
+        self.zoom = 1.0
+        self.aspect = 1.0
+        self.resolution = np.array([1920.0, 1080.0], dtype='f4')
+        
+        self.buffer = self.ctx.buffer(reserve=32)
+        self.buffer.bind_to_uniform_block(self.binding)
+        self.update_buffer()
+
+    def update_win_size(self, width: int, height: int) -> None:
+        self.resolution = np.array([width, height], dtype='f4')
+        self.aspect = width / height if height > 0 else 1.0
+        self.update_buffer()
+
+    def pan(self, dx: float, dy: float) -> None:
+        world_scale = 1.0 / self.zoom
+        self.center[0] -= dx * world_scale * self.aspect
+        self.center[1] -= dy * world_scale
+        self.update_buffer()
+
+    def zoom_step(self, factor: float) -> None:
+        self.zoom *= factor
+        self.update_buffer()
+
+    def zoom_at(self, factor: float, ndc_x: float, ndc_y: float) -> None:
+        """Zooms by factor, keeping the point at (ndc_x, ndc_y) stationary."""
+        prev_zoom = self.zoom
+        self.zoom *= factor
+        
+        diff_scale = (1.0/prev_zoom - 1.0/self.zoom)
+        self.center[0] += ndc_x * self.aspect * diff_scale
+        self.center[1] += ndc_y * diff_scale
+        
+        self.update_buffer()
+
+    def update_buffer(self) -> None:
+        data = struct.pack(
+            '2f2f2f1f1f',
+            self.resolution[0], self.resolution[1],
+            self.center[0], self.center[1],
+            self.zoom, self.zoom,
+            self.aspect,
+            0.0
+        )
+        self.buffer.write(data)
+
+@dataclass
+class PlotSettings:
+    bg_color: tuple = (0.1, 0.1, 0.1, 1.0)
+    show_axis: bool = True
+    axis_color: tuple = (0.5, 0.5, 0.5, 1.0)
+    axis_width: float = 2.0
+    show_grid: bool = True
+    grid_color: tuple = (0.2, 0.2, 0.2, 1.0)
+    grid_spacing: float = 1.0
+
+@dataclass
+class CurveSettings:
+    color: tuple = (1.0, 1.0, 1.0, 1.0)
+    width: float = 2.0
+    count: int = 1024
+
+@dataclass
+class ImplicitSettings:
+    color: tuple = (0.4, 0.6, 1.0, 1.0)
+    thickness: float = 2.0
+
+class LineType(Enum):
+    NONE = 0
+    DIRECT = 1
+    BEZIER_QUADRATIC = 2 
+    BEZIER_CUBIC = 3
+    SMOOTH = 4  # Catmull-Rom
+
+@dataclass
+class StreamSettings:
+    point_color: tuple = (1.0, 0.0, 0.0, 1.0)
+    point_radius: float = 5.0
+    show_points: bool = True
+    round_points: bool = True
+    line_type: LineType = LineType.DIRECT
+    line_color: tuple = (1.0, 0.0, 0.0, 1.0)
+    line_width: float = 2.0
+    curve_segments: int = 10
+
+class Plot2D:
+    """A specific rectangular area on the screen for plotting."""
+    def __init__(self, ctx: moderngl.Context, top_left: tuple[int, int], bottom_right: tuple[int, int], settings: Optional[PlotSettings] = None) -> None:
+        self.ctx = ctx
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        self.settings = settings if settings else PlotSettings()
+        
+        self.width = bottom_right[0] - top_left[0]
+        self.height = bottom_right[1] - top_left[1]
+        
+        self.view = View2D(ctx)
+        self.view.update_win_size(self.width, self.height)
+        
+        self.viewport = (top_left[0], 1080 - bottom_right[1], self.width, self.height)
+        self._init_grid_renderer()
+        
+        self.is_dragging = False
+        self.last_mouse_pos = (0, 0)
+
+    def _init_grid_renderer(self) -> None:
+        self.grid_prog = ShaderManager.create_program(
+            self.ctx,
+            "shaders/plot_grid_vertex.glsl",
+            "shaders/plot_grid_fragment.glsl"
+        )
+        try:
+            self.grid_prog['View'].binding = 0  # type: ignore
+        except:
+            pass
+        self.grid_quad = self.ctx.buffer(np.array([-1,-1, 1,-1, -1,1, 1,1], dtype='f4'))
+        self.grid_vao = self.ctx.simple_vertex_array(self.grid_prog, self.grid_quad, "in_vert")
+
+    def set_rect(self, top_left: tuple[int, int], bottom_right: tuple[int, int]):
+        self.top_left = top_left
+        self.bottom_right = bottom_right
+        self.width = bottom_right[0] - top_left[0]
+        self.height = bottom_right[1] - top_left[1]
+        self.view.update_win_size(self.width, self.height)
+
+    def update_window_size(self, win_width: int, win_height: int):
+        x = self.top_left[0]
+        w = self.width
+        h = self.height
+        y = win_height - self.bottom_right[1] 
+        self.viewport = (x, y, w, h)
+        
+    def render(self, draw_callback):
+        self.ctx.viewport = self.viewport
+        self.ctx.scissor = self.viewport
+        self.ctx.clear(*self.settings.bg_color)
+        
+        self.view.buffer.bind_to_uniform_block(0)
+        
+        if self.settings.show_grid or self.settings.show_axis:
+            self.grid_prog['grid_color'] = self.settings.grid_color
+            self.grid_prog['axis_color'] = self.settings.axis_color
+            self.grid_prog['spacing'] = self.settings.grid_spacing
+            self.grid_prog['show_grid'] = self.settings.show_grid
+            self.grid_prog['show_axis'] = self.settings.show_axis
+            self.grid_vao.render(moderngl.TRIANGLE_STRIP)
+        
+        draw_callback()
+        self.ctx.scissor = None
+
+    def contains(self, x, y) -> bool:
+        return (self.top_left[0] <= x <= self.bottom_right[0] and 
+                self.top_left[1] <= y <= self.bottom_right[1])
+
+    def on_mouse_drag(self, dx, dy) -> None:
+        ndc_dx = (dx / self.width) * 2.0
+        ndc_dy = (dy / self.height) * 2.0
+        self.view.pan(ndc_dx, -ndc_dy)
+
+    def on_scroll(self, yoffset, mouse_x, mouse_y) -> None:
+        factor = 1.1 if yoffset > 0 else 0.9
+        rel_x = mouse_x - self.top_left[0]
+        rel_y = mouse_y - self.top_left[1]
+        ndc_x = (rel_x / self.width) * 2.0 - 1.0
+        ndc_y = 1.0 - (rel_y / self.height) * 2.0
+        self.view.zoom_at(factor, ndc_x, ndc_y)
+
+class GpuStream:
+    """Ring-buffer on GPU for high-performance point streaming."""
+    def __init__(self, ctx: moderngl.Context, capacity: int = 100000, settings: Optional[StreamSettings] = None) -> None:
+        self.ctx = ctx
+        self.capacity = capacity
+        self.settings = settings if settings else StreamSettings()
+        self.head = 0
+        self.size = 0
+        
+        # Initialize buffer with zeros to prevent garbage data
+        self.buffer = self.ctx.buffer(data=np.zeros(capacity * 2, dtype='f4').tobytes())
+        self.buffer.bind_to_storage_buffer(binding=1)
+        
+        self.prog = ShaderManager.create_program(
+            ctx,
+            "shaders/stream_vertex.glsl",
+            "shaders/stream_fragment.glsl"
+        )
+        try:
+            self.prog['View'].binding = 0  # type: ignore
+        except:
+            pass
+        self.vao = ctx.vertex_array(self.prog, [])
+
+        # Smooth line shader (Catmull-Rom)
+        self.smooth_prog = ctx.program(
+            vertex_shader="""
+            #version 430
+            layout(std140, binding=0) uniform View {
+                vec2 resolution;
+                vec2 center;
+                vec2 scale;
+                float aspect;
+            } view;
+            
+            layout(std430, binding=1) buffer PointBuffer {
+                vec2 points[];
+            };
+            
+            uniform int start_index;
+            uniform int capacity;
+            uniform int size;
+            uniform int segments;
+            uniform int type;
+            
+            vec2 get_point(int i) {
+                int idx = clamp(i, 0, size - 1);
+                int real_idx = (start_index + idx) % capacity;
+                return points[real_idx];
+            }
+            
+            void main() {
+                int segment_id = gl_VertexID / segments;
+                float t = float(gl_VertexID % segments) / float(segments);
                 
-                # cursor
-                    "show_cursor_coords" : False,
+                if (segment_id >= size - 1) {
+                    gl_Position = vec4(2.0, 2.0, 0.0, 1.0);
+                    return;
+                }
+                
+                vec2 p0 = get_point(max(segment_id - 1, 0));
+                vec2 p1 = get_point(segment_id);
+                vec2 p2 = get_point(segment_id + 1);
+                vec2 p3 = get_point(min(segment_id + 2, size - 1));
+                
+                vec2 pos;
+                if (type == 4) {
+                    float t2 = t * t;
+                    float t3 = t2 * t;
+                    pos = 0.5 * ((2.0 * p1) +
+                                 (-p0 + p2) * t +
+                                 (2.0*p0 - 5.0*p1 + 4.0*p2 - p3) * t2 +
+                                 (-p0 + 3.0*p1 - 3.0*p2 + p3) * t3);
+                } else {
+                    pos = mix(p1, p2, t);
+                }
+                
+                vec2 diff = pos - view.center;
+                vec2 norm = diff * view.scale;
+                norm.x /= view.aspect;
+                gl_Position = vec4(norm, 0.0, 1.0);
+            }
+            """,
+            fragment_shader="""
+            #version 430
+            uniform vec4 color;
+            out vec4 f_color;
+            void main() {
+                f_color = color;
+            }
+            """
+        )
+        try:
+            self.smooth_prog['View'].binding = 0  # type: ignore
+        except:
+            pass
+        self.smooth_vao = ctx.vertex_array(self.smooth_prog, [])
 
-                # rect
-                    "render_bg" : True,
-                    "bg_color" : Color(28, 29, 34)(),
-                    "draw_rect" : True,
-                    "rect_color" : WHITE_COLOR_PYG,
-                    "rect_width" : 5,
-                    "show_corners_coords" : True,
+    def push(self, points: np.ndarray) -> None:
+        if points.shape[0] == 0:
+            return
+            
+        count = points.shape[0]
+        if count > self.capacity:
+            points = points[-self.capacity:]
+            count = self.capacity
+        
+        offset = self.head * 8
+        data = points.tobytes()
+        
+        if self.head + count <= self.capacity:
+            self.buffer.write(data, offset=offset)
+        else:
+            first_part = self.capacity - self.head
+            self.buffer.write(data[:first_part*8], offset=offset)
+            self.buffer.write(data[first_part*8:], offset=0)
+        
+        self.head = (self.head + count) % self.capacity
+        self.size = min(self.size + count, self.capacity)
 
-                # info options
-                    "show_zoom_info": True,
-                    "top_left_info_position" : self.plot.position + Vector2D(15, 75),
-                    "info_interline_space" : Vector2D(0, 24),
-                    "info_font" : NEW_FONT(24),
-                    "info_precision" : 2,
+    def draw(self) -> None:
+        if self.size == 0:
+            return
+            
+        start_index = (self.head - self.size + self.capacity) % self.capacity
+        
+        # Draw lines
+        if self.settings.line_type != LineType.NONE and self.size >= 2:
+            if self.settings.line_type == LineType.SMOOTH and self.size >= 2:
+                self.smooth_prog['start_index'] = start_index
+                self.smooth_prog['capacity'] = self.capacity
+                self.smooth_prog['size'] = self.size
+                self.smooth_prog['segments'] = self.settings.curve_segments
+                self.smooth_prog['type'] = 4
+                self.smooth_prog['color'] = self.settings.line_color
+                self.ctx.line_width = self.settings.line_width
+                
+                num_vertices = (self.size - 1) * self.settings.curve_segments + 1
+                self.smooth_vao.render(moderngl.LINE_STRIP, vertices=num_vertices)
+            else:
+                self.prog['start_index'] = start_index
+                self.prog['capacity'] = self.capacity
+                self.prog['color'] = self.settings.line_color
+                self.ctx.line_width = self.settings.line_width
+                self.vao.render(moderngl.LINE_STRIP, vertices=self.size)
+            
+        # Draw points
+        if self.settings.show_points:
+            self.prog['start_index'] = start_index
+            self.prog['capacity'] = self.capacity
+            self.prog['color'] = self.settings.point_color
+            self.prog['point_size'] = self.settings.point_radius
+            if 'round_points' in self.prog:
+                self.prog['round_points'] = self.settings.round_points
+            self.vao.render(moderngl.POINTS, vertices=self.size)
+
+    def shift_points(self, offset: tuple[float, float]) -> None:
+        """Shifts all existing points by the given offset using a Compute Shader."""
+        if not hasattr(self, 'shift_prog'):
+            self.shift_prog = ShaderManager.create_compute(
+                self.ctx,
+                "shaders/stream_shift_compute.glsl"
+            )
+        
+        self.buffer.bind_to_storage_buffer(binding=1)
+        self.shift_prog['offset'] = offset
+        self.shift_prog['capacity'] = self.capacity
+        
+        group_size = 64
+        num_groups = (self.capacity + group_size - 1) // group_size
+        self.shift_prog.run(num_groups)
+
+class ComputeCurve:
+    """Parametric curve p(t) evaluated entirely on GPU."""
+    def __init__(self, ctx: moderngl.Context, func_body: str, t_range: tuple, count: int = 1024, settings: Optional[CurveSettings] = None):
+        self.ctx = ctx
+        self.count = count
+        self.t_range = t_range
+        self.settings = settings if settings else CurveSettings()
+        
+        self.vbo = self.ctx.buffer(reserve=count * 8)
+        
+        cs_src = f"""
+        #version 430
+        layout(local_size_x=64) in;
+        
+        layout(std430, binding=2) buffer Dest {{
+            vec2 vertices[];
+        }};
+        
+        uniform float t0;
+        uniform float t1;
+        uniform int count;
+        
+        void main() {{
+            uint id = gl_GlobalInvocationID.x;
+            if (id >= count) return;
+            
+            float t_norm = float(id) / float(count - 1);
+            float t = t0 + t_norm * (t1 - t0);
+            
+            float x, y;
+            {func_body}
+            vertices[id] = vec2(x, y);
+        }}
+        """
+        self.compute_prog = ctx.compute_shader(cs_src)
+        
+        self.render_prog = ShaderManager.create_program(
+            ctx,
+            "shaders/curve_vertex.glsl",
+            "shaders/curve_fragment.glsl"
+        )
+        try:
+            self.render_prog['View'].binding = 0  # type: ignore
+        except:
+            pass
+        self.vao = ctx.simple_vertex_array(self.render_prog, self.vbo, "in_pos")
+
+    def update(self):
+        self.vbo.bind_to_storage_buffer(binding=2)
+        self.compute_prog['t0'] = self.t_range[0]
+        self.compute_prog['t1'] = self.t_range[1]
+        self.compute_prog['count'] = self.count
+        
+        group_size = 64
+        num_groups = (self.count + group_size - 1) // group_size
+        self.compute_prog.run(num_groups)
+
+    def draw(self):
+        self.render_prog['color'] = self.settings.color
+        self.ctx.line_width = self.settings.width
+        self.vao.render(moderngl.LINE_STRIP)
+
+class ImplicitPlot:
+    """Rendering of f(x,y)=0 via Fragment Shader and SDF."""
+    def __init__(self, ctx: moderngl.Context, func_body: str, settings: Optional[ImplicitSettings] = None):
+        self.ctx = ctx
+        self.settings = settings if settings else ImplicitSettings()
+        
+        self.quad = self.ctx.buffer(np.array([-1,-1, 1,-1, -1,1, 1,1], dtype='f4'))
+        
+        fs_src = f"""
+        #version 430
+        layout(std140, binding=0) uniform View {{
+            vec2 resolution;
+            vec2 center;
+            vec2 scale;
+            float aspect;
+        }} view;
+        
+        uniform vec4 color;
+        uniform float thickness;
+        
+        in vec2 uv;
+        out vec4 f_color;
+        
+        void main() {{
+            vec2 ndc = uv * 2.0 - 1.0;
+            ndc.x *= view.aspect;
+            vec2 p = (ndc / view.scale) + view.center;
+            
+            float x = p.x;
+            float y = p.y;
+            float val;
+            
+            {func_body}
+            
+            float dist = abs(val) / length(vec2(dFdx(val), dFdy(val)));
+            float alpha = 1.0 - smoothstep(thickness - 1.0, thickness, dist);
+            
+            if (alpha <= 0.0) discard;
+            f_color = vec4(color.rgb, color.a * alpha);
+        }}
+        """
+        
+        vs_src = """
+        #version 430
+        in vec2 in_vert;
+        out vec2 uv;
+        void main() {
+            uv = in_vert * 0.5 + 0.5;
+            gl_Position = vec4(in_vert, 0.0, 1.0);
+        }
+        """
+        
+        self.prog = ctx.program(vertex_shader=vs_src, fragment_shader=fs_src)
+        try:
+            self.prog['View'].binding = 0  # type: ignore
+        except:
+            pass
+        self.vao = ctx.simple_vertex_array(self.prog, self.quad, "in_vert")
+
+    def draw(self):
+        self.prog['color'] = self.settings.color
+        self.prog['thickness'] = self.settings.thickness
+        self.vao.render(moderngl.TRIANGLE_STRIP)
+
+class SegmentDisplay:
+    """Simple 7-segment display renderer for numbers."""
+    def __init__(self, ctx: moderngl.Context):
+        self.ctx = ctx
+        self.prog = ShaderManager.create_program(
+            ctx,
+            "shaders/segment_vertex.glsl",
+            "shaders/segment_fragment.glsl"
+        )
+        self.vbo = ctx.buffer(reserve=4096)
+        self.vao = ctx.simple_vertex_array(self.prog, self.vbo, 'in_pos')
+        
+        # 7-segment definitions (0-9)
+        self.digits = {
+            '0': [0, 1, 2, 4, 5, 6],
+            '1': [2, 5],
+            '2': [0, 2, 3, 4, 6],
+            '3': [0, 2, 3, 5, 6],
+            '4': [1, 2, 3, 5],
+            '5': [0, 1, 3, 5, 6],
+            '6': [0, 1, 3, 4, 5, 6],
+            '7': [0, 2, 5],
+            '8': [0, 1, 2, 3, 4, 5, 6],
+            '9': [0, 1, 2, 3, 5, 6],
+            '.': [7]
         }
 
-    def print_current_settings(self) -> None:
-        longest_key = max(map(len, self.settings))
-        longest_type = max(map(lambda setting: len(str(type(setting)).split("'")[1]), self.settings.values()))
-        split_string = "'"
-        texts = [
-            f"{setting}{' '*(longest_key-len(setting))} :{str(type(self.settings[setting])).split(split_string)[1]}{' '*(longest_type-len(str(type(self.settings[setting])).split(split_string)[1]))}=\t{self.settings[setting]}"
-            for setting in self.settings
-            ]
-        longest_text = max(map(len , texts))
-        print("=" * longest_text)
-        for text in texts:
-            print(text)
-        print("=" * longest_text)
-    
-    def toggle(self, key:__LITERAL_SETTINGS_KEYS__) -> None:
-        self.set(key, not self.get(key))
-
-    def set(self, key:__LITERAL_SETTINGS_KEYS__, new_value:int|float|bool|Vector2D|pg.Color|pg.font.Font) -> None:
-        if not (key in self.settings): raise ValueError(f"The key [{key}] does not exist...")
-        self.settings[key] = new_value
-
-    def multiple_set(self, new_key_and_values_dict:dict[__LITERAL_SETTINGS_KEYS__, int|float|bool|Vector2D|pg.Color|pg.font.Font]) -> None:
-        self.settings.update(new_key_and_values_dict)
-    
-    def get(self, key:__LITERAL_SETTINGS_KEYS__) -> int|float|bool|Vector2D|pg.Color|pg.font.Font:
-        return self.settings[key]
-
-    def multiple_get(self, keys:list[__LITERAL_SETTINGS_KEYS__]) -> list[int|float|bool|Vector2D|pg.Color|pg.font.Font]:
-        return [self.get(key) for key in keys]
-
-class Plot:
-    __y_axis_multiplier__ = Vector2D(1, -1)
-    def __init__(self, rootEnv:"RootEnv", plot_position:Vector2D, plot_size:Vector2D, top_left_plot_coord:Vector2D, bottom_right_plot_coord: Vector2D, scale:Vector2D=Vector2D.one()) -> None:
-        self.rootEnv = rootEnv
-        self.top_left_plot_coord = top_left_plot_coord
-        self.bottom_right_plot_coord = bottom_right_plot_coord
-        self.position = plot_position
-        self.size = plot_size
-        self.scale = scale
-        self.settings = __PlotSettings__(self)
-        self.functions :dict[int|str, Function]= {}
-        self.objects :dict[int|str, Object]= {}
-        self.canvas = pg.Surface(self.size(), pg.SRCALPHA, 32).convert_alpha()
-        self.dragging = None
-        self.start_dragging = Vector2D.new_zero()
-        self.is_mouse_in_rect = False
-        self.mouse_scalar = Vector2D.new_one()
-        self.plot_mouse_position = Vector2D.new_zero()
-        self.focus_using_corners(top_left_plot_coord, bottom_right_plot_coord)
-
-    def set_borders_by_position_and_zoom(self) -> None:
-        self.top_left_plot_coord = self.current_offset - 2**(self.current_zoom.mult(-.1)) * self.__y_axis_multiplier__
-        self.bottom_right_plot_coord = self.current_offset + 2**(-.1*self.current_zoom) * self.__y_axis_multiplier__
-        self.top_left_x, self.top_left_y = self.top_left_plot_coord
-        self.bottom_right_x, self.bottom_right_y = self.bottom_right_plot_coord
-
-    def update_grid(self, update_step_grid:bool=False) -> None:
-        self.set_borders_by_position_and_zoom()
-        if update_step_grid:
-            self.step = (self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size / self.scale
-            X, Y = np.arange(self.top_left_plot_coord.x, self.bottom_right_plot_coord.x, self.step.x), np.arange(self.top_left_plot_coord.y, self.bottom_right_plot_coord.y, self.step.y)
-            self.meshgrid = np.meshgrid(X, Y)
-            self.pixel_size = abs(self.size / (self.bottom_right_plot_coord - self.top_left_plot_coord) * (self.step * -1))
-            if self.settings.get("use_inter_pixel_correction"): self.pixel_size.add(both=1)
-
-    def add_functions(self, *functions:Function) -> None:
-        for func in functions:
-            func.__post_load_init__(self)
-    def remove_function(self, *functions:int|str|Function) -> None:
-        for fid in functions:
-            if fid in self.functions:
-                del self.functions[fid]
-            elif isinstance(fid, Function):
-                del self.functions[fid.id]
-            else:
-                raise Exception(f"Unknown util type: {fid}")
+    def draw_number(self, text: str, x: float, y: float, size: float = 20.0, color: tuple = (1.0, 1.0, 1.0, 1.0)):
+        vertices = []
+        cursor_x = x
+        w = size * 0.5
+        h = size
+        
+        for char in str(text):
+            if char not in self.digits:
+                cursor_x += size * 0.5
+                continue
+                
+            segs = self.digits[char]
+            lines = []
+            if 0 in segs: lines.extend([(0,0), (w,0)])
+            if 1 in segs: lines.extend([(0,0), (0,h/2)])
+            if 2 in segs: lines.extend([(w,0), (w,h/2)])
+            if 3 in segs: lines.extend([(0,h/2), (w,h/2)])
+            if 4 in segs: lines.extend([(0,h/2), (0,h)])
+            if 5 in segs: lines.extend([(w,h/2), (w,h)])
+            if 6 in segs: lines.extend([(0,h), (w,h)])
+            if 7 in segs: lines.extend([(w/2, h-size*0.1), (w/2, h)])
             
-    def add_objects(self, *objects:Object) -> None:
-        for obj in objects:
-            obj.__post_load_init__(self, self)
-    def remove_function(self, *objects:int|str|Object) -> None:
-        for oid in objects:
-            if oid in self.objects:
-                del self.objects[oid]
-            elif isinstance(oid, Object):
-                del self.functions[oid.id]
-            else:
-                raise Exception(f"Unknown util type: {oid}")
-    
-    def add(self, *data:Object|Function) -> None:
-        for d in data:
-            if isinstance(d, Object):
-                self.add_objects(d)
-            elif isinstance(d, Function):
-                self.add_functions(d)
-
-    def __plot2real__(self, plot_position:Vector2D) -> Vector2D:
-        return (plot_position + self.top_left_plot_coord * -1) * self.size / (self.bottom_right_plot_coord - self.top_left_plot_coord)
-
-    def __real2plot__(self, real_position:Vector2D) -> Vector2D:
-        return (real_position - self.position) * (self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size + self.top_left_plot_coord
-
-    def render(self) -> None:
-        # fill canvas with alpha zero color
-        self.canvas.fill((0,0,0,0))
-
-        # draw grid
-        if self.settings.get("show_grid"):
-            grid_step = self.settings.get("grid_step")
-            grid_color = self.settings.get("grid_color")
-            grid_width = self.settings.get("grid_width")
-            clamped_top_left = grid_step * (self.top_left_plot_coord / grid_step).__ceil__()
-            clamped_bottom_right = grid_step * (self.bottom_right_plot_coord / grid_step).__ceil__()
-            for x_value in np.arange(clamped_top_left.x, clamped_bottom_right.x, grid_step.x): #type: ignore
-                pg.draw.line(self.canvas, grid_color, self.__plot2real__((x_value, self.top_left_y))(), self.__plot2real__((x_value, self.bottom_right_y))(), grid_width) #type: ignore
-            for y_value in np.arange(clamped_bottom_right.y, clamped_top_left.y, grid_step.y): #type: ignore
-                pg.draw.line(self.canvas, grid_color, self.__plot2real__((self.top_left_x, y_value))(), self.__plot2real__((self.bottom_right_x, y_value))(), grid_width) #type: ignore
-
-        # draw functions
-        for function in self.functions.values(): function.draw()
-        # draw objects
-        for obj in self.objects.values(): obj.draw()
-
-        # draw rect, pointer and corner coords
-        if self.settings.get("draw_rect"):
-            pg.draw.rect(self.canvas, self.settings.get("rect_color"), Vector2D.zero()() + self.size(), self.settings.get("rect_width")) #type: ignore
-
-        if self.settings.get("show_pointer"):
-            center = self.size * .5
-            aimer_radius = self.settings.get("pointer_radius")
-            pointer_color = self.settings.get("pointer_color")
-            pg.draw.line(self.canvas, pointer_color, (center + aimer_radius)(), (center - aimer_radius)(), 1) #type: ignore
-            pg.draw.line(self.canvas, pointer_color, (center + self.__y_axis_multiplier__ * aimer_radius)(), (center - self.__y_axis_multiplier__ * aimer_radius)(), 1) #type: ignore
-            pg.draw.circle(self.canvas, pointer_color, (self.size * .5)(), 15, 1) #type: ignore
-
-        if self.settings.get("show_corners_coords"):
-            self.rootEnv.print(self.top_left_plot_coord.advanced_stringify(4, True), Vector2D.zero(), bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(Vector2D(self.top_left_plot_coord.x, self.bottom_right_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(0, 1), pivot_position="bottom_left", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(self.bottom_right_plot_coord.advanced_stringify(4, True), self.size.copy, pivot_position="bottom_right", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-            self.rootEnv.print(Vector2D(self.bottom_right_plot_coord.x, self.top_left_plot_coord.y).advanced_stringify(4, True), self.size * Vector2D(1, 0), pivot_position="top_right", bg_color=BLACK_COLOR_PYG, border_color=WHITE_COLOR_PYG, border_width=2, border_radius=15, margin=Vector2D(10,10), personalized_surface=self.canvas)
-    
-    def update(self) -> None:
-        # update mouse and center positions
-        self.plot_mouse_position = self.__real2plot__(self.rootEnv.mouse.position)
-        self.plot_center_real_position = self.__plot2real__(Vector2D.zero()) + self.position
-
-        self.is_mouse_in_rect = self.position.x < self.rootEnv.mouse.position.x < self.position.x + self.size.x and \
-                                self.position.y < self.rootEnv.mouse.position.y < self.position.y + self.size.y
-
-        # render the functions when i stop dragging (when i release the left mouse key)
-        if self.rootEnv.mouse.get_key(0, "just_released") and self.dragging != None:
-            self.dragging = None
-            self.focus()
-
-        if self.is_mouse_in_rect:
-            if self.settings.get("zoomable"):
-                # mouse scalar is needed for checking if the mouse is hovering an axis, in case it is the opposite one zoom value has to be multiplied by 0 so nullifying it.
-                self.mouse_scalar = Vector2D(0 if abs(self.plot_center_real_position.x - self.rootEnv.mouse.position.x) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1, 0 if abs(self.plot_center_real_position.y - self.rootEnv.mouse.position.y) < self.settings.get("distance_to_axis_for_scalar_zoom") else 1) #type: ignore
-                if self.mouse_scalar.x == self.mouse_scalar.y == 0: self.mouse_scalar = Vector2D.one()
-                for event in self.rootEnv.events:
-                    if event.type == pg.MOUSEWHEEL:
-                        if self.settings.get("zoom_on_center"):
-                            # this will always zoom exactly in the middle of the canvas, according to the current plot offset
-                            self.current_zoom += event.y * self.mouse_scalar
-                        else:
-                            # this will get the pre plot mouse position, calculate the zoom and with the "after" mouse position calculate the offset that i will add to the current plot offset
-                            pre = self.__real2plot__(self.rootEnv.mouse.position)
-                            self.current_zoom += event.y * self.mouse_scalar
-                            # i have to update the corners of the plot here to use the real2plot function correctly (i cant use shortcuts)
-                            self.update_grid(False)
-                            self.current_offset += pre - self.__real2plot__(self.rootEnv.mouse.position)
-                        self.focus()
+            for lx, ly in lines:
+                vertices.append(cursor_x + lx)
+                vertices.append(y + ly)
             
-            if self.settings.get("movable"):
-                # start dragging whenever mouse left button is just pressed
-                if self.rootEnv.mouse.get_key(0, "just_pressed") and self.dragging == None:
-                    self.dragging = self.rootEnv.mouse.position.copy
-                    self.start_dragging = self.dragging.copy
+            cursor_x += size * 0.8
             
-        # update the canvas if im dragging
-        if self.dragging:
-            moved = False
-            if (not self.is_mouse_in_rect) and self.settings.get("warp_mouse"):
-                if self.rootEnv.mouse.position.x < self.position.x:
-                    self.rootEnv.mouse.position = Vector2D(self.position.x + self.size.x, self.rootEnv.mouse.position.y)
-                    moved = True
-                elif self.rootEnv.mouse.position.x > self.position.x + self.size.x:
-                    self.rootEnv.mouse.position = Vector2D(self.position.x, self.rootEnv.mouse.position.y)
-                    moved = True
-                if self.rootEnv.mouse.position.y < self.position.y:
-                    self.rootEnv.mouse.position = Vector2D(self.rootEnv.mouse.position.x, self.position.y + self.size.y)
-                    moved = True
-                elif self.rootEnv.mouse.position.y > self.position.y + self.size.y:
-                    self.rootEnv.mouse.position = Vector2D(self.rootEnv.mouse.position.x, self.position.y)
-                    moved = True
-            if not moved:
-                offset = (self.dragging - self.rootEnv.mouse.position)* Vector2D(1, -1) * (abs(self.bottom_right_plot_coord - self.top_left_plot_coord) / self.size)
-                self.current_offset += offset
-            self.dragging = self.rootEnv.mouse.position.copy
+        if not vertices:
+            return
 
-            # with real time rendering i update the function render each frame whnever im dragging the canvs around
-            if self.settings.get("use_real_time_rendering"):
-                self.focus()
-            else:
-                self.update_grid()
-                self.render()
+        data = np.array(vertices, dtype='f4')
+        self.vbo.write(data.tobytes())
         
-    def get_humanoid_zoom(self) -> Vector2D:
-        return 2 ** (-.1*self.current_zoom)
+        fb_size = self.ctx.viewport[2:]
+        self.prog['resolution'] = fb_size
+        self.prog['color'] = color
         
-    def focus(self, center:Vector2D|None=None, zoom:float|Vector2D|None=None) -> None:
-        if center != None: self.current_offset = center.copy
-        if zoom != None:
-            if isinstance(zoom, Vector2D):
-                self.current_zoom = Vector2D(-np.log2(zoom.x) * 10, -np.log2(zoom.y)*10)
-            else:
-                self.current_zoom = Vector2D(-10, -10) * np.log2(zoom)
-
-        self.update_grid(True)
-        for function in self.functions.values(): function.update()
-        for obj in self.objects.values(): obj.update()
-        self.render()
-    
-    def focus_using_corners(self, top_left_plot_coord:Vector2D|None=None, bottom_right_plot_coord: Vector2D|None=None) -> None:
-        self.focus(
-            (top_left_plot_coord + bottom_right_plot_coord).div(both=2),
-            (bottom_right_plot_coord - top_left_plot_coord).div(both=2) * self.__y_axis_multiplier__
-            )   
-
-    def draw(self) -> None:
-        # fill canvas with bg color
-        if self.settings.get("render_bg"):
-            self.rootEnv.screen.fill(self.settings.get("bg_color"), self.position() + self.size())
-        
-        # render functions before axes
-        if render_axes_on_top:=self.settings.get("render_axes_on_top"): self.rootEnv.screen.blit(self.canvas, self.position())
-        
-        # render axes
-        if self.top_left_x < 0 < self.bottom_right_x and (self.settings.get("show_x_axis") and self.settings.get("show_axes")):
-            pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (x_color:=self.settings.get("x_axis_color"))==None else x_color) if (self.mouse_scalar.x or not self.settings.get("change_axes_colors_on_mouse_hover")) else (self.settings.get("mouse_hover_axes_color")), #type: ignore
-                         (self.__plot2real__(Vector2D(0, self.top_left_y)) + self.position)(),
-                         (self.__plot2real__(Vector2D(0, self.bottom_right_y)) + self.position)(),
-                         self.settings.get("axes_default_width") if (x_width:=self.settings.get("x_axis_width"))==None else x_width) #type: ignore
-        if self.bottom_right_y < 0 < self.top_left_y and (self.settings.get("show_y_axis") and self.settings.get("show_axes")):
-            pg.draw.line(self.rootEnv.screen,
-                         (self.settings.get("axes_default_color") if (y_color:=self.settings.get("y_axis_color"))==None else y_color) if (self.mouse_scalar.y or not self.settings.get("change_axes_colors_on_mouse_hover")) else (self.settings.get("mouse_hover_axes_color")), #type: ignore
-                         (self.__plot2real__(Vector2D(self.top_left_x, 0)) + self.position)(),
-                         (self.__plot2real__(Vector2D(self.bottom_right_x, 0)) + self.position)(),
-                         self.settings.get("axes_default_width") if (y_width:=self.settings.get("y_axis_width"))==None else y_width) #type: ignore
-        
-        # render functions after axes
-        if not render_axes_on_top: self.rootEnv.screen.blit(self.canvas, self.position())
-
-        if self.is_mouse_in_rect and self.settings.get("show_cursor_coords"):
-            self.rootEnv.print(self.plot_mouse_position.advanced_stringify(3, True), self.rootEnv.mouse.position, pivot_position="bottom_center") #type: ignore
-
-
-        current_real_zoom = (.5**(.1*self.current_zoom))
-        str_current_real_zoom = current_real_zoom.advanced_stringify(self.settings.get('info_precision'), True, True)
-        data :list[tuple[str, __LITERAL_PIVOT_POSITIONS__, bool]]= [
-            (f"ZOOM:", "top_left", self.settings.get("show_zoom_info")),
-            (f"  x: {str_current_real_zoom[0]};", "top_left", self.settings.get("show_zoom_info")),
-            (f"  y: {str_current_real_zoom[1]};", "top_left", self.settings.get("show_zoom_info")),
-            (f"  ratio: {optimize_value_string(current_real_zoom.x / current_real_zoom.y, 4)};", "top_left", self.settings.get("show_zoom_info")),
-        ]
-
-        for i, (d, pivot_position, show) in enumerate(data):
-            if show:
-                self.rootEnv.print(d, self.settings.get("top_left_info_position") + self.settings.get("info_interline_space") * i, pivot_position=pivot_position, font=self.settings.get("info_font"))
+        self.vao.render(moderngl.LINES, vertices=len(vertices)//2)

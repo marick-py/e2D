@@ -1,625 +1,461 @@
-from __future__ import annotations
+"""
+e2D - High-Performance 2D Graphics and Math Library
+Combines ultra-optimized vector operations with moderngl rendering
 
-import math as _mt
-import random as _rnd
-from typing import Any, Generator, Literal
+Copyright (c) 2025 Riccardo Mariani
+MIT License
+"""
 
-PI = _mt.pi
-PI_HALF = PI/2
-PI_QUARTER = PI/4
-PI_DOUBLE = PI*2
+__version__ = "2.0.0"
+__author__ = "Riccardo Mariani"
+__email__ = "ricomari2006@gmail.com"
 
-sign = lambda val: -1 if val < 0 else (1 if val > 0 else 0)
-clamp = lambda x, minn, maxx: x if x > minn and x < maxx else (minn if x < minn else maxx)
+import numpy as np
+import moderngl
+import glfw
+import time
+import os
 
-class Vector2D:
-    round_values_on_print = 2
-    def __init__(self, x=.0, y=.0) -> None:
-        self.x = x
-        self.y = y
+# Import original e2D modules
+from .text_renderer import DEFAULT_TEXT_STYLE, Pivots, TextRenderer, TextLabel, TextStyle
+from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
+from .devices import Keyboard, Mouse, KeyState
+from .commons import get_pattr, get_pattr_value, set_pattr_value, get_uniform
 
-    def distance_to(self, other, rooted=True) -> int|float:
-        d = (self.x - other.x)**2 + (self.y - other.y)**2
-        return d**(1/2) if rooted else d
+from typing import Optional
 
-    def angle_to(self, other) -> int|float:
-        return _mt.atan2(other.y - self.y, other.x - self.x)
+# Import optimized Vector2D
+try:
+    from .cvectors import (
+        Vector2D,
+        batch_add_inplace,
+        batch_scale_inplace,
+        batch_normalize_inplace,
+        vectors_to_array,
+        array_to_vectors,
+    )
+    _VECTOR_COMPILED = True
+except ImportError:
+    # Fallback to pure Python implementation
+    import warnings
+    warnings.warn(
+        "Vector2D compiled extension not available. "
+        "Install Cython and rebuild for optimal performance.",
+        RuntimeWarning
+    )
+    from .vectors import (
+        Vector2D,
+        batch_add_inplace,
+        batch_scale_inplace,
+        batch_normalize_inplace,
+        vectors_to_array,
+        array_to_vectors,
+    )
+    _VECTOR_COMPILED = False
 
-    def point_from_angle_and_radius(self, rad, radius) -> "Vector2D":
-        return Vector2D(radius * _mt.cos(rad) + self.x, radius * _mt.sin(rad) + self.y)
+# Import vector utilities
+from .vectors import (
+    V2,
+    Vec2,
+    CommonVectors,
+    lerp,
+    create_grid,
+    create_circle,
+)
 
-    @property
-    def angle(self) -> int|float:
-        return _mt.atan2(self.y, self.x)
 
-    @angle.setter
-    def angle(self, new_angle) -> None:
-        self.rotate(new_angle - self.angle)
-    
-    @property
-    def aspect_x(self) -> float:
-        return self.x / self.y if self.y != 0 else 0
+class DefEnv:
+    ctx: moderngl.Context
+    def __init__(self) -> None: ...
 
-    @aspect_x.setter
-    def aspect_x(self, new_aspect) -> None:
-        self.x = self.y * new_aspect
+    def draw(self) -> None: ...
 
-    @property
-    def aspect_y(self) -> float:
-        return self.y / self.x if self.x != 0 else 0
+    def update(self) -> None: ...
 
-    @aspect_y.setter
-    def aspect_y(self, new_aspect) -> None:
-        self.y = self.x * new_aspect
+    def on_resize(self, width: int, height: int) -> None: ...
 
-    @property
-    def copy(self) -> "Vector2D":
-        return Vector2D(self.x, self.y)
+class RootEnv:
+    def __init__(
+            self,
+            window_size:tuple[int, int]=(1920, 1080),
+            target_fps:int=60,
+            vsync:bool=True,
+            version:tuple[int, int]=(4,3),
+            monitor:Optional[int]=None
+        ) -> None:
 
-    @property
-    def sign(self) -> "Vector2D":
-        return Vector2D(sign(self.x), sign(self.y))
-    
-    def clamp(self, min_val: Vector2D, max_val: Vector2D) -> "Vector2D":
-        return Vector2D(clamp(self.x, min_val.x, max_val.x), clamp(self.y, min_val.y, max_val.y))
-
-    def iclamp(self, min_val: Vector2D, max_val: Vector2D) -> None:
-        self.x = clamp(self.x, min_val.x, max_val.x)
-        self.y = clamp(self.y, min_val.y, max_val.y)
-
-    @property
-    def normalized(self) -> "Vector2D":
-        if (mag:=self.length) == 0:
-            return self.copy
-        return Vector2D(self.x / mag, self.y / mag)
-
-    @property
-    def length(self) -> float:
-        return (self.x ** 2 + self.y ** 2) ** .5
-
-    @length.setter
-    def length(self, new_length: float) -> None:
-        current_length = self.length
-        if current_length == 0:
-            self.x = new_length
-            self.y = 0
-        else:
-            self.x *= new_length / current_length
-            self.y *= new_length / current_length
-
-    @property
-    def length_sqrd(self) -> float:
-        return self.x ** 2 + self.y ** 2
-
-    @length_sqrd.setter
-    def length_sqrd(self, new_length_sqrd: float) -> None:
-        current_length = self.length
-        if current_length == 0:
-            self.x = _mt.sqrt(new_length_sqrd)
-            self.y = 0
-        else:
-            self.x *= _mt.sqrt(new_length_sqrd) / current_length
-            self.y *= _mt.sqrt(new_length_sqrd) / current_length
-
-    @property
-    def inverse(self) -> "Vector2D":
-        return self.mult(-1)
-
-    def floor(self, n=1) -> "Vector2D":
-        return self.__floor__(n)
-
-    def ceil(self, n=1) -> "Vector2D":
-        return self.__ceil__(n)
-    
-    def round(self, n=1) -> "Vector2D":
-        return self.__round__(n)
-
-    @classmethod
-    def randomize(cls, start, end, func=lambda val:val) -> "Vector2D":
-        if not isinstance(start, Vector2D):
-            if isinstance(start, (int, float)):
-                start = Vector2D(start, start)
-            else:
-                raise Exception(f"\nArg start must be in [Vector2D, int, float, tuple, list] not a [{type(start)}]\n")
-        if not isinstance(end, Vector2D):
-            if isinstance(end, (int, float)):
-                end = Vector2D(end, end)
-            else:
-                raise Exception(f"\nArg end must be in [Vector2D, int, float, tuple, list] not a [{type(end)}]\n")
-        return start + Vector2D(func(_rnd.random()), func(_rnd.random())) * (end - start)
-    
-    def dot_product(self, other) -> float:
-        return self.x * other.x + self.y * other.y
-
-    def projection(self, other) -> "Vector2D":
-        dot_product = self.dot_product(other)
-        magnitude_product = other.length ** 2
-        if magnitude_product == 0:
-            raise ValueError("Cannot calculate projection for zero vectors.")
-        return other * (dot_product / magnitude_product)
-
-    def reflection(self, normal) -> "Vector2D":
-        return self - self.projection(normal) * 2
-
-    def cartesian_to_polar(self) -> tuple[float, float]:
-        return self.length, _mt.atan2(self.y, self.x)
-
-    @classmethod
-    def polar_to_cartesian(cls, r, theta) -> "Vector2D":
-        return cls(r * _mt.cos(theta), r * _mt.sin(theta))
-
-    def cartesian_to_complex(self) -> complex:
-        return self.x + self.y * 1j
-
-    @classmethod
-    def complex_to_cartesian(cls, complex_n) -> "Vector2D":
-        return cls(complex_n.real, complex_n.imag)
-
-    def cartesian_to_linear(self, size) -> int:
-        return int(self.x + self.y * size)
-
-    @classmethod
-    def linear_to_cartesian(cls, linear, size) -> "Vector2D":
-        return cls(linear % size, linear // size)
-
-    def lerp(self, other, t=.1) -> "Vector2D":
-        return Vector2D(self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t)
-
-    def rotate(self, angle, center=None) -> None:
-        if center == None: center = Vector2D.zero()
-        translated = self - center
-        cos_angle = _mt.cos(angle)
-        sin_angle = _mt.sin(angle)
-        self.x = translated.x * cos_angle - translated.y * sin_angle + center.x
-        self.y = translated.x * sin_angle + translated.y * cos_angle + center.y
-
-    def no_zero_div_error(self, n, error_mode=Literal["zero", "null", "nan"]) -> "Vector2D":
-        if isinstance(n, (int, float)):
-            if n == 0:
-                return Vector2D(0 if error_mode ==  "zero" else (self.x if error_mode == "null" else _mt.nan), 0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan))
-            else:
-                return self / n
-        elif isinstance(n, Vector2D):
-            return Vector2D((0 if error_mode == "zero" else (self.x if error_mode == "null" else _mt.nan)) if n.x == 0 else self.x / n.x, (0 if error_mode == "zero" else (self.y if error_mode == "null" else _mt.nan)) if n.y == 0 else self.y / n.y) #type: ignore
-        else:
-            raise Exception(f"\nArg n must be in [Vector2D, int, float, tuple, list] not a [{type(n)}]\n")
-
-    def min(self, other) -> "Vector2D":
-        return Vector2D(min(self.x, other.x), min(self.y, other.y))
-    
-    def max(self, other) -> "Vector2D":
-        return Vector2D(max(self.x, other.x), max(self.y, other.y))
-
-    def advanced_stringify(self, precision=None, use_scientific_notation=False, return_as_list=False) -> str|list[str]:
-        precision = self.round_values_on_print if precision == None else precision
-        def optimize(value) -> str:
-            abs_value = abs(value)
-            if abs_value < 1/10**precision and abs_value != 0:
-                return f"{value:.{precision}e}"
-            elif abs_value < 10**precision:
-                return f"{value:.{precision}f}".rstrip('0').rstrip('.')
-            else:
-                return f"{value:.{precision}e}"
-        if return_as_list:
-            return [f"{optimize(self.x)}", f"{optimize(self.y)}"] if use_scientific_notation else [f"{self.x:.{precision}f}", f"{self.y:.{precision}f}"]
-        return f"{optimize(self.x)}, {optimize(self.y)}" if use_scientific_notation else f"{self.x:.{precision}f}, {self.y:.{precision}f}"
-
-    def __str__(self) -> str:
-        return f"{self.x:.{self.round_values_on_print}f}, {self.y:.{self.round_values_on_print}f}"
-
-    def __repr__(self) -> str:
-        return f"x:{self.x:.{self.round_values_on_print}f}\ty:{self.y:.{self.round_values_on_print}f}"
-
-    def __call__(self) -> list:
-        return [self.x, self.y]
-    
-    # fast operations     Vector2D.operation(both,x,y)
-    def add(self, both=.0, x=.0, y=.0) -> Vector2D:
-        return Vector2D(self.x + (x + both), self.y + (y + both))
-    
-    def sub(self, both=.0, x=.0, y=.0) -> Vector2D:
-        return Vector2D(self.x - (x + both), self.y - (y + both))
-    
-    def mult(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        return Vector2D(self.x * x * both, self.y * y * both)
-    
-    def pow(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        return Vector2D(self.x ** (x + both), self.y ** (y + both))
-    
-    def mod(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        return Vector2D(self.x % (x + both), self.y % (y + both))
-    
-    def div(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        return Vector2D(self.x / x / both, self.y / y / both)
-    
-    def fdiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        return Vector2D(self.x // x // both, self.y // y // both)
-
-    # fast inplace operations     Vector2D.ioperation(both,x,y)
-    def set(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x = x + both
-        self.y = y + both
-        return self
-
-    def iadd(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x += x + both
-        self.y += y + both
-        return self
-    
-    def isub(self, both=.0, x=.0, y=.0) -> Vector2D:
-        self.x -= x + both
-        self.y -= y + both
-        return self
-    
-    def imult(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        self.x *= x * both
-        self.y *= y * both
-        return self
-    
-    def ipow(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        self.x **= x + both
-        self.y **= y + both
-        return self
-    
-    def imod(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        self.x %= x + both
-        self.y %= y + both
-        return self
-    
-    def idiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        self.x /= x * both
-        self.y /= y * both
-        return self
-    
-    def ifdiv(self, both=1.0, x=1.0, y=1.0) -> Vector2D:
-        self.x //= x * both
-        self.y //= y * both
-        return self
-
-    # normal operations     Vector2D + a
-    def __add__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x + other.x, self.y + other.y)
-    
-    def __sub__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x - other.x, self.y - other.y)
-    
-    def __mul__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x * other.x, self.y * other.y)
-
-    def __mod__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x % other.x, self.y % other.y)
-    
-    def __pow__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x ** other.x, self.y ** other.y)
-
-    def __truediv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x / other.x, self.y / other.y)
-
-    def __floordiv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(self.x // other.x, self.y // other.y)
-    
-    # right operations      a + Vector2D
-    def __radd__(self, other) -> "Vector2D":
-        return self.__add__(other)
-    
-    def __rsub__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(other.x - self.x, other.y - self.y)
-    
-    def __rmul__(self, other) -> "Vector2D":
-        return self.__mul__(other)
-
-    def __rmod__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(other.x % self.x, other.y % self.y)
-    
-    def __rpow__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(other.x ** self.x, other.y ** self.y)
-
-    def __rtruediv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(other.x / self.x, other.y / self.y)
-
-    def __rfloordiv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        return Vector2D(other.x // self.x, other.y // self.y)
-    
-    # in-place operations   Vector2D += a
-    def __iadd__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x += other.x
-        self.y += other.y
-        return self
-
-    def __isub__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x -= other.x
-        self.y -= other.y
-        return self
-    
-    def __imul__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x *= other.x
-        self.y *= other.y
-        return self
-
-    def __itruediv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x /= other.x
-        self.y /= other.y
-        return self
-    
-    def __imod__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x %= other.x
-        self.y %= other.y
-        return self
-    
-    def __ipow__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x **= other.x
-        self.y **= other.y
-        return self
-
-    def __ifloordiv__(self, other) -> "Vector2D":
-        other = Vector2D.__normalize__(other)
-        self.x //= other.x
-        self.y //= other.y
-        return self
-
-    # comparasion
-    def __eq__(self, other) -> bool:
-        try: other = Vector2D.__normalize__(other)
-        except: return False
-        return self.x == other.x and self.y == other.y
-
-    def __ne__(self, other) -> bool:
-        return not self.__eq__(other)
-
-    def __abs__(self) -> "Vector2D":
-        return Vector2D(abs(self.x), abs(self.y))
-
-    def __round__(self, n=1) -> "Vector2D":
-        n = Vector2D.__normalize__(n)
-        return Vector2D(round(self.x / n.x) * n.x, round(self.y / n.y) * n.y)
-
-    def __floor__(self, n=1) -> "Vector2D":
-        n = Vector2D.__normalize__(n)
-        return Vector2D((self.x / n.x).__floor__() * n.x, (self.y / n.y).__floor__() * n.y)
-
-    def __ceil__(self, n=1) -> "Vector2D":
-        n = Vector2D.__normalize__(n)
-        return Vector2D((self.x / n.x).__ceil__() * n.x, (self.y / n.y).__ceil__() * n.y)
-    
-    def __float__(self) -> "Vector2D":
-        return Vector2D(float(self.x), float(self.y))
-
-    def __getitem__(self, n) -> int|float:
-        if n == 0 or n == "x":
-            return self.x
-        elif n == 1 or n == "y":
-            return self.y
-        else:
-            raise IndexError("V2 has only x,y...")
-    
-    def __iter__(self) -> Generator[float, Any, None]:
-        yield self.x
-        yield self.y
-    
-    @classmethod
-    def __normalize__(cls, other) -> "Vector2D":
-        if isinstance(other, Vector2D):
-            return other
-        if isinstance(other, (int, float)):
-            return cls(other, other)
-        if isinstance(other, (list, tuple)):
-            return cls(*other[:2])
-        try:
-            return cls(other.x, other.y)
-        except:
-            raise TypeError(f"The value {other} of type {type(other)} is not a num type: [{int|float}] nor an array type: [{list|tuple}]")
+        if not glfw.init():
+            raise RuntimeError("GLFW initialization failed")
             
-    @classmethod
-    def zero(cls) -> "Vector2D": return V2zero
-    @classmethod
-    def one(cls) -> "Vector2D": return V2one
-    @classmethod
-    def two(cls) -> "Vector2D": return V2two
-    @classmethod
-    def pi(cls) -> "Vector2D": return V2pi
-    @classmethod
-    def inf(cls) -> "Vector2D": return V2inf
-    @classmethod
-    def neg_one(cls) -> "Vector2D": return V2neg_one
-    @classmethod
-    def neg_two(cls) -> "Vector2D": return V2neg_two
-    @classmethod
-    def neg_pi(cls) -> "Vector2D": return V2neg_pi
-    @classmethod
-    def neg_inf(cls) -> "Vector2D": return V2neg_inf
-    @classmethod
-    def up(cls) -> "Vector2D": return V2up
-    @classmethod
-    def right(cls) -> "Vector2D": return V2right
-    @classmethod
-    def down(cls) -> "Vector2D": return V2down
-    @classmethod
-    def left(cls) -> "Vector2D": return V2left
-    @classmethod
-    def up_right(cls) -> "Vector2D": return V2up_right
-    @classmethod
-    def down_right(cls) -> "Vector2D": return V2down_right
-    @classmethod
-    def up_left(cls) -> "Vector2D": return V2up_left
-    @classmethod
-    def down_left(cls) -> "Vector2D": return V2down_left
-    @classmethod
-    def up_right_norm(cls) -> "Vector2D": return V2up_right_norm
-    @classmethod
-    def down_right_norm(cls) -> "Vector2D": return V2down_right_norm
-    @classmethod
-    def up_left_norm(cls) -> "Vector2D": return V2up_left_norm
-    @classmethod
-    def down_left_norm(cls) -> "Vector2D": return V2down_left_norm
+        glfw.window_hint(glfw.CONTEXT_VERSION_MAJOR, version[0])
+        glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, version[1])
+        glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
+        glfw.window_hint(glfw.RESIZABLE, True)
 
-    @classmethod
-    def new_zero(cls) -> "Vector2D": return V2zero.copy
-    @classmethod
-    def new_one(cls) -> "Vector2D": return V2one.copy
-    @classmethod
-    def new_two(cls) -> "Vector2D": return V2two.copy
-    @classmethod
-    def new_pi(cls) -> "Vector2D": return V2pi.copy
-    @classmethod
-    def new_inf(cls) -> "Vector2D": return V2inf.copy
-    @classmethod
-    def new_neg_one(cls) -> "Vector2D": return V2neg_one.copy
-    @classmethod
-    def new_neg_two(cls) -> "Vector2D": return V2neg_two.copy
-    @classmethod
-    def new_neg_pi(cls) -> "Vector2D": return V2neg_pi.copy
-    @classmethod
-    def new_neg_inf(cls) -> "Vector2D": return V2neg_inf.copy
-    @classmethod
-    def new_up(cls) -> "Vector2D": return V2up.copy
-    @classmethod
-    def new_right(cls) -> "Vector2D": return V2right.copy
-    @classmethod
-    def new_down(cls) -> "Vector2D": return V2down.copy
-    @classmethod
-    def new_left(cls) -> "Vector2D": return V2left.copy
-    @classmethod
-    def new_up_right(cls) -> "Vector2D": return V2up_right.copy
-    @classmethod
-    def new_down_right(cls) -> "Vector2D": return V2down_right.copy
-    @classmethod
-    def new_up_left(cls) -> "Vector2D": return V2up_left.copy
-    @classmethod
-    def new_down_left(cls) -> "Vector2D": return V2down_left.copy
-    @classmethod
-    def new_up_right_norm(cls) -> "Vector2D": return V2up_right_norm.copy
-    @classmethod
-    def new_down_right_norm(cls) -> "Vector2D": return V2down_right_norm.copy
-    @classmethod
-    def new_up_left_norm(cls) -> "Vector2D": return V2up_left_norm.copy
-    @classmethod
-    def new_down_left_norm(cls) -> "Vector2D": return V2down_left_norm.copy
+        self.window_size = window_size
+        self.target_fps = target_fps
 
+        self.window : glfw._GLFWwindow = glfw.create_window(window_size[0], window_size[1], "e2D", monitor, None)
+        if not self.window:
+            glfw.terminate()
+            raise RuntimeError("Failed to create GLFW window")
+            
+        glfw.make_context_current(self.window)
+        
+        try:
+            self.ctx = moderngl.create_context()
+        except Exception as e:
+            print(f"Error creating ModernGL context: {e}")
+            glfw.terminate()
+            raise
+        
+        # VSync control - must be set AFTER context creation
+        if vsync:
+            glfw.swap_interval(1)
+        else:
+            glfw.swap_interval(0)
 
-V2 = Vector2D
+        print(f"OpenGL Context: {self.ctx.version_code} / {self.ctx.info['GL_RENDERER']}")
+        
+        self.ctx.enable(moderngl.BLEND)
+        self.ctx.blend_func = moderngl.SRC_ALPHA, moderngl.ONE_MINUS_SRC_ALPHA
+        
+        # Set initial viewport
+        fb_size = glfw.get_framebuffer_size(self.window)
+        self.ctx.viewport = (0, 0, fb_size[0], fb_size[1])
+        
+        glfw.set_window_size_callback(self.window, self._on_resize)
 
-V2zero = Vector2D(0, 0)
-
-V2one = Vector2D(1.0, 1.0)
-V2two = Vector2D(2.0, 2.0)
-V2pi = Vector2D(PI, PI)
-V2inf = Vector2D(float("inf"), float("inf"))
-
-V2neg_one = V2one.mult(-1)
-V2neg_two = V2two.mult(-1)
-V2neg_pi = V2pi.mult(-1)
-V2neg_inf = V2inf.mult(-1)
-
-V2up = Vector2D(0, 1)
-V2right = Vector2D(1, 0)
-V2down = Vector2D(0, -1)
-V2left = Vector2D(-1, 0)
-
-V2up_right = Vector2D(1, 1)
-V2down_right = Vector2D(1, -1)
-V2up_left = Vector2D(-1, 1)
-V2down_left = Vector2D(-1, -1)
-
-V2up_right_norm = V2up_right.normalized
-V2down_right_norm = V2down_right.normalized
-V2up_left_norm = V2up_left.normalized
-V2down_left_norm = V2down_left.normalized
-
-VECTORS_4_DIRECTIONS = (V2right, V2down, V2left, V2up)
-VECTORS_4_SEMIDIRECTIONS = (V2down_right, V2down_left, V2up_left, V2up_right)
-VECTORS_4_SEMIDIRECTIONS_NORM = (V2down_right_norm, V2down_left_norm, V2up_left_norm, V2up_right_norm)
-VECTORS_8_DIRECTIONS = (V2right, V2down_right, V2down, V2down_left, V2left, V2up_left, V2up, V2up_right)
-VECTORS_8_DIRECTIONS_NORM = (V2right, V2down_right_norm, V2down, V2down_left_norm, V2left, V2up_left_norm, V2up, V2up_right_norm)
-
-def lerp(starting, ending, step=.1) -> float:
-    return starting + (ending - starting) * step
-
-def angular_interpolation(starting_angle, final_angle, step=.1) -> float:
-    # my way
-    # delta = final_angle - starting_angle
-    # return starting_angle + min((delta, delta - DOUBLE_PI, delta + DOUBLE_PI), key=abs) * step
+        self.programs :dict[str, moderngl.Program]= {}
+        self.compute_shaders :dict[str, moderngl.ComputeShader]= {}
+        self.buffers :dict[str, moderngl.Buffer]= {}
+        
+        self.keyboard = Keyboard()
+        self.mouse = Mouse()
+        self.text_renderer = TextRenderer(self.ctx)
+        self.shape_renderer = ShapeRenderer(self.ctx)
+        
+        # Delta time tracking
+        self.delta = 0.0
+        self.last_frame_time = time.time()
     
-    # math way
-    shortest_angle = ((((final_angle - starting_angle) % PI_DOUBLE) + PI_DOUBLE * 1.5) % PI_DOUBLE) - PI
-    return starting_angle + shortest_angle * step
-
-def bezier_cubic_interpolation(t, p0, p1) -> float:
-    return t*p0.y*3*(1 - t)**2 + p1.y*3*(1 - t) * t**2 + t**3
-
-def bezier_quadratic_interpolation(t, p0) -> float:
-    return 2*(1-t)*t*p0.y+t**2
-
-def avg_position(*others) -> Vector2D:
-    return sum(others) / len(others) #type: ignore
-
-def inter_points(ray, lines, return_inter_lines=False, sort=False, return_empty=False) -> list[tuple[Vector2D | None, tuple[Vector2D, Vector2D]]] | list[Vector2D | None] | list[Vector2D]:
-    def lineLineIntersect(P0, P1, Q0, Q1) -> "Vector2D | None":
-        d = (P1.x-P0.x) * (Q1.y-Q0.y) + (P1.y-P0.y) * (Q0.x-Q1.x)
-        if d == 0:
-            return None
-        t = ((Q0.x-P0.x) * (Q1.y-Q0.y) + (Q0.y-P0.y) * (Q0.x-Q1.x)) / d
-        u = ((Q0.x-P0.x) * (P1.y-P0.y) + (Q0.y-P0.y) * (P0.x-P1.x)) / d
-        if 0 <= t <= 1 and 0 <= u <= 1:
-            return Vector2D(P1.x * t + P0.x * (1-t), P1.y * t + P0.y * (1-t))
-        return None
+    @property
+    def window_size_f(self) -> tuple[float, float]:
+        """Get window size as floats for shader uniforms."""
+        return (float(self.window_size[0]), float(self.window_size[1]))
     
-    if return_inter_lines:
-        collisions = [(ip, line) for line in lines if ((ip:=lineLineIntersect(line[1], line[0], ray[1], ray[0]))!=None or return_empty)]
-        return sorted(collisions, key=lambda x: ray[0].distance_to(x[0], False) if x[0] != None else _mt.inf) if sort else collisions
-    else:
-        collisions = [ip for line in lines if ((ip:=lineLineIntersect(line[1], line[0], ray[1], ray[0]))!=None or return_empty)]
-        return sorted(collisions, key=lambda x: ray[0].distance_to(x, False) if x != None else _mt.inf) if sort else collisions
+    def _on_resize(self, window, width, height) -> None:
+        self.window_size = (width, height)
+        fb_size = glfw.get_framebuffer_size(window)
+        self.ctx.viewport = (0, 0, fb_size[0], fb_size[1])
+        if hasattr(self, 'env') and hasattr(self.env, 'on_resize'):
+            self.env.on_resize(fb_size[0], fb_size[1])
 
-def get_points(position, size, rotation=0, pos_in_middle=True, return_list=False, clockwise_return=False) -> tuple["Vector2D", "Vector2D", "Vector2D", "Vector2D"] | tuple[list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float], list[int|float]|tuple[int|float]]:
-    if pos_in_middle:
-        d,a = size.length/2, size.angle
-        d1, d2 = Vector2D.zero().point_from_angle_and_radius(rotation+a, d), Vector2D.zero().point_from_angle_and_radius(rotation-a, d)
-        A, B, C, D = position+d1, position+d2, position-d2, position-d1
-    else:
-        A, B, C, D = position.copy,\
-                     position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(Vector2D(size.x, 0)), Vector2D.zero().distance_to(Vector2D(size.x, 0))),\
-                     position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(Vector2D(0, size.y)), Vector2D.zero().distance_to(Vector2D(0, size.y))),\
-                     position.point_from_angle_and_radius(rotation + Vector2D.zero().angle_to(size),                Vector2D.zero().distance_to(size))
-    points = (A, B, C, D) if not clockwise_return else (A, B, D, C)
-    return points if not return_list else tuple(x() for x in points)
+    def init(self, env:DefEnv) -> "RootEnv":
+        self.env = env
+        return self
+    
+    def load_shader_file(self, path:str) -> str:
+        """Load shader source code from a file.
+        
+        Args:
+            path: Path to shader file (relative to working directory or absolute)
+        
+        Returns:
+            Shader source code as string
+        """
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Shader file not found: {path}")
+        
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
+    
+    def create_program(self, vertex_shader:str, fragment_shader:str, id:str) -> moderngl.Program:
+        new_program = self.ctx.program(
+            vertex_shader=vertex_shader,
+            fragment_shader=fragment_shader
+        )
+        if id in self.programs:
+            print(f"Warning: Program with id '{id}' already exists. Overwriting.")
+        self.programs[id] = new_program
+        return new_program
+    
+    def create_program_from_files(self, vertex_path:str, fragment_path:str, id:str) -> moderngl.Program:
+        """Create a shader program from shader files.
+        
+        Args:
+            vertex_path: Path to vertex shader file
+            fragment_path: Path to fragment shader file
+            id: Identifier for the program
+        
+        Returns:
+            The created program
+        """
+        vertex_shader = self.load_shader_file(vertex_path)
+        fragment_shader = self.load_shader_file(fragment_path)
+        return self.create_program(vertex_shader, fragment_shader, id)
 
-def get_lines(position, size, rotation=0, pos_in_middle=True) -> list[list]:
-    A, B, C, D = get_points(position, size, rotation, pos_in_middle)
-    return [[A, B], [A, C], [C, D], [D, B]]
+    def get_program(self, id:str) -> moderngl.Program | None:
+        return self.programs.get(id, None)
+    
+    def __draw__(self) -> None:
+        self.ctx.clear(0.0, 0.0, 0.0, 1.0)
+        self.env.draw()
+    
+    def create_compute_shader(self, compute_shader:str, id:str) -> moderngl.ComputeShader:
+        """Create and store a compute shader program."""
+        new_compute = self.ctx.compute_shader(compute_shader)
+        if id in self.compute_shaders:
+            print(f"Warning: Compute shader with id '{id}' already exists. Overwriting.")
+        self.compute_shaders[id] = new_compute
+        return new_compute
+    
+    def create_compute_shader_from_file(self, compute_path:str, id:str) -> moderngl.ComputeShader:
+        """Create a compute shader from a file.
+        
+        Args:
+            compute_path: Path to compute shader file
+            id: Identifier for the compute shader
+        
+        Returns:
+            The created compute shader
+        """
+        compute_shader = self.load_shader_file(compute_path)
+        return self.create_compute_shader(compute_shader, id)
+    
+    def get_compute_shader(self, id:str) -> moderngl.ComputeShader | None:
+        """Retrieve a compute shader by id."""
+        return self.compute_shaders.get(id, None)
+    
+    def create_buffer(self, data=None, reserve:int=0, id:Optional[str]=None, dynamic:bool=True) -> moderngl.Buffer:
+        """Create and optionally store a buffer.
+        
+        Args:
+            data: Initial data (numpy array, bytes, or None)
+            reserve: Reserve size in bytes if data is None
+            id: Optional identifier to store the buffer
+            dynamic: If True, buffer is marked for frequent updates
+        """
+        if data is not None:
+            if isinstance(data, np.ndarray):
+                buffer = self.ctx.buffer(data.tobytes(), dynamic=dynamic)
+            else:
+                buffer = self.ctx.buffer(data, dynamic=dynamic)
+        else:
+            buffer = self.ctx.buffer(reserve=reserve, dynamic=dynamic)
+        
+        if id is not None:
+            if id in self.buffers:
+                print(f"Warning: Buffer with id '{id}' already exists. Overwriting.")
+            self.buffers[id] = buffer
+        
+        return buffer
+    
+    def get_buffer(self, id:str) -> moderngl.Buffer | None:
+        """Retrieve a buffer by id."""
+        return self.buffers.get(id, None)
+    
+    def bind_buffer_to_storage(self, buffer:moderngl.Buffer|str, binding:int) -> None:
+        """Bind a buffer to a shader storage binding point.
+        
+        Args:
+            buffer: Buffer object or buffer id
+            binding: SSBO binding point (0, 1, 2, ...)
+        """
+        if isinstance(buffer, str):
+            loc_buffer = self.get_buffer(buffer)
+            if loc_buffer is None:
+                raise ValueError(f"Buffer with id '{buffer}' does not exist.")
+            buffer = loc_buffer
+        
+        buffer.bind_to_storage_buffer(binding)
+    
+    def dispatch_compute(self, 
+            compute_id:str|moderngl.ComputeShader, 
+            groups_x:int=1, groups_y:int=1, groups_z:int=1,
+            buffers:Optional[dict[int, moderngl.Buffer|str]]=None,
+            wait:bool=True
+        ) -> None:
+        """Dispatch a compute shader with automatic buffer binding.
+        
+        Args:
+            compute_id: Compute shader object or id
+            groups_x, groups_y, groups_z: Number of work groups
+            buffers: Optional dict mapping binding points to buffers {0: buffer, 1: 'buffer_id', ...}
+            wait: If True, wait for compute to complete before returning
+        """
+        if isinstance(compute_id, str):
+            compute = self.get_compute_shader(compute_id)
+            if compute is None:
+                raise ValueError(f"Compute shader with id '{compute_id}' does not exist.")
+        else:
+            compute = compute_id
+        
+        # Bind buffers if provided
+        if buffers:
+            for binding, buffer in buffers.items():
+                self.bind_buffer_to_storage(buffer, binding)
+        
+        # Run compute shader
+        compute.run(groups_x, groups_y, groups_z)
+        
+        # Memory barrier to ensure compute writes are visible
+        if wait:
+            self.ctx.memory_barrier()
+    
+    def read_buffer(self, buffer:moderngl.Buffer|str, dtype='f4') -> np.ndarray:
+        """Read data from a buffer into a numpy array.
+        
+        Args:
+            buffer: Buffer object or buffer id
+            dtype: numpy dtype for the output array
+        """
+        if isinstance(buffer, str):
+            loc_buffer = self.get_buffer(buffer)
+            if loc_buffer is None:
+                raise ValueError(f"Buffer with id '{buffer}' does not exist.")
+            buffer = loc_buffer
+        
+        data = np.frombuffer(buffer.read(), dtype=dtype)
+        return data
+    
+    def write_buffer(self, buffer:moderngl.Buffer|str, data, offset:int=0) -> None:
+        """Write data to a buffer.
+        
+        Args:
+            buffer: Buffer object or buffer id
+            data: Data to write (numpy array or bytes)
+            offset: Byte offset in the buffer
+        """
+        if isinstance(buffer, str):
+            loc_buffer = self.get_buffer(buffer)
+            if loc_buffer is None:
+                raise ValueError(f"Buffer with id '{buffer}' does not exist.")
+            buffer = loc_buffer
+        
+        if isinstance(data, np.ndarray):
+            data = data.tobytes()
+        
+        buffer.write(data, offset=offset)
+    
+    def __update__(self) -> None:
+        self.env.update()
 
-def distance_line_point(line_point_a, line_point_b, point_c)  -> float:
-    # numpy way
-    # return float(_np.linalg.norm(_np.cross((line_point_b-line_point_a)(), (line_point_a-point_c)()))/_np.linalg.norm((line_point_b-line_point_a)())) #type: ignore
+    def get_pattr(self, prog_id:str|moderngl.Program, name:str) -> moderngl.Uniform | moderngl.UniformBlock | moderngl.Attribute | moderngl.Varying:
+        return get_pattr(prog_id, name, programs=self.programs)
+    
+    def get_uniform(self, prog_id:str|moderngl.Program|moderngl.ComputeShader, name:str) -> moderngl.Uniform:
+        return get_uniform(prog_id, name, compute_shaders=self.compute_shaders, programs=self.programs)
 
-    # math way
-    return abs((line_point_b.y - line_point_a.y) * point_c.x -\
-               (line_point_b.x - line_point_a.x) * point_c.y +\
-                line_point_b.x * line_point_a.y - line_point_b.y * line_point_a.x) /\
-          ((line_point_b.y-line_point_a.y)**2 + (line_point_b.x-line_point_a.x)**2)**.5
+    def get_pattr_value(self, prog_id:str|moderngl.Program, name:str) -> int|float|tuple|list:
+        return get_pattr_value(prog_id, name, programs=self.programs)
+    
+    def set_pattr_value(self, prog_id:str|moderngl.Program, name: str, value, *, force_write: bool= False) -> None:
+        return set_pattr_value(prog_id, name, value, force_write=force_write, programs=self.programs)
 
-def optimize_value_string(value, precision) -> str:
-    abs_value = abs(value)
-    if abs_value < 1/10**precision and abs_value != 0:
-        return f"{value:.{precision}e}"
-    elif abs_value < 10**precision:
-        return f"{value:.{precision}f}".rstrip('0').rstrip('.')
-    else:
-        return f"{value:.{precision}e}"
+    def loop(self) -> None:
+        # Register callbacks
+        glfw.set_scroll_callback(self.window, self.mouse._on_scroll)
+        glfw.set_cursor_pos_callback(self.window, self.mouse._on_cursor_pos)
+        glfw.set_mouse_button_callback(self.window, self.mouse._on_mouse_button)
+        glfw.set_key_callback(self.window, self.keyboard._on_key)
+
+        target_frame_time = 1.0 / self.target_fps if (self.target_fps and self.target_fps > 0) else 0.0
+            
+        while not glfw.window_should_close(self.window):
+            start_time = time.time()
+            
+            # Calculate delta time
+            self.delta = start_time - self.last_frame_time
+            self.last_frame_time = start_time
+            
+            self.keyboard.update()
+            self.mouse.update()
+            glfw.poll_events()
+            
+            if self.keyboard.get_key(glfw.KEY_X, KeyState.JUST_PRESSED):
+                glfw.set_window_should_close(self.window, True)
+            
+            try:
+                self.__update__()
+                self.__draw__()
+                glfw.swap_buffers(self.window)
+            except Exception as e:
+                print(f"Error in loop: {e}")
+                import traceback
+                traceback.print_exc()
+                break
+            
+            # FPS Limiting
+            if target_frame_time > 0:
+                elapsed = time.time() - start_time
+                wait = target_frame_time - elapsed
+                if wait > 0:
+                    time.sleep(wait)
+        
+        glfw.terminate()
+
+    def print(
+        self,
+        text_or_label: str|TextLabel,
+        position: tuple[float, float],
+        scale: float = 1.0,
+        style: TextStyle = DEFAULT_TEXT_STYLE,
+        pivot: Pivots = Pivots.TOP_LEFT,
+        save_cache: bool = False
+    ) -> Optional[TextLabel]:
+
+        if isinstance(text_or_label, TextLabel):
+            text_or_label.draw()
+        else:
+            if save_cache:
+                return self.text_renderer.create_label(str(text_or_label), position[0], position[1], scale, style, pivot)
+            else:
+                self.text_renderer.draw_text(str(text_or_label), position, scale, style, pivot)
+    
+    # ========== Shape Drawing Methods ==========
+    
+    def draw_circle(self, center: tuple[float, float], radius: float, **kwargs) -> None:
+        """Draw a circle. See ShapeRenderer.draw_circle for parameters."""
+        self.shape_renderer.draw_circle(center, radius, **kwargs)
+    
+    def draw_rect(self, position: tuple[float, float], size: tuple[float, float], **kwargs) -> None:
+        """Draw a rectangle. See ShapeRenderer.draw_rect for parameters."""
+        self.shape_renderer.draw_rect(position, size, **kwargs)
+    
+    def draw_line(self, start: tuple[float, float], end: tuple[float, float], **kwargs) -> None:
+        """Draw a line. See ShapeRenderer.draw_line for parameters."""
+        self.shape_renderer.draw_line(start, end, **kwargs)
+    
+    def draw_lines(self, points, **kwargs) -> None:
+        """Draw a polyline. See ShapeRenderer.draw_lines for parameters."""
+        self.shape_renderer.draw_lines(points, **kwargs)
+    
+    def create_circle(self, center: tuple[float, float], radius: float, **kwargs) -> ShapeLabel:
+        """Create a cached circle. See ShapeRenderer.create_circle for parameters."""
+        return self.shape_renderer.create_circle(center, radius, **kwargs)
+    
+    def create_rect(self, position: tuple[float, float], size: tuple[float, float], **kwargs) -> ShapeLabel:
+        """Create a cached rectangle. See ShapeRenderer.create_rect for parameters."""
+        return self.shape_renderer.create_rect(position, size, **kwargs)
+    
+    def create_line(self, start: tuple[float, float], end: tuple[float, float], **kwargs) -> ShapeLabel:
+        """Create a cached line. See ShapeRenderer.create_line for parameters."""
+        return self.shape_renderer.create_line(start, end, **kwargs)
+    
+    def create_lines(self, points, **kwargs) -> ShapeLabel:
+        """Create a cached polyline. See ShapeRenderer.create_lines for parameters."""
+        return self.shape_renderer.create_lines(points, **kwargs)
+    
+    def create_circle_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
+        """Create a batch for drawing multiple circles using GPU instancing."""
+        return self.shape_renderer.create_circle_batch(max_shapes)
+    
+    def create_rect_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
+        """Create a batch for drawing multiple rectangles using GPU instancing."""
+        return self.shape_renderer.create_rect_batch(max_shapes)
+    
+    def create_line_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
+        """Create a batch for drawing multiple lines using GPU instancing."""
+        return self.shape_renderer.create_line_batch(max_shapes)
