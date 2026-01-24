@@ -206,7 +206,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📈 Version History
 
 - **2.0.0** - Added ultra-optimized Vector2D with Cython compilation
-- **1.4.22** - Previous stable release with pure Python vectors
+- **1.4.24** - Previous stable release with pure Python vectors
 
 ---
 
