@@ -12,7 +12,7 @@ permissions:
 jobs:
   build:
     name: Build distribution
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
     - uses: actions/checkout@v4
@@ -39,7 +39,9 @@ jobs:
   publish-to-pypi:
     name: Publish to PyPI
     needs: [build]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted  # Safe because release-only
+    # Extra safety: only run from main repo, not forks
+    if: github.repository == 'marick-py/e2D'
     environment:
       name: release
       url: https://pypi.org/p/e2D
