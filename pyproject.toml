@@ -15,7 +15,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
-    {name = "Riccardo Mariani", email = "ricomari2006@gmail.com"}
+    {name = "Riccardo Mariani", email = "riccardo.mariani@emptyhead.dev"}
 ]
 keywords = ["vector", "2d", "simulation", "performance", "cython", "numpy", "moderngl", "games", "graphics"]
 classifiers = [

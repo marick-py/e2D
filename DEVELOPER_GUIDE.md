@@ -304,7 +304,7 @@ Examples:
 ## 📞 Support
 
 - **Issues**: [GitHub Issues](https://github.com/marick-py/e2D/issues)
-- **Email**: ricomari2006@gmail.com
+- **Email**: riccardo.mariani@emptyhead.dev
 - **Documentation**: README.md
 
 ---

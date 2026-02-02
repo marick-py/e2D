@@ -176,19 +176,9 @@ Perfect for:
 
 ## 📚 Documentation
 
-### Getting Started
+- **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[Quick Start Guide](QUICKSTART.md)** - Get up and running in minutes
-- **[Developer Guide](DEVELOPER_GUIDE.md)** - In-depth development guide
-- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Understanding the codebase
-
-### Core Features
-- **[Engine Architecture](docs/ENGINE.md)** - RootEnv, DefEnv, main loop, input handling
-- **[Vector Mathematics](docs/VECTORS.md)** - High-performance Vector2D operations, batch processing, GPU integration
-- **[Shape Rendering](docs/SHAPES.md)** - GPU-accelerated circles, rectangles, lines with instancing
-- **[Text Rendering](docs/TEXT.md)** - Fast GPU text with caching and custom fonts
-- **[Color System](docs/COLORS.md)** - 80+ pre-defined colors, color operations, gradients
-- **[GPU Plotting](docs/PLOTS.md)** - Real-time mathematical visualization with compute shaders
-- **[Screen Recording](docs/RECORDING.md)** - Async video encoding (optional, requires opencv-python)
+- **[Developer Guide](DEVELOPER_GUIDE.md)** - Development workflow and contributing
 
 ## 🎯 Use Cases
 
@@ -263,7 +253,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👤 Author
 
 **Riccardo Mariani**
-- Email: ricomari2006@gmail.com
+- Email: riccardo.mariani@emptyhead.dev
 - GitHub: [@marick-py](https://github.com/marick-py)
 
 ## 🙏 Acknowledgments
