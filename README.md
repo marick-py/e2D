@@ -30,19 +30,51 @@
 
 ## 📦 Installation
 
+### Basic Installation
+
 ```bash
 pip install e2D
 ```
 
 The package will automatically compile the Cython extensions during installation for optimal performance (like numpy). If compilation fails, it falls back to pure Python mode.
 
+### Optional Features
+
+Install with screen recording support:
+```bash
+pip install e2D[rec]
+```
+
+Install for development (includes testing tools):
+```bash
+pip install e2D[dev]
+```
+
+Install with performance monitoring (includes Cython source):
+```bash
+pip install e2D[performance]
+```
+
+Install everything:
+```bash
+pip install e2D[all]
+```
+
+### Legacy Version (1.x with Pygame)
+
+If you need the old pygame-based version:
+```bash
+pip install "e2D<2.0"
+```
+
 ### Requirements
 - Python 3.9+
-- NumPy
-- ModernGL
-- GLFW
-- Pygame
-- OpenCV (for video recording)
+- NumPy (required)
+- ModernGL (required)
+- GLFW (required)
+- Pillow (required - for text rendering)
+- attrs (required - for data structures)
+- OpenCV-Python (optional, for recording - install with `[rec]` extra)
 
 ## 🚀 Quick Start
 
@@ -144,9 +176,19 @@ Perfect for:
 
 ## 📚 Documentation
 
+### Getting Started
 - **[Quick Start Guide](QUICKSTART.md)** - Get up and running in minutes
-- **[API Reference](https://github.com/marick-py/e2D)** - Full API documentation
-- **[Examples](examples/)** - Working code examples
+- **[Developer Guide](DEVELOPER_GUIDE.md)** - In-depth development guide
+- **[Project Structure](docs/PROJECT_STRUCTURE.md)** - Understanding the codebase
+
+### Core Features
+- **[Engine Architecture](docs/ENGINE.md)** - RootEnv, DefEnv, main loop, input handling
+- **[Vector Mathematics](docs/VECTORS.md)** - High-performance Vector2D operations, batch processing, GPU integration
+- **[Shape Rendering](docs/SHAPES.md)** - GPU-accelerated circles, rectangles, lines with instancing
+- **[Text Rendering](docs/TEXT.md)** - Fast GPU text with caching and custom fonts
+- **[Color System](docs/COLORS.md)** - 80+ pre-defined colors, color operations, gradients
+- **[GPU Plotting](docs/PLOTS.md)** - Real-time mathematical visualization with compute shaders
+- **[Screen Recording](docs/RECORDING.md)** - Async video encoding (optional, requires opencv-python)
 
 ## 🎯 Use Cases
 
@@ -232,8 +274,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📈 Version History
 
-- **2.0.0** - Added ultra-optimized Vector2D with Cython compilation
-- **1.4.24** - Previous stable release with pure Python vectors
+### Version 2.x (ModernGL-based - Current)
+- **2.0.1** (Current) - Bug fixes and documentation improvements
+- **2.0.0** - Complete rewrite with ModernGL rendering, Cython-optimized vectors, modern color system, screen recording, removed pygame dependency
+
+### Version 1.x (Pygame-based - Legacy)
+- **1.4.24** - Previous stable release with pure Python vectors and pygame
+- Legacy versions available via: `pip install "e2D<2.0"`
 
 ---
 

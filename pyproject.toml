@@ -39,10 +39,10 @@ classifiers = [
 
 dependencies = [
     "numpy>=1.19.0",
-    "pygame",
     "moderngl",
     "glfw",
-    "opencv-python",
+    "Pillow>=8.0.0",
+    "attrs",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +55,12 @@ dev = [
 ]
 performance = [
     "cython>=0.29.0",
+]
+rec = [
+    "opencv-python",
+]
+all = [
+    "opencv-python",
 ]
 
 [project.urls]

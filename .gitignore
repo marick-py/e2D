@@ -173,6 +173,6 @@ e2D/build/
 # ==============================================================================
 # SECURITY: Exclude files containing API keys and sensitive credentials
 # ==============================================================================
-# new_version.bat
-# new_version.py
 SET_TOKEN.bat
+new_version.bat
+build_dev.bat
