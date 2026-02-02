@@ -10,7 +10,13 @@ jobs:
   test:
     name: Test on Python ${{ matrix.python-version }}
     # Use GitHub-hosted for PRs from forks, self-hosted for your own pushes
-    runs-on: ${{ github.event.pull_request.head.repo.full_name == github.repository && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: self-hosted
+    
+    # Debug: Print context values
+    env:
+      DEBUG_PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      DEBUG_CURRENT_REPO: ${{ github.repository }}
+      DEBUG_EVENT_NAME: ${{ github.event_name }}
     continue-on-error: true
     strategy:
       matrix:
