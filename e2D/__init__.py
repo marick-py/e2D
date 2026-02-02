@@ -6,7 +6,7 @@ Copyright (c) 2025 Riccardo Mariani
 MIT License
 """
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 __author__ = "Riccardo Mariani"
 __email__ = "riccardo.mariani@emptyhead.dev"
 
