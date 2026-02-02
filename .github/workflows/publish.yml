@@ -8,55 +8,11 @@ on:
 permissions:
   contents: read
   id-token: write
-  attestations: write
 
 jobs:
-  build-wheels:
-    name: Build wheels on ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-13, macos-14, windows-latest]
-    
-    runs-on: ${{ matrix.os }}
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.13"
-    
-    - name: Install cibuildwheel
-      run: python -m pip install cibuildwheel
-    
-    - name: Build wheels
-      run: python -m cibuildwheel --output-dir wheelhouse
-      env:
-        # Build for Python 3.10-3.14
-        CIBW_BUILD: cp310-* cp311-* cp312-* cp313-* cp314-*
-        # Skip 32-bit builds and musllinux
-        CIBW_SKIP: "*-win32 *-manylinux_i686 *-musllinux*"
-        # macOS: build for both Intel (x86_64) and Apple Silicon (arm64)
-        CIBW_ARCHS_MACOS: x86_64 arm64
-        CIBW_ARCHS_LINUX: x86_64
-        CIBW_ARCHS_WINDOWS: AMD64
-        # Install build dependencies
-        CIBW_BEFORE_BUILD: pip install cython numpy setuptools wheel
-        # Test the wheels
-        CIBW_TEST_REQUIRES: pytest
-        CIBW_TEST_COMMAND: pytest {project}/tests -v
-    
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
-      with:
-        name: wheels-${{ matrix.os }}
-        path: ./wheelhouse/*.whl
-        retention-days: 5
-
-  build-sdist:
+  build:
     name: Build source distribution
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     
     steps:
     - uses: actions/checkout@v4
@@ -66,40 +22,35 @@ jobs:
       with:
         python-version: "3.13"
     
-    - name: Install build
-      run: python -m pip install build
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build setuptools wheel
     
-    - name: Build sdist
+    - name: Build source distribution only
       run: python -m build --sdist
     
-    - name: Upload sdist
+    - name: Store distribution packages
       uses: actions/upload-artifact@v4
       with:
-        name: sdist
+        name: python-package-distributions
         path: dist/*.tar.gz
-        retention-days: 5
 
   publish-to-pypi:
     name: Publish to PyPI
-    needs: [build-wheels, build-sdist]
-    runs-on: ubuntu-latest
+    needs: [build]
+    runs-on: self-hosted
     if: github.repository == 'marick-py/e2D'
     environment:
       name: release
       url: https://pypi.org/p/e2D
     
     steps:
-    - name: Download all artifacts
+    - name: Download distributions
       uses: actions/download-artifact@v4
       with:
-        path: artifacts/
-    
-    - name: Prepare distribution directory
-      run: |
-        mkdir -p dist/
-        mv artifacts/wheels-*/*.whl dist/ 2>/dev/null || true
-        mv artifacts/sdist/*.tar.gz dist/ 2>/dev/null || true
-        ls -lh dist/
+        name: python-package-distributions
+        path: dist/
     
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
