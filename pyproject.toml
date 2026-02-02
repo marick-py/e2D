@@ -42,6 +42,7 @@ dependencies = [
     "pygame",
     "moderngl",
     "glfw",
+    "opencv-python",
 ]
 
 [project.optional-dependencies]

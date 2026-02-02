@@ -17,7 +17,9 @@
 ### 🎮 Modern Graphics
 - **ModernGL** rendering pipeline
 - **Shape rendering** with instancing support
-- **Text rendering** with custom styles
+- **Text rendering** with custom styles and TTF fonts
+- **Screen recording** with async video encoding
+- **Color system** with 80+ pre-defined colors
 - **GLFW window management**
 
 ### 🎯 Game Development Tools
@@ -40,6 +42,7 @@ The package will automatically compile the Cython extensions during installation
 - ModernGL
 - GLFW
 - Pygame
+- OpenCV (for video recording)
 
 ## 🚀 Quick Start
 
@@ -74,26 +77,50 @@ pos_array = vectors_to_array(positions)
 ### Graphics Rendering
 
 ```python
-from e2D import RootEnv
+from e2D import RootEnv, DefEnv
 
-class MyApp(RootEnv):
-    def __init__(self):
-        super().__init__(
-            window_size=(1920, 1080),
-            target_fps=60,
-            vsync=True
-        )
+class MyApp(DefEnv):
+    def __init__(self) -> None:
+        pass
     
-    def update(self):
+    def update(self) -> None:
         # Your game logic here
         pass
     
-    def draw(self):
+    def draw(self) -> None:
         # Your rendering code here
         pass
 
-app = MyApp()
-app.run()
+# Initialize and run
+rootEnv = RootEnv(window_size=(1920, 1080), target_fps=60)
+rootEnv.init(MyApp())
+
+# Optional: Enable screen recording
+rootEnv.init_rec(fps=30, draw_on_screen=True, path='output.mp4')
+
+rootEnv.loop()
+```
+
+### Color System
+
+```python
+from e2D import Color, WHITE, RED, CYAN, normalize_color
+from e2D.color_defs import MD_BLUE, PASTEL_PINK, NEON_GREEN
+
+# Create colors
+color1 = Color.from_hex("#FF5733")
+color2 = Color.from_rgb255(100, 150, 200)
+color3 = Color.from_hsv(0.5, 0.8, 1.0)
+
+# Color operations
+lighter = color1.lighten(0.2)
+darker = color1.darken(0.2)
+inverted = color1.invert()
+rotated = color1.rotate_hue(120)
+
+# Use pre-defined colors
+from e2D import draw_circle
+draw_circle((100, 100), 50, color=RED, fill_mode='fill')
 ```
 
 ## 📊 Performance

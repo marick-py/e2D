@@ -1,5 +1,6 @@
 from enum import Enum
 import glfw
+from .types import VectorType, WindowType
 
 class KeyState(Enum):
     PRESSED = 1
@@ -7,12 +8,16 @@ class KeyState(Enum):
     JUST_RELEASED = 3
 
 class Keyboard:
+    pressed: set[int]
+    just_pressed: set[int]
+    just_released: set[int]
+    
     def __init__(self) -> None:
         self.pressed = set()
         self.just_pressed = set()
         self.just_released = set()
 
-    def _on_key(self, window, key, scancode, action, mods) -> None:
+    def _on_key(self, window: WindowType, key: int, scancode: int, action: int, mods: int) -> None:
         if action == glfw.PRESS:
             self.pressed.add(key)
             self.just_pressed.add(key)
@@ -24,7 +29,7 @@ class Keyboard:
         self.just_pressed.clear()
         self.just_released.clear()
 
-    def get_key(self, key, state: KeyState) -> bool:
+    def get_key(self, key: int, state: KeyState|int = KeyState.PRESSED) -> bool:
         if state == KeyState.PRESSED:
             return key in self.pressed
         elif state == KeyState.JUST_PRESSED:
@@ -34,6 +39,14 @@ class Keyboard:
         return False
 
 class Mouse:
+    position: VectorType
+    last_position: VectorType
+    delta: VectorType
+    scroll: VectorType
+    pressed: set[int]
+    just_pressed: set[int]
+    just_released: set[int]
+    
     def __init__(self) -> None:
         self.position = (0, 0)
         self.last_position = (0, 0)
@@ -43,10 +56,10 @@ class Mouse:
         self.just_pressed = set()
         self.just_released = set()
 
-    def _on_cursor_pos(self, window, x, y) -> None:
+    def _on_cursor_pos(self, window: WindowType, x: float, y: float) -> None:
         self.position = (x, y)
 
-    def _on_mouse_button(self, window, button, action, mods) -> None:
+    def _on_mouse_button(self, window: WindowType, button: int, action: int, mods: int) -> None:
         if action == glfw.PRESS:
             self.pressed.add(button)
             self.just_pressed.add(button)
@@ -54,7 +67,7 @@ class Mouse:
             self.pressed.discard(button)
             self.just_released.add(button)
 
-    def _on_scroll(self, window, xoffset, yoffset) -> None:
+    def _on_scroll(self, window: WindowType, xoffset: float, yoffset: float) -> None:
         self.scroll = (xoffset, yoffset)
 
     def update(self) -> None:
@@ -64,7 +77,7 @@ class Mouse:
         self.just_released.clear()
         self.scroll = (0, 0)
 
-    def get_button(self, button, state: KeyState) -> bool:
+    def get_button(self, button: int, state: KeyState) -> bool:
         if state == KeyState.PRESSED:
             return button in self.pressed
         elif state == KeyState.JUST_PRESSED:

@@ -4,15 +4,18 @@ from PIL import Image, ImageFont
 from attr import dataclass
 import numpy as np
 import moderngl
+from .types import ColorType, VAOType, VectorType, ContextType, ProgramType, BufferType, TextureType
+from .colors import normalize_color
+from .color_defs import WHITE, BLACK
 
 @dataclass
 class TextStyle:
     font: str = "arial.ttf"
     font_size: int = 32
-    color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)
-    bg_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.9)
-    bg_margin: float | tuple[float, float, float, float] = 15.0
-    bg_border_radius: float | tuple[float, float, float, float] = 15.0
+    color: ColorType = (1.0, 1.0, 1.0, 1.0)
+    bg_color: ColorType = (0.0, 0.0, 0.0, 0.9)
+    bg_margin: float | tuple[float, float, float, float] | tuple[float, float] | list[float] = 15.0
+    bg_border_radius: float | tuple[float, float, float, float] | tuple[float, float] | list[float] = 15.0
 
 class Pivots(Enum):
     TOP_LEFT = 0
@@ -28,8 +31,19 @@ class Pivots(Enum):
 DEFAULT_TEXT_STYLE = TextStyle()
 
 class TextLabel:
-    def __init__(self, ctx: moderngl.Context, prog: moderngl.Program, texture: moderngl.Texture, vertices: list,
-                 bg_prog: Optional[moderngl.Program] = None, bg_vertices: Optional[list] = None) -> None:
+    ctx: ContextType
+    prog: ProgramType
+    texture: TextureType
+    vertices: list[float]
+    vbo: BufferType
+    vao: VAOType
+    bg_prog: Optional[ProgramType]
+    bg_vertices: Optional[list[float]]
+    bg_vbo: Optional[BufferType]
+    bg_vao: Optional[VAOType]
+    
+    def __init__(self, ctx: ContextType, prog: ProgramType, texture: TextureType, vertices: list[float],
+                 bg_prog: Optional[ProgramType] = None, bg_vertices: Optional[list[float]] = None) -> None:
         """
         A pre-rendered text label for efficient drawing.
         To generate select a option below:
@@ -75,7 +89,13 @@ class TextRenderer:
     Renders text using a texture atlas generated from a TTF font via Pillow.
     Supports multiple fonts and sizes with caching for optimization.
     """
-    def __init__(self, ctx: moderngl.Context) -> None:
+    ctx: ContextType
+    font_cache: dict[tuple[str, int], dict]
+    chars: str
+    bg_prog: ProgramType
+    prog: ProgramType
+    
+    def __init__(self, ctx: ContextType) -> None:
         self.ctx = ctx
         
         # Cache for font atlases: (font_path, font_size) -> {font, char_data, texture}
@@ -281,20 +301,30 @@ class TextRenderer:
         
         return total_w, line_height
     
-    def _normalize_margin(self, margin: float | tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    def _normalize_margin(self, margin: float | tuple[float, float, float, float] | tuple[float, float] | list[float]) -> tuple[float, float, float, float]:
         """Normalize margin to (top, right, bottom, left)."""
         if isinstance(margin, (int, float)):
             return (margin, margin, margin, margin)
-        return margin
+        elif isinstance(margin, (list, tuple)):
+            if len(margin) == 2:
+                return (margin[0], margin[1], margin[0], margin[1])
+            elif len(margin) == 4:
+                return (margin[0], margin[1], margin[2], margin[3])
+        return margin[0], margin[1], margin[2], margin[3]
     
-    def _normalize_radius(self, radius: float | tuple[float, float, float, float]) -> tuple[float, float, float, float]:
+    def _normalize_radius(self, radius: float | tuple[float, float, float, float] | tuple[float, float] | list[float]) -> tuple[float, float, float, float]:
         """Normalize border radius to (top-left, top-right, bottom-right, bottom-left)."""
         if isinstance(radius, (int, float)):
             return (radius, radius, radius, radius)
-        return radius
+        elif isinstance(radius, (list, tuple)):
+            if len(radius) == 2:
+                return (radius[0], radius[1], radius[0], radius[1])
+            elif len(radius) == 4:
+                return (radius[0], radius[1], radius[2], radius[3])
+        return radius[0], radius[1], radius[2], radius[3]
     
     def _generate_background_vertices(self, x: float, y: float, width: float, height: float, 
-                                     bg_color: tuple, margin: tuple[float, float, float, float],
+                                     bg_color: ColorType, margin: tuple[float, float, float, float],
                                      radius: tuple[float, float, float, float]) -> list[float]:
         """Generate vertices for a rounded rectangle background."""
         # Apply margin
@@ -321,8 +351,8 @@ class TextRenderer:
         
         return vertices
 
-    def _generate_vertices(self, text: str, pos: tuple[float, float], scale: float = 1.0, 
-            color: tuple = (1.0, 1.0, 1.0, 1.0), pivot: Pivots = Pivots.TOP_LEFT, char_data: dict = {} ) -> list[float]:
+    def _generate_vertices(self, text: str, pos: VectorType, scale: float = 1.0, 
+            color: ColorType = WHITE, pivot: Pivots | int = Pivots.TOP_LEFT, char_data: dict = {} ) -> list[float]:
 
         if not char_data:
             raise ValueError("char_data is required for _generate_vertices")
@@ -396,7 +426,7 @@ class TextRenderer:
             
         return vertices
 
-    def draw_text(self, text: str, pos: tuple[float, float], scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots = Pivots.TOP_LEFT) -> None:
+    def draw_text(self, text: str, pos: VectorType, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> None:
         if not text:
             return
         
@@ -451,7 +481,7 @@ class TextRenderer:
         self.ctx.enable(moderngl.BLEND)
         self.vao.render(moderngl.TRIANGLES, vertices=len(vertices)//8)
 
-    def create_label(self, text: str, x: float, y: float, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots = Pivots.TOP_LEFT) -> TextLabel:
+    def create_label(self, text: str, x: float, y: float, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> TextLabel:
         if not text:
             # Return empty label with default texture
             font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)

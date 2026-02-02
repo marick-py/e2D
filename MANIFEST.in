@@ -1,7 +1,7 @@
 # Include Cython source files for compilation during install
 include e2D/*.pyx
 include e2D/*.pxd
-include e2D/*.c
+include e2D/*.pyi
 
 # Include shader files
 recursive-include e2D/shaders *.glsl

@@ -1,6 +1,9 @@
 import moderngl
 import numpy as np
 from .commons import get_pattr, get_pattr_value, set_pattr_value
+from .types import VAOType, VectorType, ColorType, ContextType, ProgramType, BufferType
+from .colors import normalize_color
+from .color_defs import WHITE, BLACK, TRANSPARENT
 from typing import Optional, Sequence
 from enum import Enum
 
@@ -12,8 +15,15 @@ class FillMode(Enum):
 
 class ShapeLabel:
     """A pre-rendered shape for efficient repeated drawing."""
-    def __init__(self, ctx: moderngl.Context, prog: moderngl.Program, 
-                 vbo: moderngl.Buffer, vertex_count: int, shape_type: str = 'line') -> None:
+    ctx: ContextType
+    prog: ProgramType
+    vbo: BufferType
+    vao: VAOType
+    vertex_count: int
+    shape_type: str
+    
+    def __init__(self, ctx: ContextType, prog: ProgramType, 
+                 vbo: BufferType, vertex_count: int, shape_type: str = 'line') -> None:
         self.ctx = ctx
         self.prog = prog
         self.vbo = vbo
@@ -45,7 +55,18 @@ class ShapeLabel:
 
 class InstancedShapeBatch:
     """High-performance instanced batch for drawing thousands of shapes with minimal CPU overhead."""
-    def __init__(self, ctx: moderngl.Context, prog: moderngl.Program, shape_type: str = 'circle', max_instances: int = 100000) -> None:
+    ctx: ContextType
+    prog: ProgramType
+    shape_type: str
+    max_instances: int
+    instance_count: int
+    floats_per_instance: int
+    instance_buffer: BufferType
+    quad_vbo: BufferType
+    vao: VAOType
+    instance_data: list[float]
+    
+    def __init__(self, ctx: ContextType, prog: ProgramType, shape_type: str = 'circle', max_instances: int = 100000) -> None:
         self.ctx = ctx
         self.prog = prog
         self.shape_type = shape_type
@@ -128,9 +149,9 @@ class InstancedShapeBatch:
         
         self.instance_data = []
     
-    def add_circle(self, center: tuple[float, float], radius: float,
-                   color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
-                   border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+    def add_circle(self, center: VectorType, radius: float,
+                   color: ColorType = WHITE,
+                   border_color: ColorType = TRANSPARENT,
                    border_width: float = 0.0,
                    antialiasing: float = 1.0) -> None:
         """Add a circle instance to the batch."""
@@ -171,10 +192,10 @@ class InstancedShapeBatch:
         self.instance_data.extend(data.ravel())
         self.instance_count += n
     
-    def add_rect(self, center: tuple[float, float], size: tuple[float, float],
-                color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def add_rect(self, center: VectorType, size: VectorType,
+                color: ColorType = WHITE,
                 corner_radius: float = 0.0,
-                border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                border_color: ColorType = TRANSPARENT,
                 border_width: float = 0.0,
                 antialiasing: float = 1.0,
                 rotation: float = 0.0) -> None:
@@ -225,9 +246,9 @@ class InstancedShapeBatch:
         self.instance_data.extend(data.ravel())
         self.instance_count += n
     
-    def add_line(self, start: tuple[float, float], end: tuple[float, float],
+    def add_line(self, start: VectorType, end: VectorType,
                 width: float = 1.0,
-                color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0)) -> None:
+                color: ColorType = WHITE) -> None:
         """Add a line instance to the batch."""
         self.instance_data.extend([*start, *end, width, *color])
         self.instance_count += 1
@@ -282,8 +303,21 @@ class ShapeRenderer:
     High-performance 2D shape renderer using SDF (Signed Distance Functions) and GPU shaders.
     Supports immediate mode, cached drawing, and batched rendering.
     """
+    ctx: ContextType
+    circle_instanced_prog: ProgramType
+    rect_instanced_prog: ProgramType
+    line_instanced_prog: ProgramType
+    circle_prog: ProgramType
+    rect_prog: ProgramType
+    line_prog: ProgramType
+    circle_vbo: BufferType
+    rect_vbo: BufferType
+    line_vbo: BufferType
+    circle_vao: VAOType
+    rect_vao: VAOType
+    line_vao: VAOType
     
-    def __init__(self, ctx: moderngl.Context) -> None:
+    def __init__(self, ctx: ContextType) -> None:
         self.ctx = ctx
         
         # ===== INSTANCED Circle Shader (for high-performance batching) =====
@@ -697,16 +731,17 @@ class ShapeRenderer:
     
     # ========== CIRCLE ==========
     
-    def _generate_circle_vertices(self, center: tuple[float, float], radius: float, 
-                                  color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def _generate_circle_vertices(self, center: VectorType, radius: float, 
+                                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
                                   rotation: float = 0.0,
-                                  border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                                  border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                                   border_width: float = 0.0,
                                   antialiasing: float = 1.0) -> list[float]:
         """Generate vertices for a circle (as a quad).
         Format: pos(2f), color(4f), radius(1f), border_color(4f), border_width(1f), aa(1f), center(2f)
         """
-        cx, cy = center
+        # Handle VectorType input - convert to tuple if needed
+        cx, cy = center[0], center[1]
         
         # Expand for border and antialiasing
         expand = radius + border_width + antialiasing * 2
@@ -735,10 +770,10 @@ class ShapeRenderer:
         
         return vertices
     
-    def draw_circle(self, center: tuple[float, float], radius: float,
-                   color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def draw_circle(self, center: VectorType, radius: float,
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
                    rotation: float = 0.0,
-                   border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                   border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                    border_width: float = 0.0,
                    antialiasing: float = 1.0) -> None:
         """
@@ -763,10 +798,10 @@ class ShapeRenderer:
         set_pattr_value(self.circle_prog, 'resolution', self.ctx.viewport[2:])
         self.circle_vao.render(moderngl.TRIANGLES, vertices=6)
     
-    def create_circle(self, center: tuple[float, float], radius: float,
-                     color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def create_circle(self, center: VectorType, radius: float,
+                     color: ColorType = (1.0, 1.0, 1.0, 1.0),
                      rotation: float = 0.0,
-                     border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                     border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                      border_width: float = 0.0,
                      antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached circle for repeated drawing."""
@@ -780,17 +815,18 @@ class ShapeRenderer:
     
     # ========== RECTANGLE ==========
     
-    def _generate_rect_vertices(self, position: tuple[float, float], size: tuple[float, float],
-                                color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def _generate_rect_vertices(self, position: VectorType, size: VectorType,
+                                color: ColorType = (1.0, 1.0, 1.0, 1.0),
                                 rotation: float = 0.0,
                                 corner_radius: float = 0.0,
-                                border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                                border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                                 border_width: float = 0.0,
                                 antialiasing: float = 1.0) -> list[float]:
         """Generate vertices for a rectangle.
         Format: pos(2f), color(4f), radius(1f), border_color(4f), border_width(1f), aa(1f), size(2f), local_pos(2f)
         """
-        x, y = position
+        # Handle VectorType input - convert to tuple if needed
+        x, y = position[0], position[1]
         w, h = size
         
         # Center of rectangle
@@ -832,11 +868,11 @@ class ShapeRenderer:
         
         return vertices
     
-    def draw_rect(self, position: tuple[float, float], size: tuple[float, float],
-                 color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def draw_rect(self, position: VectorType, size: VectorType,
+                 color: ColorType = (1.0, 1.0, 1.0, 1.0),
                  rotation: float = 0.0,
                  corner_radius: float = 0.0,
-                 border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                 border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                  border_width: float = 0.0,
                  antialiasing: float = 1.0) -> None:
         """
@@ -862,11 +898,11 @@ class ShapeRenderer:
         set_pattr_value(self.rect_prog, 'resolution', self.ctx.viewport[2:])
         self.rect_vao.render(moderngl.TRIANGLES, vertices=6)
     
-    def create_rect(self, position: tuple[float, float], size: tuple[float, float],
-                   color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+    def create_rect(self, position: VectorType, size: VectorType,
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
                    rotation: float = 0.0,
                    corner_radius: float = 0.0,
-                   border_color: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0),
+                   border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                    border_width: float = 0.0,
                    antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached rectangle for repeated drawing."""
@@ -880,12 +916,13 @@ class ShapeRenderer:
     
     # ========== LINES ==========
     
-    def _generate_line_segment_vertices(self, start: tuple[float, float], end: tuple[float, float],
-                                        width: float, color: tuple[float, float, float, float],
+    def _generate_line_segment_vertices(self, start: VectorType, end: VectorType,
+                                        width: float, color: ColorType,
                                         antialias: float = 1.0) -> list[float]:
         """Generate vertices for a line segment as a quad."""
-        x1, y1 = start
-        x2, y2 = end
+        # Handle VectorType input - convert to tuple if needed
+        x1, y1 = start[0], start[1]
+        x2, y2 = end[0], end[1]
         
         # Calculate perpendicular direction
         dx = x2 - x1
@@ -918,9 +955,9 @@ class ShapeRenderer:
         
         return vertices
     
-    def draw_line(self, start: tuple[float, float], end: tuple[float, float],
+    def draw_line(self, start: VectorType, end: VectorType,
                  width: float = 1.0,
-                 color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+                 color: ColorType = (1.0, 1.0, 1.0, 1.0),
                  antialiasing: float = 1.0) -> None:
         """
         Draw a single line segment.
@@ -944,9 +981,9 @@ class ShapeRenderer:
         set_pattr_value(self.line_prog, 'resolution', self.ctx.viewport[2:])
         self.line_vao.render(moderngl.TRIANGLES, vertices=6)
     
-    def draw_lines(self, points: np.ndarray | Sequence[tuple[float, float]],
+    def draw_lines(self, points: np.ndarray | Sequence[VectorType],
                   width: float = 1.0,
-                  color: tuple[float, float, float, float] | np.ndarray = (1.0, 1.0, 1.0, 1.0),
+                  color: ColorType | np.ndarray = (1.0, 1.0, 1.0, 1.0),
                   antialiasing: float = 1.0,
                   closed: bool = False) -> None:
         """
@@ -1003,9 +1040,9 @@ class ShapeRenderer:
         num_segments = (len(points_array) - 1) + (1 if closed else 0)
         self.line_vao.render(moderngl.TRIANGLES, vertices=num_segments * 6)
     
-    def create_line(self, start: tuple[float, float], end: tuple[float, float],
+    def create_line(self, start: VectorType, end: VectorType,
                    width: float = 1.0,
-                   color: tuple[float, float, float, float] = (1.0, 1.0, 1.0, 1.0),
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
                    antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached line for repeated drawing."""
         vertices = self._generate_line_segment_vertices(start, end, width, color, antialiasing)
@@ -1015,9 +1052,9 @@ class ShapeRenderer:
         
         return ShapeLabel(self.ctx, self.line_prog, vbo, 6, 'line')
     
-    def create_lines(self, points: np.ndarray | Sequence[tuple[float, float]],
+    def create_lines(self, points: np.ndarray | Sequence[VectorType],
                     width: float = 1.0,
-                    color: tuple[float, float, float, float] | np.ndarray = (1.0, 1.0, 1.0, 1.0),
+                    color: ColorType | np.ndarray = (1.0, 1.0, 1.0, 1.0),
                     antialiasing: float = 1.0,
                     closed: bool = False) -> ShapeLabel:
         """Create a cached polyline for repeated drawing."""

@@ -5,6 +5,10 @@ import struct
 from dataclasses import dataclass
 from enum import Enum
 import os
+from .commons import set_uniform_block_binding
+from .types import ColorType, ComputeShaderType, ComputeShaderType, Number, VAOType, VectorType, ContextType, ProgramType, BufferType, ArrayLike
+from .colors import normalize_color
+from .color_defs import GRAY10, GRAY50, WHITE, RED, CYAN
 
 class ShaderManager:
     """Cache and manage shader files for the plots module."""
@@ -25,14 +29,14 @@ class ShaderManager:
         return ShaderManager._cache[path]
     
     @staticmethod
-    def create_program(ctx: moderngl.Context, vertex_path: str, fragment_path: str) -> moderngl.Program:
+    def create_program(ctx: ContextType, vertex_path: str, fragment_path: str) -> ProgramType:
         """Create a program from shader files."""
         vertex_shader = ShaderManager.load_shader(vertex_path)
         fragment_shader = ShaderManager.load_shader(fragment_path)
         return ctx.program(vertex_shader=vertex_shader, fragment_shader=fragment_shader)
     
     @staticmethod
-    def create_compute(ctx: moderngl.Context, compute_path: str) -> moderngl.ComputeShader:
+    def create_compute(ctx: ContextType, compute_path: str) -> ComputeShaderType:
         """Create a compute shader from file."""
         compute_shader = ShaderManager.load_shader(compute_path)
         return ctx.compute_shader(compute_shader)
@@ -48,7 +52,15 @@ class View2D:
         float aspect;     // 24
         float _pad;       // 28
     """
-    def __init__(self, ctx: moderngl.Context, binding: int = 0) -> None:
+    ctx: ContextType
+    binding: int
+    center: ArrayLike
+    zoom: float
+    aspect: float
+    resolution: ArrayLike
+    buffer: BufferType
+    
+    def __init__(self, ctx: ContextType, binding: int = 0) -> None:
         self.ctx = ctx
         self.binding = binding
         self.center = np.array([0.0, 0.0], dtype='f4')
@@ -60,7 +72,7 @@ class View2D:
         self.buffer.bind_to_uniform_block(self.binding)
         self.update_buffer()
 
-    def update_win_size(self, width: int, height: int) -> None:
+    def update_win_size(self, width: float, height: float) -> None:
         self.resolution = np.array([width, height], dtype='f4')
         self.aspect = width / height if height > 0 else 1.0
         self.update_buffer()
@@ -99,23 +111,23 @@ class View2D:
 
 @dataclass
 class PlotSettings:
-    bg_color: tuple = (0.1, 0.1, 0.1, 1.0)
+    bg_color: ColorType = GRAY10
     show_axis: bool = True
-    axis_color: tuple = (0.5, 0.5, 0.5, 1.0)
+    axis_color: ColorType = GRAY50
     axis_width: float = 2.0
     show_grid: bool = True
-    grid_color: tuple = (0.2, 0.2, 0.2, 1.0)
+    grid_color: ColorType = (0.2, 0.2, 0.2, 1.0)
     grid_spacing: float = 1.0
 
 @dataclass
 class CurveSettings:
-    color: tuple = (1.0, 1.0, 1.0, 1.0)
+    color: ColorType = WHITE
     width: float = 2.0
     count: int = 1024
 
 @dataclass
 class ImplicitSettings:
-    color: tuple = (0.4, 0.6, 1.0, 1.0)
+    color: ColorType = CYAN
     thickness: float = 2.0
 
 class LineType(Enum):
@@ -127,18 +139,32 @@ class LineType(Enum):
 
 @dataclass
 class StreamSettings:
-    point_color: tuple = (1.0, 0.0, 0.0, 1.0)
+    point_color: ColorType = RED
     point_radius: float = 5.0
     show_points: bool = True
     round_points: bool = True
     line_type: LineType = LineType.DIRECT
-    line_color: tuple = (1.0, 0.0, 0.0, 1.0)
+    line_color: ColorType = RED
     line_width: float = 2.0
     curve_segments: int = 10
 
 class Plot2D:
     """A specific rectangular area on the screen for plotting."""
-    def __init__(self, ctx: moderngl.Context, top_left: tuple[int, int], bottom_right: tuple[int, int], settings: Optional[PlotSettings] = None) -> None:
+    ctx: ContextType
+    top_left: VectorType
+    bottom_right: VectorType
+    settings: PlotSettings
+    width: Number
+    height: Number
+    view: View2D
+    viewport: tuple[int, int, int, int]
+    grid_prog: ProgramType
+    grid_quad: BufferType
+    grid_vao: VAOType
+    is_dragging: bool
+    last_mouse_pos: VectorType
+    
+    def __init__(self, ctx: ContextType, top_left: VectorType, bottom_right: VectorType, settings: Optional[PlotSettings] = None) -> None:
         self.ctx = ctx
         self.top_left = top_left
         self.bottom_right = bottom_right
@@ -150,7 +176,7 @@ class Plot2D:
         self.view = View2D(ctx)
         self.view.update_win_size(self.width, self.height)
         
-        self.viewport = (top_left[0], 1080 - bottom_right[1], self.width, self.height)
+        self.viewport = (int(top_left[0]), 1080 - int(bottom_right[1]), int(self.width), int(self.height))
         self._init_grid_renderer()
         
         self.is_dragging = False
@@ -163,27 +189,27 @@ class Plot2D:
             "shaders/plot_grid_fragment.glsl"
         )
         try:
-            self.grid_prog['View'].binding = 0  # type: ignore
+            set_uniform_block_binding(self.grid_prog, 'View', 0)
         except:
             pass
         self.grid_quad = self.ctx.buffer(np.array([-1,-1, 1,-1, -1,1, 1,1], dtype='f4'))
         self.grid_vao = self.ctx.simple_vertex_array(self.grid_prog, self.grid_quad, "in_vert")
 
-    def set_rect(self, top_left: tuple[int, int], bottom_right: tuple[int, int]):
+    def set_rect(self, top_left: VectorType, bottom_right: VectorType) -> None:
         self.top_left = top_left
         self.bottom_right = bottom_right
         self.width = bottom_right[0] - top_left[0]
         self.height = bottom_right[1] - top_left[1]
         self.view.update_win_size(self.width, self.height)
 
-    def update_window_size(self, win_width: int, win_height: int):
+    def update_window_size(self, win_width: int, win_height: int) -> None:
         x = self.top_left[0]
         w = self.width
         h = self.height
-        y = win_height - self.bottom_right[1] 
-        self.viewport = (x, y, w, h)
+        y = win_height - self.bottom_right[1]
+        self.viewport = (int(x), int(y), int(w), int(h))
         
-    def render(self, draw_callback):
+    def render(self, draw_callback) -> None:
         self.ctx.viewport = self.viewport
         self.ctx.scissor = self.viewport
         self.ctx.clear(*self.settings.bg_color)
@@ -220,7 +246,7 @@ class Plot2D:
 
 class GpuStream:
     """Ring-buffer on GPU for high-performance point streaming."""
-    def __init__(self, ctx: moderngl.Context, capacity: int = 100000, settings: Optional[StreamSettings] = None) -> None:
+    def __init__(self, ctx: ContextType, capacity: int = 100000, settings: Optional[StreamSettings] = None) -> None:
         self.ctx = ctx
         self.capacity = capacity
         self.settings = settings if settings else StreamSettings()
@@ -237,7 +263,7 @@ class GpuStream:
             "shaders/stream_fragment.glsl"
         )
         try:
-            self.prog['View'].binding = 0  # type: ignore
+            set_uniform_block_binding(self.prog, 'View', 0)
         except:
             pass
         self.vao = ctx.vertex_array(self.prog, [])
@@ -311,7 +337,7 @@ class GpuStream:
             """
         )
         try:
-            self.smooth_prog['View'].binding = 0  # type: ignore
+            set_uniform_block_binding(self.smooth_prog, 'View', 0)
         except:
             pass
         self.smooth_vao = ctx.vertex_array(self.smooth_prog, [])
@@ -374,7 +400,7 @@ class GpuStream:
                 self.prog['round_points'] = self.settings.round_points
             self.vao.render(moderngl.POINTS, vertices=self.size)
 
-    def shift_points(self, offset: tuple[float, float]) -> None:
+    def shift_points(self, offset: VectorType) -> None:
         """Shifts all existing points by the given offset using a Compute Shader."""
         if not hasattr(self, 'shift_prog'):
             self.shift_prog = ShaderManager.create_compute(
@@ -392,7 +418,7 @@ class GpuStream:
 
 class ComputeCurve:
     """Parametric curve p(t) evaluated entirely on GPU."""
-    def __init__(self, ctx: moderngl.Context, func_body: str, t_range: tuple, count: int = 1024, settings: Optional[CurveSettings] = None):
+    def __init__(self, ctx: ContextType, func_body: str, t_range: tuple, count: int = 1024, settings: Optional[CurveSettings] = None):
         self.ctx = ctx
         self.count = count
         self.t_range = t_range
@@ -432,7 +458,7 @@ class ComputeCurve:
             "shaders/curve_fragment.glsl"
         )
         try:
-            self.render_prog['View'].binding = 0  # type: ignore
+            set_uniform_block_binding(self.render_prog, 'View', 0)
         except:
             pass
         self.vao = ctx.simple_vertex_array(self.render_prog, self.vbo, "in_pos")
@@ -454,7 +480,7 @@ class ComputeCurve:
 
 class ImplicitPlot:
     """Rendering of f(x,y)=0 via Fragment Shader and SDF."""
-    def __init__(self, ctx: moderngl.Context, func_body: str, settings: Optional[ImplicitSettings] = None):
+    def __init__(self, ctx: ContextType, func_body: str, settings: Optional[ImplicitSettings] = None):
         self.ctx = ctx
         self.settings = settings if settings else ImplicitSettings()
         
@@ -506,7 +532,7 @@ class ImplicitPlot:
         
         self.prog = ctx.program(vertex_shader=vs_src, fragment_shader=fs_src)
         try:
-            self.prog['View'].binding = 0  # type: ignore
+            set_uniform_block_binding(self.prog, 'View', 0)
         except:
             pass
         self.vao = ctx.simple_vertex_array(self.prog, self.quad, "in_vert")
@@ -518,7 +544,7 @@ class ImplicitPlot:
 
 class SegmentDisplay:
     """Simple 7-segment display renderer for numbers."""
-    def __init__(self, ctx: moderngl.Context):
+    def __init__(self, ctx: ContextType):
         self.ctx = ctx
         self.prog = ShaderManager.create_program(
             ctx,
@@ -543,7 +569,7 @@ class SegmentDisplay:
             '.': [7]
         }
 
-    def draw_number(self, text: str, x: float, y: float, size: float = 20.0, color: tuple = (1.0, 1.0, 1.0, 1.0)):
+    def draw_number(self, text: str, x: float, y: float, size: float = 20.0, color: ColorType = WHITE):
         vertices = []
         cursor_x = x
         w = size * 0.5
