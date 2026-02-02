@@ -1,6 +1,6 @@
 # e2D - High-Performance 2D Graphics and Math Library
 
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Python](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/status-beta-orange.svg)
 
@@ -68,7 +68,7 @@ pip install "e2D<2.0"
 ```
 
 ### Requirements
-- Python 3.9+
+- Python 3.10+
 - NumPy (required)
 - ModernGL (required)
 - GLFW (required)
