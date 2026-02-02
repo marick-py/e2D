@@ -169,10 +169,3 @@ e2D/build/
 #.idea/
 
 .history/
-
-# ==============================================================================
-# SECURITY: Exclude files containing API keys and sensitive credentials
-# ==============================================================================
-SET_TOKEN.bat
-new_version.bat
-build_dev.bat

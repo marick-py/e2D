@@ -9,7 +9,9 @@ recursive-include e2D/shaders *.glsl
 # Include documentation
 include README.md
 include LICENSE
-include QUICKSTART.md
+include DEVELOPER_GUIDE.md
+include PUBLISHING.md
+recursive-include docs *.md
 
 # Include configuration files
 include pyproject.toml

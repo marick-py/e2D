@@ -3,33 +3,71 @@
 ## 📁 Project Structure
 
 ```
-e2D-package/
+e2D_2.0/
+├── .github/
+│   └── workflows/
+│       ├── publish.yml           # Automated PyPI publishing
+│       └── test.yml              # CI testing on multiple Python versions
+├── docs/
+│   └── API_REFERENCE.md          # Complete API documentation
 ├── e2D/                          # Main package
-│   ├── __init__.py               # Package initialization with Vector2D
+│   ├── __init__.py               # Package initialization & RootEnv
+│   ├── __init__.pyi              # Type stubs
 │   ├── cvectors.pyx              # Cython-optimized vector implementation
 │   ├── cvectors.pxd              # Cython header
+│   ├── cvectors.pyi              # Vector type stubs
+│   ├── cvectors.c                # Compiled C extension
+│   ├── ccolors.pyx               # Cython color operations (optional)
+│   ├── ccolors.pyi               # Color type stubs
+│   ├── ccolors.c                 # Compiled C extension
 │   ├── vectors.py                # Python utilities and fallback
+│   ├── vectors.pyi               # Vector type stubs
+│   ├── colors.py                 # Color class and operations
+│   ├── colors.pyi                # Color type stubs
+│   ├── color_defs.py             # 80+ pre-defined colors
 │   ├── commons.py                # Common utilities
-│   ├── devices.py                # Input handling
+│   ├── commons.pyi               # Type stubs
+│   ├── devices.py                # Input handling (Keyboard/Mouse)
+│   ├── devices.pyi               # Type stubs
 │   ├── plots.py                  # Plotting utilities
+│   ├── plots.pyi                 # Type stubs
 │   ├── shapes.py                 # Shape rendering
-│   ├── text_renderer.py          # Text rendering
+│   ├── shapes.pyi                # Type stubs
+│   ├── text_renderer.py          # Text rendering with PIL
+│   ├── text_renderer.pyi         # Type stubs
+│   ├── types.py                  # Type definitions
+│   ├── types.pyi                 # Type stubs
+│   ├── winrec.py                 # Screen recording
+│   ├── winrec.pyi                # Type stubs
+│   ├── test_colors.py            # Color system tests
 │   └── shaders/                  # GLSL shader files
-├── examples/                     # Example scripts
-│   ├── example_usage.py
-│   └── compare_performance.py
+│       ├── curve_fragment.glsl
+│       ├── curve_vertex.glsl
+│       ├── line_instanced_vertex.glsl
+│       ├── plot_grid_fragment.glsl
+│       ├── plot_grid_vertex.glsl
+│       ├── segment_fragment.glsl
+│       ├── segment_vertex.glsl
+│       ├── stream_fragment.glsl
+│       ├── stream_shift_compute.glsl
+│       └── stream_vertex.glsl
+├── e2D.egg-info/                 # Package metadata (auto-generated)
+├── dist/                         # Built distributions (auto-generated)
 ├── setup.py                      # Build configuration
 ├── setup.cfg                     # Package metadata
-├── pyproject.toml                # Modern Python packaging
+├── pyproject.toml                # Modern Python packaging (PEP 517)
 ├── MANIFEST.in                   # Distribution manifest
-├── README.md                     # Main documentation
-├── QUICKSTART.md                 # Quick start guide
+├── README.md                     # Main documentation & PyPI landing page
+├── DEVELOPER_GUIDE.md            # This file
+├── PUBLISHING.md                 # GitHub Actions publishing guide
 ├── LICENSE                       # MIT License
-├── new_version.py                # Version updater
-├── new_version.bat               # Automated publishing
-└── clean.bat                     # Cleanup script
-
+├── new_version.py                # Version updater helper script
+├── new_version.bat               # Local version update script (optional)
+├── build_dev.bat                 # Local development build script (optional)
+└── SET_TOKEN.bat                 # Local PyPI token setup (optional, ignored by git)
 ```
+
+**Note**: `.bat` files are optional local helpers. With GitHub Actions, you don't need them anymore!
 
 ## 🔧 Development Workflow
 

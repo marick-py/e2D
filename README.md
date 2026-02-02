@@ -177,8 +177,8 @@ Perfect for:
 ## 📚 Documentation
 
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
-- **[Quick Start Guide](QUICKSTART.md)** - Get up and running in minutes
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Development workflow and contributing
+- **[Publishing Guide](PUBLISHING.md)** - GitHub Actions automated publishing
 
 ## 🎯 Use Cases
 
