@@ -4,12 +4,13 @@ All colors are RGBA tuples (0.0-1.0) for GPU compatibility
 Import individual colors as needed: from e2D.color_defs import RED, BLUE
 """
 
-from typing import Final, TYPE_CHECKING
+from typing import Final, Union, TYPE_CHECKING, TypeAlias
 
 if TYPE_CHECKING:
-    from .types import ColorType
+    from .colors import Color
+    ColorType: TypeAlias = Union[Color, tuple[float, float, float, float]]
 else:
-    ColorType = tuple[float, float, float, float]
+    ColorType = Union['Color', tuple[float, float, float, float]]
 
 # ============================================================================
 # Basic Colors

@@ -14,14 +14,14 @@ pip install e2D[all]     # Everything
 
 ```python
 from e2D import RootEnv, DefEnv, Vector2D, Color, KeyState
-import glfw
+from e2D.devices import Keys
 
 class MyApp(DefEnv):
     def __init__(self):
         self.batch = rootEnv.create_circle_batch(max_shapes=1000)
     
     def update(self):
-        if rootEnv.keyboard.get_key(glfw.KEY_SPACE, KeyState.JUST_PRESSED):
+        if rootEnv.keyboard.get_key(Keys.SPACE, KeyState.JUST_PRESSED):
             print("Space!")
     
     def draw(self):
@@ -109,13 +109,12 @@ class MyApp(DefEnv):
 
 ### Keyboard
 ```python
-from e2D import KeyState
-import glfw
+from e2D import KeyState, Keys
 
 # Check key state
-rootEnv.keyboard.get_key(glfw.KEY_SPACE, KeyState.PRESSED)       # Held
-rootEnv.keyboard.get_key(glfw.KEY_SPACE, KeyState.JUST_PRESSED)  # Clicked
-rootEnv.keyboard.get_key(glfw.KEY_SPACE, KeyState.JUST_RELEASED) # Released
+rootEnv.keyboard.get_key(Keys.SPACE, KeyState.PRESSED)       # Held
+rootEnv.keyboard.get_key(Keys.SPACE, KeyState.JUST_PRESSED)  # Clicked
+rootEnv.keyboard.get_key(Keys.SPACE, KeyState.JUST_RELEASED) # Released
 ```
 
 ### Mouse

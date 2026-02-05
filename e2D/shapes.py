@@ -1009,7 +1009,9 @@ class ShapeRenderer:
         if isinstance(color, np.ndarray):
             colors = color
         else:
-            colors = np.tile(color, (len(points_array) - 1, 1))
+            # Normalize ColorType to tuple for numpy operations
+            color_tuple = normalize_color(color)
+            colors = np.tile(color_tuple, (len(points_array) - 1, 1))
         
         vertices = []
         
@@ -1067,7 +1069,9 @@ class ShapeRenderer:
         if isinstance(color, np.ndarray):
             colors = color
         else:
-            colors = np.tile(color, (len(points_array) - 1, 1))
+            # Normalize ColorType to tuple for numpy operations
+            color_tuple = normalize_color(color)
+            colors = np.tile(color_tuple, (len(points_array) - 1, 1))
         
         vertices = []
         

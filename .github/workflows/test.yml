@@ -36,3 +36,10 @@ jobs:
         python -m build
         pip install dist/*.whl
         python -c "import e2D; print(f'e2D version: {e2D.__version__}')"
+    
+    - name: Run headless unit tests
+      run: |
+        python tests/test_vectors.py
+        python tests/test_colors.py
+        python tests/test_input.py
+        python tests/test_color_type.py

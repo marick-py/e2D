@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 import numpy as np
 
 # Import compiled Cython implementation (required)
-from .cvectors import (
+from .cvectors import ( # type: ignore
     Vector2D,
     batch_add_inplace,
     batch_scale_inplace,

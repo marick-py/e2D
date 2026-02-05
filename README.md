@@ -195,6 +195,15 @@ Perfect for:
 
 ## 📚 Documentation
 
+### Feature Guides
+- **[Vector Operations](docs/VECTORS.md)** - Complete guide to Vector2D operations, batch processing, and optimization
+- **[Color System](docs/COLORS.md)** - Color creation, manipulation, pre-defined palettes, and conversions
+- **[Shape Rendering](docs/SHAPES.md)** - Drawing circles, rectangles, lines, and using shape caching
+- **[Text Rendering](docs/TEXT.md)** - Text rendering, styles, fonts, pivots, and cached labels
+- **[Input Handling](docs/INPUT.md)** - Keyboard and mouse input with Keys and MouseButtons constants
+
+### Examples & API
+- **[Examples](examples/)** - Interactive visual examples for all major features
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Development workflow and contributing
 

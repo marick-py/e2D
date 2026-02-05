@@ -3,16 +3,19 @@ Type stubs for types module
 Common type definitions for e2D library
 """
 
-from typing import Union, Sequence
+from typing import Union, Sequence, TYPE_CHECKING
 import numpy as np
 import numpy.typing as npt
 import moderngl
 from .cvectors import Vector2D
 from glfw import _GLFWwindow
 
+if TYPE_CHECKING:
+    from .colors import Color
 
 # Color type (RGBA values between 0.0 and 1.0)
-ColorType = tuple[float, float, float, float]
+# Accepts both Color objects and tuples for flexibility
+ColorType = Union['Color', tuple[float, float, float, float]]
 
 # Numeric types
 Number = int | float

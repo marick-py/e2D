@@ -1,4 +1,5 @@
 from __future__ import annotations
+from e2D.devices import Keys
 from typing import Any, Optional
 import numpy as np
 import cv2
@@ -86,18 +87,18 @@ class WinRec:
         from .devices import KeyState
         
         # F9: Toggle pause/resume recording
-        if self.rootEnv.keyboard.get_key(glfw.KEY_F9, KeyState.JUST_PRESSED):
+        if self.rootEnv.keyboard.get_key(Keys.F9, KeyState.JUST_PRESSED):
             self.toggle_recording()
             status = "REC" if self.is_recording else "PAUSED"
             print(f"[Recording] {status}")
         
         # F10: Restart recording (reset all and resume)
-        if self.rootEnv.keyboard.get_key(glfw.KEY_F10, KeyState.JUST_PRESSED):
+        if self.rootEnv.keyboard.get_key(Keys.F10, KeyState.JUST_PRESSED):
             self.restart()
             print("[Recording] Restarted (buffer cleared, timers reset)")
         
         # F12: Take screenshot
-        if self.rootEnv.keyboard.get_key(glfw.KEY_F12, KeyState.JUST_PRESSED):
+        if self.rootEnv.keyboard.get_key(Keys.F12, KeyState.JUST_PRESSED):
             screenshot_path = self.take_screenshot()
             print(f"[Screenshot] Saved: {screenshot_path}")
     

@@ -18,6 +18,9 @@ include pyproject.toml
 include setup.py
 include setup.cfg
 
+# Include default template
+include e2D.default
+
 # Include examples
 recursive-include examples *.py
 

@@ -25,7 +25,7 @@ from .types import (
 # Import original e2D modules
 from .text_renderer import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, Pivots, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
-from .devices import Keyboard, Mouse, KeyState
+from .devices import Keyboard, Mouse, KeyState, Keys, MouseButtons
 from .commons import get_pattr, get_pattr_value, set_pattr_value, get_uniform
 
 from typing import Optional
@@ -43,7 +43,7 @@ from .color_defs import (
 
 # Try to import Cython-optimized color operations (optional batch utilities)
 try:
-    from . import ccolors
+    from . import ccolors # type: ignore
     _COLOR_COMPILED = True
 except ImportError:
     _COLOR_COMPILED = False
@@ -101,6 +101,7 @@ class RootEnv:
             version: tuple[int, int] = (4, 3),
             monitor: Optional[int] = None,
             draw_fps: bool = False,
+            title: str = "e2D"
         ) -> None:
 
         if not glfw.init():
@@ -118,7 +119,7 @@ class RootEnv:
         self._resizable = resizable
         self._vsync = vsync
 
-        self.window = glfw.create_window(int(window_size[0]), int(window_size[1]), "e2D", monitor, None)
+        self.window = glfw.create_window(int(window_size[0]), int(window_size[1]), title, monitor, None)
         if not self.window:
             glfw.terminate()
             raise RuntimeError("Failed to create GLFW window")
@@ -488,7 +489,7 @@ class RootEnv:
             self.mouse.update()
             glfw.poll_events()
             
-            if self.keyboard.get_key(glfw.KEY_X, KeyState.JUST_PRESSED):
+            if self.keyboard.get_key(Keys.X, KeyState.JUST_PRESSED):
                 glfw.set_window_should_close(self.window, True)
             
             try:
@@ -688,6 +689,8 @@ __all__ = [
     'Keyboard',
     'Mouse',
     'KeyState',
+    'Keys',
+    'MouseButtons',
     # ModernGL utilities
     'get_pattr',
     'get_pattr_value',
