@@ -197,7 +197,6 @@ Perfect for:
 
 - **[API Reference](docs/API_REFERENCE.md)** - Complete API documentation
 - **[Developer Guide](DEVELOPER_GUIDE.md)** - Development workflow and contributing
-- **[Publishing Guide](PUBLISHING.md)** - GitHub Actions automated publishing
 
 ## 🎯 Use Cases
 

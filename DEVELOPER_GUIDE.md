@@ -62,12 +62,10 @@ e2D_2.0/
 ├── PUBLISHING.md                 # GitHub Actions publishing guide
 ├── LICENSE                       # MIT License
 ├── new_version.py                # Version updater helper script
-├── new_version.bat               # Local version update script (optional)
-├── build_dev.bat                 # Local development build script (optional)
-└── SET_TOKEN.bat                 # Local PyPI token setup (optional, ignored by git)
+└── build_dev.bat                 # Local development build script (optional)
 ```
 
-**Note**: `.bat` files are optional local helpers. With GitHub Actions, you don't need them anymore!
+**Note**: `.bat` files are optional local helpers.
 
 ## 🔧 Development Workflow
 
@@ -103,10 +101,6 @@ python setup.py build_ext --inplace
 # Test basic import
 python -c "import e2D; print(e2D.__version__)"
 
-# Run examples
-python examples/example_usage.py
-python examples/compare_performance.py
-
 # Test installation from scratch
 pip uninstall e2D
 pip install .
@@ -117,11 +111,6 @@ pip install .
 ```bash
 # Run the version updater
 python new_version.py
-```
-
-Or on Windows:
-```cmd
-new_version.bat
 ```
 
 This updates:
@@ -160,25 +149,8 @@ python -c "from e2D import Vector2D; v = Vector2D(1, 2); print(v)"
 
 ### 7. Publishing to PyPI
 
-#### Option A: Automated (Windows)
-```cmd
-new_version.bat
-```
-
-This script:
-1. Updates version
-2. Cleans build artifacts
-3. Builds distributions
-4. Uploads to PyPI
-
-#### Option B: Manual
-```bash
-# Upload to PyPI
-python -m twine upload dist/*
-
-# Or upload to TestPyPI first
-python -m twine upload --repository testpypi dist/*
-```
+Just push everything in the main e2D folder to this git repo, create a new release and send request to me, it will automatically build it, debug back if errors are found, and if everything works fine it will create a Pypi deployment request to the repo authors (me).
+No build necessary if not for local testing.
 
 ## 📋 Pre-Release Checklist
 
