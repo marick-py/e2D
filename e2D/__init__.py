@@ -6,7 +6,7 @@ Copyright (c) 2025 Riccardo Mariani
 MIT License
 """
 
-__version__ = "2.0.3"
+__version__ = "2.0.2"
 __author__ = "Riccardo Mariani"
 __email__ = "riccardo.mariani@emptyhead.dev"
 
@@ -18,12 +18,12 @@ import os
 
 # Import type definitions
 from .types import (
-    ComputeShaderType, ProgramAttrType, UniformType, VectorType, ColorType, Number,
+    ComputeShaderType, ProgramAttrType, UniformType, ColorType, Number,
     ContextType, ProgramType, BufferType, WindowType, pArray
 )
 
 # Import original e2D modules
-from .text_renderer import DEFAULT_TEXT_STYLE, Pivots, TextRenderer, TextLabel, TextStyle
+from .text_renderer import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, Pivots, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
 from .devices import Keyboard, Mouse, KeyState
 from .commons import get_pattr, get_pattr_value, set_pattr_value, get_uniform
@@ -43,7 +43,7 @@ from .color_defs import (
 
 # Try to import Cython-optimized color operations (optional batch utilities)
 try:
-    from . import ccolors  # type: ignore[import-not-found]
+    from . import ccolors
     _COLOR_COMPILED = True
 except ImportError:
     _COLOR_COMPILED = False
@@ -61,7 +61,6 @@ from .vectors import (
     lerp,
     create_grid,
     create_circle,
-    _COMPILED as _VECTOR_COMPILED,
 )
 
 
@@ -76,8 +75,9 @@ class DefEnv:
     def on_resize(self, width: int, height: int) -> None: ...
 
 class RootEnv:
-    window_size: VectorType
+    window_size: Vector2D
     target_fps: int
+    draw_fps: bool
     window: WindowType
     ctx: ContextType
     programs: dict[str, ProgramType]
@@ -94,11 +94,13 @@ class RootEnv:
     
     def __init__(
             self,
-            window_size: tuple[int, int] = (1920, 1080),
+            window_size: Vector2D = V2(1920, 1080),
             target_fps: int = 60,
-            vsync: bool = True,
+            vsync: bool = False,
+            resizable: bool = True,
             version: tuple[int, int] = (4, 3),
-            monitor: Optional[int] = None
+            monitor: Optional[int] = None,
+            draw_fps: bool = False,
         ) -> None:
 
         if not glfw.init():
@@ -108,15 +110,25 @@ class RootEnv:
         glfw.window_hint(glfw.CONTEXT_VERSION_MINOR, version[1])
         glfw.window_hint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
         glfw.window_hint(glfw.OPENGL_FORWARD_COMPAT, True)
-        glfw.window_hint(glfw.RESIZABLE, True)
+        glfw.window_hint(glfw.RESIZABLE, resizable)
 
         self.window_size = window_size
         self.target_fps = target_fps
+        self.draw_fps = draw_fps
+        self._resizable = resizable
+        self._vsync = vsync
 
-        self.window = glfw.create_window(window_size[0], window_size[1], "e2D", monitor, None)
+        self.window = glfw.create_window(int(window_size[0]), int(window_size[1]), "e2D", monitor, None)
         if not self.window:
             glfw.terminate()
             raise RuntimeError("Failed to create GLFW window")
+        
+        # Center window on screen by default
+        if monitor is None:
+            video_mode = glfw.get_video_mode(glfw.get_primary_monitor())
+            window_w, window_h = int(window_size[0]), int(window_size[1])
+            screen_w, screen_h = video_mode.size.width, video_mode.size.height
+            glfw.set_window_pos(self.window, (screen_w - window_w) // 2, (screen_h - window_h) // 2)
             
         glfw.make_context_current(self.window)
         
@@ -128,10 +140,7 @@ class RootEnv:
             raise
         
         # VSync control - must be set AFTER context creation
-        if vsync:
-            glfw.swap_interval(1)
-        else:
-            glfw.swap_interval(0)
+        glfw.swap_interval(1 if vsync else 0)
 
         print(f"OpenGL Context: {self.ctx.version_code} / {self.ctx.info['GL_RENDERER']}")
         
@@ -166,12 +175,87 @@ class RootEnv:
         return (float(self.window_size[0]), float(self.window_size[1]))
     
     @property
+    def window_position(self) -> Vector2D:
+        """Get current window position."""
+        pos = glfw.get_window_pos(self.window)
+        return V2(float(pos[0]), float(pos[1]))
+    
+    @property
+    def resizable(self) -> bool:
+        """Get window resizable state."""
+        return self._resizable
+    
+    @resizable.setter
+    def resizable(self, value: bool) -> None:
+        """Set window resizable state."""
+        self._resizable = value
+        glfw.set_window_attrib(self.window, glfw.RESIZABLE, glfw.TRUE if value else glfw.FALSE)
+    
+    @property
+    def vsync(self) -> bool:
+        """Get VSync state."""
+        return self._vsync
+    
+    @vsync.setter
+    def vsync(self, value: bool) -> None:
+        """Set VSync state. Changes take effect immediately."""
+        self._vsync = value
+        glfw.swap_interval(1 if value else 0)
+    
+    @property
     def runtime(self) -> float:
         """Get total elapsed time since program initialization in seconds."""
         return time.perf_counter() - self.start_time
     
+    def set_window_size(self, width: int | float, height: int | float) -> None:
+        """Set window size. Use this instead of modifying window_size directly.
+        
+        Args:
+            width: New window width
+            height: New window height
+        """
+        width, height = int(width), int(height)
+        glfw.set_window_size(self.window, width, height)
+        self.window_size.set(width, height)
+    
+    def set_window_position(self, x: int | float, y: int | float) -> None:
+        """Set window position on screen.
+        
+        Args:
+            x: X position (left edge)
+            y: Y position (top edge)
+        """
+        glfw.set_window_pos(self.window, int(x), int(y))
+    
+    def center_window(self) -> None:
+        """Center the window on the primary monitor."""
+        video_mode = glfw.get_video_mode(glfw.get_primary_monitor())
+        window_w, window_h = int(self.window_size[0]), int(self.window_size[1])
+        screen_w, screen_h = video_mode.size.width, video_mode.size.height
+        self.set_window_position((screen_w - window_w) // 2, (screen_h - window_h) // 2)
+    
+    def set_window_title(self, title: str) -> None:
+        """Set window title.
+        
+        Args:
+            title: New window title
+        """
+        glfw.set_window_title(self.window, title)
+    
+    def maximize_window(self) -> None:
+        """Maximize the window."""
+        glfw.maximize_window(self.window)
+    
+    def minimize_window(self) -> None:
+        """Minimize (iconify) the window."""
+        glfw.iconify_window(self.window)
+    
+    def restore_window(self) -> None:
+        """Restore the window from maximized or minimized state."""
+        glfw.restore_window(self.window)
+    
     def _on_resize(self, window: WindowType, width: int, height: int) -> None:
-        self.window_size = (width, height)
+        self.window_size.set(width, height)
         fb_size = glfw.get_framebuffer_size(window)
         self.ctx.viewport = (0, 0, fb_size[0], fb_size[1])
         if hasattr(self, 'env') and hasattr(self.env, 'on_resize'):
@@ -181,35 +265,11 @@ class RootEnv:
         self.env = env
         return self
     
-    def init_rec(self, fps: int = 30, draw_on_screen: bool = True, path: str = 'output.mp4') -> 'RootEnv':
-        """Initialize screen recording.
-        
-        Args:
-            fps: Recording framerate (independent of application FPS)
-            draw_on_screen: Show recording stats overlay
-            path: Output video file path
-        
-        Returns:
-            Self for method chaining
-        
-        Controls:
-            F9: Pause/Resume recording
-            F10: Restart recording (clear buffer)
-            F12: Take screenshot
-        """
+    def init_rec(self, fps: int = 30, draw_on_screen: bool = True, path: str = 'output.mp4') -> None:
         from .winrec import WinRec
         self.__winrecorder__ = WinRec(self, fps=fps, draw_on_screen=draw_on_screen, path=path)
-        return self
     
     def load_shader_file(self, path: str) -> str:
-        """Load shader source code from a file.
-        
-        Args:
-            path: Path to shader file (relative to working directory or absolute)
-        
-        Returns:
-            Shader source code as string
-        """
         if not os.path.exists(path):
             raise FileNotFoundError(f"Shader file not found: {path}")
         
@@ -247,6 +307,10 @@ class RootEnv:
     def __draw__(self) -> None:
         self.ctx.clear(0.0, 0.0, 0.0, 1.0)
         self.env.draw()
+
+        if self.draw_fps:
+            fps = 1.0 / self.delta if self.delta > 0 else 0.0
+            self.print(f"FPS: {fps:.2f}", V2(10, 10), scale=1.0, style=MONO_16_TEXT_STYLE, pivot=Pivots.TOP_LEFT)
         
         # Screen recording: capture frame before overlay, draw stats after
         if hasattr(self, '__winrecorder__'):
@@ -453,9 +517,9 @@ class RootEnv:
     def print(
         self,
         text_or_label: str|TextLabel,
-        position: VectorType,
+        position: Vector2D,
         scale: float = 1.0,
-        style: TextStyle = DEFAULT_TEXT_STYLE,
+        style: TextStyle = MONO_16_TEXT_STYLE,
         pivot: Pivots|int = Pivots.TOP_LEFT,
         save_cache: bool = False
     ) -> Optional[TextLabel]:
@@ -464,43 +528,89 @@ class RootEnv:
             text_or_label.draw()
         else:
             if save_cache:
-                return self.text_renderer.create_label(str(text_or_label), position[0], position[1], scale, style, pivot)
+                return self.text_renderer.create_label(str(text_or_label), position.x, position.y, scale, style, pivot)
             else:
-                self.text_renderer.draw_text(str(text_or_label), position, scale, style, pivot)
+                self.text_renderer.draw_text(str(text_or_label), (position.x, position.y), scale, style, pivot)
     
     # ========== Shape Drawing Methods ==========
     
-    def draw_circle(self, center: VectorType, radius: float, **kwargs) -> None:
+    def draw_circle(self, center: Vector2D, radius: float,
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                   rotation: float = 0.0,
+                   border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+                   border_width: float = 0.0,
+                   antialiasing: float = 1.0) -> None:
         """Draw a circle. See ShapeRenderer.draw_circle for parameters."""
-        self.shape_renderer.draw_circle(center, radius, **kwargs)
+        self.shape_renderer.draw_circle(center, radius, color=color, rotation=rotation,
+                                       border_color=border_color, border_width=border_width,
+                                       antialiasing=antialiasing)
     
-    def draw_rect(self, position: VectorType, size: VectorType, **kwargs) -> None:
+    def draw_rect(self, position: Vector2D, size: Vector2D,
+                 color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                 rotation: float = 0.0,
+                 corner_radius: float = 0.0,
+                 border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+                 border_width: float = 0.0,
+                 antialiasing: float = 1.0) -> None:
         """Draw a rectangle. See ShapeRenderer.draw_rect for parameters."""
-        self.shape_renderer.draw_rect(position, size, **kwargs)
+        self.shape_renderer.draw_rect(position, size, color=color, rotation=rotation,
+                                     corner_radius=corner_radius, border_color=border_color,
+                                     border_width=border_width, antialiasing=antialiasing)
     
-    def draw_line(self, start: VectorType, end: VectorType, **kwargs) -> None:
+    def draw_line(self, start: Vector2D, end: Vector2D,
+                 width: float = 1.0,
+                 color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                 antialiasing: float = 1.0) -> None:
         """Draw a line. See ShapeRenderer.draw_line for parameters."""
-        self.shape_renderer.draw_line(start, end, **kwargs)
+        self.shape_renderer.draw_line((start.x, start.y), (end.x, end.y), width=width, color=color,
+                                     antialiasing=antialiasing)
     
-    def draw_lines(self, points, **kwargs) -> None:
+    def draw_lines(self, points,
+                  width: float = 1.0,
+                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                  antialiasing: float = 1.0,
+                  closed: bool = False) -> None:
         """Draw a polyline. See ShapeRenderer.draw_lines for parameters."""
-        self.shape_renderer.draw_lines(points, **kwargs)
+        self.shape_renderer.draw_lines(points, width=width, color=color,
+                                      antialiasing=antialiasing, closed=closed)
     
-    def create_circle(self, center: VectorType, radius: float, **kwargs) -> ShapeLabel:
+    def create_circle(self, center: Vector2D, radius: float,
+                     color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                     rotation: float = 0.0,
+                     border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+                     border_width: float = 0.0,
+                     antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached circle. See ShapeRenderer.create_circle for parameters."""
-        return self.shape_renderer.create_circle(center, radius, **kwargs)
+        return self.shape_renderer.create_circle(center, radius, color=color, rotation=rotation,
+                                                border_color=border_color, border_width=border_width,
+                                                antialiasing=antialiasing)
     
-    def create_rect(self, position: VectorType, size: VectorType, **kwargs) -> ShapeLabel:
+    def create_rect(self, position: Vector2D, size: Vector2D,
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                   rotation: float = 0.0,
+                   corner_radius: float = 0.0,
+                   border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+                   border_width: float = 0.0,
+                   antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached rectangle. See ShapeRenderer.create_rect for parameters."""
-        return self.shape_renderer.create_rect(position, size, **kwargs)
+        return self.shape_renderer.create_rect(position, size, color=color, rotation=rotation, corner_radius=corner_radius, border_color=border_color, border_width=border_width, antialiasing=antialiasing)
     
-    def create_line(self, start: VectorType, end: VectorType, **kwargs) -> ShapeLabel:
+    def create_line(self, start: Vector2D, end: Vector2D,
+                   width: float = 1.0,
+                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                   antialiasing: float = 1.0) -> ShapeLabel:
         """Create a cached line. See ShapeRenderer.create_line for parameters."""
-        return self.shape_renderer.create_line(start, end, **kwargs)
+        return self.shape_renderer.create_line(start, end, width=width, color=color,
+                                              antialiasing=antialiasing)
     
-    def create_lines(self, points, **kwargs) -> ShapeLabel:
+    def create_lines(self, points,
+                    width: float = 1.0,
+                    color: ColorType = (1.0, 1.0, 1.0, 1.0),
+                    antialiasing: float = 1.0,
+                    closed: bool = False) -> ShapeLabel:
         """Create a cached polyline. See ShapeRenderer.create_lines for parameters."""
-        return self.shape_renderer.create_lines(points, **kwargs)
+        return self.shape_renderer.create_lines(points, width=width, color=color,
+                                               antialiasing=antialiasing, closed=closed)
     
     def create_circle_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
         """Create a batch for drawing multiple circles using GPU instancing."""
@@ -537,7 +647,7 @@ __all__ = [
     'create_grid',
     'create_circle',
     # Type aliases
-    'VectorType',
+    'Vector2D',
     'ColorType',
     # Color utilities
     'Color',
@@ -567,7 +677,8 @@ __all__ = [
     'TextLabel',
     'TextStyle',
     'Pivots',
-    'DEFAULT_TEXT_STYLE',
+    'DEFAULT_16_TEXT_STYLE',
+    'MONO_16_TEXT_STYLE',
     # Shape rendering
     'ShapeRenderer',
     'ShapeLabel',
@@ -583,6 +694,5 @@ __all__ = [
     'set_pattr_value',
     'get_uniform',
     # Compilation flags
-    '_VECTOR_COMPILED',
     '_COLOR_COMPILED',
 ]

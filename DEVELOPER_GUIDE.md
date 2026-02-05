@@ -255,7 +255,6 @@ xcode-select --install
 ```python
 import e2D
 print(f"Version: {e2D.__version__}")
-print(f"Compiled: {e2D._VECTORS_COMPILED}")
 ```
 
 ### Benchmarking

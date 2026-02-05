@@ -76,6 +76,24 @@ pip install "e2D<2.0"
 - attrs (required - for data structures)
 - OpenCV-Python (optional, for recording - install with `[rec]` extra)
 
+### Linux-Specific Setup (Fedora/RHEL/CentOS)
+
+If you encounter OpenGL library errors on Fedora-based systems:
+
+```bash
+# Install Mesa OpenGL libraries
+sudo dnf install mesa-libGL mesa-libEGL
+
+# Create symlinks (ModernGL needs unversioned .so files)
+sudo ln -s /usr/lib64/libGL.so.1 /usr/lib64/libGL.so
+sudo ln -s /usr/lib64/libEGL.so.1 /usr/lib64/libEGL.so
+```
+
+**Note:** On Debian/Ubuntu systems, these symlinks are usually created automatically. If you encounter similar issues:
+```bash
+sudo apt-get install libgl1-mesa-glx libegl1-mesa
+```
+
 ## 🚀 Quick Start
 
 ### Optimized Vector Operations
@@ -110,6 +128,7 @@ pos_array = vectors_to_array(positions)
 
 ```python
 from e2D import RootEnv, DefEnv
+from e2D.vectors import V2
 
 class MyApp(DefEnv):
     def __init__(self) -> None:
@@ -124,7 +143,7 @@ class MyApp(DefEnv):
         pass
 
 # Initialize and run
-rootEnv = RootEnv(window_size=(1920, 1080), target_fps=60)
+rootEnv = RootEnv(window_size=V2(1920, 1080), target_fps=60)
 rootEnv.init(MyApp())
 
 # Optional: Enable screen recording

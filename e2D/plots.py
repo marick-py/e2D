@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 from .commons import set_uniform_block_binding
-from .types import ColorType, ComputeShaderType, ComputeShaderType, Number, VAOType, VectorType, ContextType, ProgramType, BufferType, ArrayLike
+from .types import ColorType, ComputeShaderType, Number, VAOType, ContextType, ProgramType, BufferType, ArrayLike
+from .vectors import Vector2D
 from .colors import normalize_color
 from .color_defs import GRAY10, GRAY50, WHITE, RED, CYAN
 
@@ -151,8 +152,8 @@ class StreamSettings:
 class Plot2D:
     """A specific rectangular area on the screen for plotting."""
     ctx: ContextType
-    top_left: VectorType
-    bottom_right: VectorType
+    top_left: tuple[float, float] | Vector2D
+    bottom_right: tuple[float, float] | Vector2D
     settings: PlotSettings
     width: Number
     height: Number
@@ -162,9 +163,9 @@ class Plot2D:
     grid_quad: BufferType
     grid_vao: VAOType
     is_dragging: bool
-    last_mouse_pos: VectorType
+    last_mouse_pos: tuple[float, float]
     
-    def __init__(self, ctx: ContextType, top_left: VectorType, bottom_right: VectorType, settings: Optional[PlotSettings] = None) -> None:
+    def __init__(self, ctx: ContextType, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D, settings: Optional[PlotSettings] = None) -> None:
         self.ctx = ctx
         self.top_left = top_left
         self.bottom_right = bottom_right
@@ -195,7 +196,7 @@ class Plot2D:
         self.grid_quad = self.ctx.buffer(np.array([-1,-1, 1,-1, -1,1, 1,1], dtype='f4'))
         self.grid_vao = self.ctx.simple_vertex_array(self.grid_prog, self.grid_quad, "in_vert")
 
-    def set_rect(self, top_left: VectorType, bottom_right: VectorType) -> None:
+    def set_rect(self, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D) -> None:
         self.top_left = top_left
         self.bottom_right = bottom_right
         self.width = bottom_right[0] - top_left[0]
@@ -400,7 +401,7 @@ class GpuStream:
                 self.prog['round_points'] = self.settings.round_points
             self.vao.render(moderngl.POINTS, vertices=self.size)
 
-    def shift_points(self, offset: VectorType) -> None:
+    def shift_points(self, offset: tuple[float, float] | Vector2D) -> None:
         """Shifts all existing points by the given offset using a Compute Shader."""
         if not hasattr(self, 'shift_prog'):
             self.shift_prog = ShaderManager.create_compute(

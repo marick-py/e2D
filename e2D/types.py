@@ -8,13 +8,8 @@ from __future__ import annotations
 # Simple type aliases without imports to avoid circular dependencies
 # These are used for type hints only
 
-# Type alias for vector-like objects
-# At runtime, accepts: Vector2D instances, tuples of 2 numbers, or sequences of 2 numbers
-# Use this for ALL vector/position/size parameters for maximum flexibility
-VectorType = object  # Union at type-check time via .pyi file
-
 # Color type (RGBA values between 0.0 and 1.0)
-ColorType = tuple[float, float, float, float]
+ColorType = object
 
 # Numeric types
 Number = int | float
@@ -42,7 +37,6 @@ UniformBlockType = object  # moderngl.UniformBlock
 WindowType = object  # glfw window
 
 __all__ = [
-    'VectorType',
     'ColorType',
     'Number',
     'IntVec2',

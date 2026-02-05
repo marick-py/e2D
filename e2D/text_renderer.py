@@ -4,7 +4,7 @@ from PIL import Image, ImageFont
 from attr import dataclass
 import numpy as np
 import moderngl
-from .types import ColorType, VAOType, VectorType, ContextType, ProgramType, BufferType, TextureType
+from .types import ColorType, VAOType, ContextType, ProgramType, BufferType, TextureType
 from .colors import normalize_color
 from .color_defs import WHITE, BLACK
 
@@ -28,7 +28,15 @@ class Pivots(Enum):
     BOTTOM_MIDDLE = 7
     BOTTOM_RIGHT = 8
 
-DEFAULT_TEXT_STYLE = TextStyle()
+DEFAULT_12_TEXT_STYLE = TextStyle(font_size=12)
+DEFAULT_16_TEXT_STYLE = TextStyle(font_size=16)
+DEFAULT_32_TEXT_STYLE = TextStyle(font_size=32)
+DEFAULT_64_TEXT_STYLE = TextStyle(font_size=64)
+
+MONO_12_TEXT_STYLE = TextStyle(font="consola.ttf", font_size=12)
+MONO_16_TEXT_STYLE = TextStyle(font="consola.ttf", font_size=16)
+MONO_32_TEXT_STYLE = TextStyle(font="consola.ttf", font_size=32)
+MONO_64_TEXT_STYLE = TextStyle(font="consola.ttf", font_size=64)
 
 class TextLabel:
     ctx: ContextType
@@ -273,7 +281,7 @@ class TextRenderer:
         
         return font_atlas
 
-    def get_text_width(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE) -> float:
+    def get_text_width(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> float:
         """Calculate the width of the text."""
         font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
         char_data = font_atlas['char_data']
@@ -285,7 +293,7 @@ class TextRenderer:
                 total_w += (data['w'] * scale) + (2 * scale)
         return total_w
     
-    def _get_text_bounds(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE) -> tuple[float, float]:
+    def _get_text_bounds(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> tuple[float, float]:
         """Calculate the bounding box dimensions (width, height) of the text."""
         font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
         char_data = font_atlas['char_data']
@@ -351,7 +359,7 @@ class TextRenderer:
         
         return vertices
 
-    def _generate_vertices(self, text: str, pos: VectorType, scale: float = 1.0, 
+    def _generate_vertices(self, text: str, pos: tuple[float, float], scale: float = 1.0, 
             color: ColorType = WHITE, pivot: Pivots | int = Pivots.TOP_LEFT, char_data: dict = {} ) -> list[float]:
 
         if not char_data:
@@ -426,7 +434,7 @@ class TextRenderer:
             
         return vertices
 
-    def draw_text(self, text: str, pos: VectorType, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> None:
+    def draw_text(self, text: str, pos: tuple[float, float], scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> None:
         if not text:
             return
         
@@ -481,7 +489,7 @@ class TextRenderer:
         self.ctx.enable(moderngl.BLEND)
         self.vao.render(moderngl.TRIANGLES, vertices=len(vertices)//8)
 
-    def create_label(self, text: str, x: float, y: float, scale: float = 1.0, style: TextStyle = DEFAULT_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> TextLabel:
+    def create_label(self, text: str, x: float, y: float, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE, pivot: Pivots | int = Pivots.TOP_LEFT) -> TextLabel:
         if not text:
             # Return empty label with default texture
             font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)

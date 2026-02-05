@@ -358,12 +358,21 @@ cdef class Vector2D:
     
     def __truediv__(self, other):
         cdef Vector2D result
+        cdef Vector2D other_vec
         
         if isinstance(other, (int, float)):
             if other != 0.0:
                 result = self.copy()
                 result.idiv(other)
                 return result
+        elif isinstance(other, Vector2D):
+            other_vec = <Vector2D>other
+            result = Vector2D.__new__(Vector2D)
+            result.data = np.empty(2, dtype=np.float64)
+            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = self._data_ptr[0] / other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0.0
+            result._data_ptr[1] = self._data_ptr[1] / other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0.0
+            return result
         return NotImplemented
     
     def __iadd__(self, other):
@@ -392,6 +401,37 @@ cdef class Vector2D:
             self.idiv(other)
         return self
     
+    # Reverse operators (for 2 * vector, etc.)
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __rsub__(self, other):
+        cdef Vector2D result
+        
+        if isinstance(other, (int, float, np.integer, np.floating)):
+            result = Vector2D.__new__(Vector2D)
+            result.data = np.empty(2, dtype=np.float64)
+            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = other - self._data_ptr[0]
+            result._data_ptr[1] = other - self._data_ptr[1]
+            return result
+        return NotImplemented
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __rtruediv__(self, other):
+        cdef Vector2D result
+        
+        if isinstance(other, (int, float, np.integer, np.floating)):
+            result = Vector2D.__new__(Vector2D)
+            result.data = np.empty(2, dtype=np.float64)
+            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = other / self._data_ptr[0] if self._data_ptr[0] != 0 else 0.0
+            result._data_ptr[1] = other / self._data_ptr[1] if self._data_ptr[1] != 0 else 0.0
+            return result
+        return NotImplemented
+    
     def __neg__(self):
         return self.mul(-1.0)
     
@@ -402,6 +442,10 @@ cdef class Vector2D:
         result._data_ptr[0] = fabs(self._data_ptr[0])
         result._data_ptr[1] = fabs(self._data_ptr[1])
         return result
+    
+    def __call__(self):
+        """Return vector as tuple when called: v() -> (x, y)"""
+        return (self._data_ptr[0], self._data_ptr[1])
     
     def __getitem__(self, int idx):
         if idx == 0:

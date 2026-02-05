@@ -10,9 +10,6 @@ import moderngl
 from .cvectors import Vector2D
 from glfw import _GLFWwindow
 
-# Type alias for vector-like objects - use this for ALL 2D vectors, positions, and sizes
-# Accepts Vector2D instances, tuples (x, y), or lists [x, y]
-VectorType = Union[Vector2D, tuple[int | float, int | float], Sequence[int | float]]
 
 # Color type (RGBA values between 0.0 and 1.0)
 ColorType = tuple[float, float, float, float]
@@ -44,8 +41,6 @@ WindowType = _GLFWwindow
 
 
 __all__ = [
-    'VectorType',
-    'Vector2D',
     'ColorType',
     'Number',
     'IntVec2',

@@ -1,6 +1,7 @@
 from enum import Enum
 import glfw
-from .types import VectorType, WindowType
+from .types import WindowType
+from .vectors import Vector2D
 
 class KeyState(Enum):
     PRESSED = 1
@@ -39,25 +40,25 @@ class Keyboard:
         return False
 
 class Mouse:
-    position: VectorType
-    last_position: VectorType
-    delta: VectorType
-    scroll: VectorType
+    position: Vector2D
+    last_position: Vector2D
+    delta: Vector2D
+    scroll: Vector2D
     pressed: set[int]
     just_pressed: set[int]
     just_released: set[int]
     
     def __init__(self) -> None:
-        self.position = (0, 0)
-        self.last_position = (0, 0)
-        self.delta = (0, 0)
-        self.scroll = (0, 0)
+        self.position = Vector2D(0, 0)
+        self.last_position = Vector2D(0, 0)
+        self.delta = Vector2D(0, 0)
+        self.scroll = Vector2D(0, 0)
         self.pressed = set()
         self.just_pressed = set()
         self.just_released = set()
 
     def _on_cursor_pos(self, window: WindowType, x: float, y: float) -> None:
-        self.position = (x, y)
+        self.position.set(x, y)
 
     def _on_mouse_button(self, window: WindowType, button: int, action: int, mods: int) -> None:
         if action == glfw.PRESS:
@@ -68,14 +69,14 @@ class Mouse:
             self.just_released.add(button)
 
     def _on_scroll(self, window: WindowType, xoffset: float, yoffset: float) -> None:
-        self.scroll = (xoffset, yoffset)
+        self.scroll.set(xoffset, yoffset)
 
     def update(self) -> None:
-        self.delta = (self.position[0] - self.last_position[0], self.position[1] - self.last_position[1])
-        self.last_position = self.position
+        self.delta.set(self.position.x - self.last_position.x, self.position.y - self.last_position.y)
+        self.last_position.set(self.position.x, self.position.y)
         self.just_pressed.clear()
         self.just_released.clear()
-        self.scroll = (0, 0)
+        self.scroll.set(0, 0)
 
     def get_button(self, button: int, state: KeyState) -> bool:
         if state == KeyState.PRESSED:
