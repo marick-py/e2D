@@ -1,13 +1,52 @@
 # cython: language_level=3
 
 """
-Cython header file for Vector2D class
-Allows other Cython modules to use this without Python overhead
+Cython header file for Vector2D and Vector2Int classes
+Allows other Cython modules to use these without Python overhead
 """
 
 cimport numpy as cnp
 
 ctypedef cnp.float64_t DTYPE_t
+ctypedef cnp.int32_t INT_DTYPE_t
+
+cdef class Vector2Int:
+    cdef public cnp.ndarray data
+    cdef INT_DTYPE_t* _data_ptr
+    
+    # Fast inline methods
+    cdef inline long long _length_squared(self) nogil
+    cdef inline int _dot(self, Vector2Int other) nogil
+    
+    # cpdef methods
+    cpdef Vector2Int copy(self)
+    cpdef void set(self, int x, int y)
+    cpdef void iadd(self, Vector2Int other)
+    cpdef void isub(self, Vector2Int other)
+    cpdef void imul(self, int scalar)
+    cpdef void ifloordiv(self, int scalar)
+    cpdef void imod(self, int scalar)
+    cpdef void imul_vec(self, Vector2Int other)
+    cpdef void iadd_scalar(self, int scalar)
+    cpdef void isub_scalar(self, int scalar)
+    cpdef void iabs(self)
+    cpdef void clamp_inplace(self, Vector2Int min_val, Vector2Int max_val)
+    cpdef Vector2Int add(self, Vector2Int other)
+    cpdef Vector2Int sub(self, Vector2Int other)
+    cpdef Vector2Int mul(self, int scalar)
+    cpdef Vector2Int floordiv(self, int scalar)
+    cpdef Vector2Int mod(self, int scalar)
+    cpdef Vector2Int mul_vec(self, Vector2Int other)
+    cpdef Vector2Int abs_vec(self)
+    cpdef int dot_product(self, Vector2Int other)
+    cpdef long long distance_squared(self, Vector2Int other)
+    cpdef double distance_to(self, Vector2Int other)
+    cpdef int manhattan_distance(self, Vector2Int other)
+    cpdef int chebyshev_distance(self, Vector2Int other)
+    cpdef Vector2Int clamp(self, Vector2Int min_val, Vector2Int max_val)
+    cpdef Vector2D to_float(self)
+    cpdef tuple to_tuple(self)
+    cpdef list to_list(self)
 
 cdef class Vector2D:
     cdef public cnp.ndarray data
@@ -46,6 +85,7 @@ cdef class Vector2D:
     cpdef Vector2D reflection(self, Vector2D normal)
     cpdef list to_list(self)
     cpdef tuple to_tuple(self)
+    cpdef Vector2Int to_int(self)
 
 # Batch operation functions
 cpdef void batch_add_inplace(list vectors, Vector2D displacement)

@@ -4,8 +4,9 @@ Tests Vector2D class and batch operations without requiring a window
 """
 
 import numpy as np
+
 from e2D import (
-    Vector2D, V2, CommonVectors,
+    Vector2D, V2, V2I, CommonVectors,
     batch_add_inplace, batch_scale_inplace, batch_normalize_inplace,
     vectors_to_array, array_to_vectors, lerp, create_grid, create_circle
 )
@@ -293,6 +294,145 @@ def test_numpy_integration():
     
     print("✓ NumPy integration tests passed")
 
+
+def test_vector2int_precision():
+    """Test Vector2Int for exact integer precision (grid systems)"""
+    print("\n=== Vector2Int Precision ===")
+    
+    # The precision problem with floats
+    cell_pos_float = V2(3.0, 1.0)
+    cells_per_row_float = 10.0
+    index_float = cell_pos_float.x + cell_pos_float.y * cells_per_row_float
+    # This can produce 13.999999999999998 due to float precision
+    
+    # The solution with Vector2Int
+    cell_pos_int = V2I(3, 1)
+    cells_per_row_int = 10
+    index_int = cell_pos_int.x + cell_pos_int.y * cells_per_row_int
+    
+    assert index_int == 13, f"Vector2Int index calculation failed: {index_int} != 13"
+    assert isinstance(index_int, int), "Vector2Int should produce int results"
+    
+    print("✓ Vector2Int produces exact integer results")
+    print("✓ Vector2Int precision tests passed")
+
+
+def test_vector2int_operations():
+    """Test Vector2Int basic operations"""
+    print("\n=== Vector2Int Operations ===")
+    
+    v1 = V2I(10, 20)
+    v2 = V2I(5, 3)
+    
+    # Addition
+    v3 = v1 + v2
+    assert v3.x == 15 and v3.y == 23, "Vector2Int addition failed"
+    
+    # Subtraction
+    v4 = v1 - v2
+    assert v4.x == 5 and v4.y == 17, "Vector2Int subtraction failed"
+    
+    # Multiplication
+    v5 = v1 * 2
+    assert v5.x == 20 and v5.y == 40, "Vector2Int multiplication failed"
+    
+    # Floor division
+    v6 = v1 // 2
+    assert v6.x == 5 and v6.y == 10, "Vector2Int floor division failed"
+    
+    # Dot product
+    dot = v1.dot_product(v2)
+    expected_dot = 10 * 5 + 20 * 3
+    assert dot == expected_dot, "Vector2Int dot product failed"
+    
+    print("✓ Vector2Int operations tests passed")
+
+
+def test_vector2int_inplace():
+    """Test Vector2Int in-place operations"""
+    print("\n=== Vector2Int In-place Operations ===")
+    
+    # In-place addition
+    v1 = V2I(10, 20)
+    v1.iadd(V2I(5, 3))
+    assert v1.x == 15 and v1.y == 23, "Vector2Int in-place addition failed"
+    
+    # In-place subtraction
+    v2 = V2I(20, 30)
+    v2.isub(V2I(5, 10))
+    assert v2.x == 15 and v2.y == 20, "Vector2Int in-place subtraction failed"
+    
+    # In-place multiplication
+    v3 = V2I(5, 10)
+    v3.imul(3)
+    assert v3.x == 15 and v3.y == 30, "Vector2Int in-place multiplication failed"
+    
+    # In-place floor division (if supported)
+    if hasattr(V2I(1, 1), 'ifloordiv'):
+        v4 = V2I(20, 30)
+        v4.ifloordiv(2)
+        assert v4.x == 10 and v4.y == 15, "Vector2Int in-place floor division failed"
+    
+    print("✓ Vector2Int in-place operations tests passed")
+
+
+def test_vector2int_grid_system():
+    """Test Vector2Int for grid/tile systems"""
+    print("\n=== Vector2Int Grid System ===")
+    
+    # Create a grid system
+    grid_size = V2I(10, 10)
+    
+    # Test various grid positions
+    test_positions = [
+        (V2I(0, 0), 0),
+        (V2I(1, 0), 1),
+        (V2I(0, 1), 10),
+        (V2I(3, 1), 13),
+        (V2I(9, 9), 99),
+    ]
+    
+    for pos, expected_index in test_positions:
+        index = pos.x + pos.y * grid_size.x
+        assert index == expected_index, f"Grid index calculation failed for {pos}: {index} != {expected_index}"
+    
+    # Test neighbor calculation
+    center = V2I(5, 5)
+    directions = [V2I(0, 1), V2I(0, -1), V2I(-1, 0), V2I(1, 0)]
+    
+    expected_neighbors = [
+        V2I(5, 6),   # up
+        V2I(5, 4),   # down
+        V2I(4, 5),   # left
+        V2I(6, 5),   # right
+    ]
+    
+    for direction, expected in zip(directions, expected_neighbors):
+        neighbor = center + direction
+        assert neighbor.x == expected.x and neighbor.y == expected.y, "Neighbor calculation failed"
+    
+    print("✓ Vector2Int grid system tests passed")
+
+
+def test_vector2int_conversion():
+    """Test conversion between Vector2D and Vector2Int"""
+    print("\n=== Vector2Int Conversion ===")
+    
+    # Vector2Int to Vector2D
+    int_vec = V2I(5, 10)
+    float_vec = int_vec.to_float()
+    assert abs(float_vec.x - 5.0) < 0.001 and abs(float_vec.y - 10.0) < 0.001, "V2I to V2 conversion failed"
+    assert isinstance(float_vec, Vector2D), "to_float should return Vector2D"
+    
+    # Vector2D to Vector2Int (if method exists)
+    if hasattr(Vector2D, 'to_int'):
+        float_vec2 = V2(7.8, 12.3)
+        int_vec2 = float_vec2.to_int()
+        assert int_vec2.x == 7 and int_vec2.y == 12, "V2 to V2I conversion failed"
+    
+    print("✓ Vector2Int conversion tests passed")
+
+
 def run_all_tests():
     """Run all vector tests"""
     print("\n" + "="*50)
@@ -308,6 +448,13 @@ def run_all_tests():
     test_utility_functions()
     test_vector_properties()
     test_numpy_integration()
+    
+    # Vector2Int tests (if available)
+    test_vector2int_precision()
+    test_vector2int_operations()
+    test_vector2int_inplace()
+    test_vector2int_grid_system()
+    test_vector2int_conversion()
     
     print("\n" + "="*50)
     print("✓ ALL VECTOR TESTS PASSED")

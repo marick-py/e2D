@@ -21,7 +21,7 @@ del /s /q e2D\*.c 2>nul
 del /s /q e2D\*.html 2>nul
 
 echo.
-echo ✓ Cleanup complete!
+echo Cleanup complete!
 echo.
 echo Kept:
 echo   - Source code (.py, .pyx, .pxd)

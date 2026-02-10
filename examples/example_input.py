@@ -4,7 +4,7 @@ Shows Keys class, MouseButtons class, and input states (PRESSED, JUST_PRESSED, J
 """
 
 from e2D import (
-    RootEnv, DefEnv, V2,
+    RootEnv, DefEnv, V2, WindowConfig,
     Keyboard, Mouse, Keys, MouseButtons, KeyState,
     WHITE, RED, GREEN, BLUE, YELLOW, CYAN, TextStyle
 )
@@ -146,7 +146,13 @@ class InputExample(DefEnv):
 
 def main():
     """Run the input example"""
-    root = RootEnv(window_size=V2(900, 600), target_fps=60, title="e2D Input Example")
+    config = WindowConfig(
+        size=(900, 600),
+        title="e2D Input Example",
+        target_fps=60,
+        vsync=False
+    )
+    root = RootEnv(config=config)
     env = InputExample(root)
     root.init(env)
     root.loop()

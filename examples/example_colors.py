@@ -4,7 +4,7 @@ Shows color creation, manipulation, pre-defined colors, and color operations
 """
 
 from e2D import (
-    RootEnv, DefEnv, V2, Color,
+    RootEnv, DefEnv, V2, Color, WindowConfig,
     normalize_color, lerp_colors, gradient,
     WHITE, BLACK, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA,
     TextStyle
@@ -148,7 +148,13 @@ class ColorsExample(DefEnv):
 
 def main():
     """Run the colors example"""
-    root = RootEnv(window_size=V2(900, 600), target_fps=60, title="e2D Colors Example")
+    config = WindowConfig(
+        size=(900, 600),
+        title="e2D Colors Example",
+        target_fps=60,
+        vsync=False
+    )
+    root = RootEnv(config=config)
     env = ColorsExample(root)
     root.init(env)
     root.loop()

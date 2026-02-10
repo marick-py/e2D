@@ -462,6 +462,60 @@ cdef class Vector2D:
         else:
             raise IndexError("Index out of range")
     
+    # Comparison operators
+    def __eq__(self, other):
+        if isinstance(other, Vector2D):
+            return fabs(self._data_ptr[0] - (<Vector2D>other)._data_ptr[0]) < 1e-9 and \
+                   fabs(self._data_ptr[1] - (<Vector2D>other)._data_ptr[1]) < 1e-9
+        elif isinstance(other, Vector2Int):
+            return fabs(self._data_ptr[0] - <double>(<Vector2Int>other)._data_ptr[0]) < 1e-9 and \
+                   fabs(self._data_ptr[1] - <double>(<Vector2Int>other)._data_ptr[1]) < 1e-9
+        return False
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def __lt__(self, other):
+        """Less than (compares length for consistency)"""
+        if isinstance(other, Vector2D):
+            return self._length_squared() < (<Vector2D>other)._length_squared()
+        return NotImplemented
+    
+    def __le__(self, other):
+        """Less than or equal"""
+        if isinstance(other, Vector2D):
+            return self._length_squared() <= (<Vector2D>other)._length_squared()
+        return NotImplemented
+    
+    def __gt__(self, other):
+        """Greater than"""
+        if isinstance(other, Vector2D):
+            return self._length_squared() > (<Vector2D>other)._length_squared()
+        return NotImplemented
+    
+    def __ge__(self, other):
+        """Greater than or equal"""
+        if isinstance(other, Vector2D):
+            return self._length_squared() >= (<Vector2D>other)._length_squared()
+        return NotImplemented
+    
+    def __len__(self):
+        """Always returns 2 (for x, y)"""
+        return 2
+    
+    def __iter__(self):
+        """Allow iteration: x, y = vector"""
+        yield self._data_ptr[0]
+        yield self._data_ptr[1]
+    
+    def __hash__(self):
+        """Allow use in sets and as dict keys (rounded to avoid float issues)"""
+        return hash((round(self._data_ptr[0], 9), round(self._data_ptr[1], 9)))
+    
+    def __bool__(self):
+        """False if approximately (0, 0), True otherwise"""
+        return fabs(self._data_ptr[0]) > 1e-9 or fabs(self._data_ptr[1]) > 1e-9
+    
     def __str__(self):
         return f"Vector2D({self._data_ptr[0]:.6f}, {self._data_ptr[1]:.6f})"
     
@@ -476,6 +530,10 @@ cdef class Vector2D:
     cpdef tuple to_tuple(self):
         """Convert to Python tuple"""
         return (self._data_ptr[0], self._data_ptr[1])
+    
+    cpdef Vector2Int to_int(self):
+        """Convert to Vector2Int (truncates to integer)"""
+        return Vector2Int(<int>self._data_ptr[0], <int>self._data_ptr[1])
     
     # Class methods for common vectors
     @staticmethod
@@ -602,4 +660,531 @@ cpdef list array_to_vectors(cnp.ndarray[DTYPE_t, ndim=2] arr):
         result.append(vec)
     
     return result
+
+
+# ============================================================================
+# Vector2Int - Integer Vector for Grid Systems and Precise Calculations
+# ============================================================================
+
+ctypedef cnp.int32_t INT_DTYPE_t
+
+cdef class Vector2Int:
+    """
+    High-performance 2D integer vector class for grid systems and precise calculations.
+    
+    Perfect for:
+    - Grid coordinates (tilemaps, cells)
+    - Array indexing (no float precision errors)
+    - Discrete math operations
+    - Pathfinding (A*, BFS, DFS)
+    
+    Uses Cython with numpy int32 backend for maximum performance and precision.
+    """
+    
+    def __cinit__(self, int x=0, int y=0):
+        """Initialize vector with x, y integer components"""
+        self.data = np.array([x, y], dtype=np.int32)
+        self._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(self.data)
+    
+    # Property accessors with direct memory access
+    @property
+    def x(self):
+        return self._data_ptr[0]
+    
+    @x.setter
+    def x(self, int value):
+        self._data_ptr[0] = value
+    
+    @property
+    def y(self):
+        return self._data_ptr[1]
+    
+    @y.setter
+    def y(self, int value):
+        self._data_ptr[1] = value
+    
+    # Fast inline operations
+    @cython.cdivision(True)
+    cdef inline long long _length_squared(self) nogil:
+        """Calculate squared length (no sqrt, faster)"""
+        return <long long>self._data_ptr[0] * <long long>self._data_ptr[0] + <long long>self._data_ptr[1] * <long long>self._data_ptr[1]
+    
+    @property
+    def length_sqrd(self):
+        """Squared length (faster, avoids sqrt)"""
+        return self._length_squared()
+    
+    @property
+    def length(self):
+        """Vector length (magnitude) - returns float"""
+        return sqrt(<double>self._length_squared())
+    
+    cpdef Vector2Int copy(self):
+        """Fast copy"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = self.data.copy()
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        return result
+    
+    # In-place operations (fastest)
+    cpdef void set(self, int x, int y):
+        """Set both components"""
+        self._data_ptr[0] = x
+        self._data_ptr[1] = y
+    
+    cpdef void iadd(self, Vector2Int other):
+        """In-place addition"""
+        self._data_ptr[0] += other._data_ptr[0]
+        self._data_ptr[1] += other._data_ptr[1]
+    
+    cpdef void isub(self, Vector2Int other):
+        """In-place subtraction"""
+        self._data_ptr[0] -= other._data_ptr[0]
+        self._data_ptr[1] -= other._data_ptr[1]
+    
+    cpdef void imul(self, int scalar):
+        """In-place scalar multiplication"""
+        self._data_ptr[0] *= scalar
+        self._data_ptr[1] *= scalar
+    
+    cpdef void ifloordiv(self, int scalar):
+        """In-place integer floor division"""
+        if scalar != 0:
+            self._data_ptr[0] //= scalar
+            self._data_ptr[1] //= scalar
+    
+    cpdef void imod(self, int scalar):
+        """In-place modulo operation"""
+        if scalar != 0:
+            self._data_ptr[0] %= scalar
+            self._data_ptr[1] %= scalar
+    
+    cpdef void imul_vec(self, Vector2Int other):
+        """In-place component-wise multiplication"""
+        self._data_ptr[0] *= other._data_ptr[0]
+        self._data_ptr[1] *= other._data_ptr[1]
+    
+    cpdef void iadd_scalar(self, int scalar):
+        """In-place scalar addition"""
+        self._data_ptr[0] += scalar
+        self._data_ptr[1] += scalar
+    
+    cpdef void isub_scalar(self, int scalar):
+        """In-place scalar subtraction"""
+        self._data_ptr[0] -= scalar
+        self._data_ptr[1] -= scalar
+    
+    cpdef void iabs(self):
+        """Take absolute value in-place"""
+        if self._data_ptr[0] < 0:
+            self._data_ptr[0] = -self._data_ptr[0]
+        if self._data_ptr[1] < 0:
+            self._data_ptr[1] = -self._data_ptr[1]
+    
+    cpdef void clamp_inplace(self, Vector2Int min_val, Vector2Int max_val):
+        """Clamp components in-place"""
+        if self._data_ptr[0] < min_val._data_ptr[0]:
+            self._data_ptr[0] = min_val._data_ptr[0]
+        elif self._data_ptr[0] > max_val._data_ptr[0]:
+            self._data_ptr[0] = max_val._data_ptr[0]
+        
+        if self._data_ptr[1] < min_val._data_ptr[1]:
+            self._data_ptr[1] = min_val._data_ptr[1]
+        elif self._data_ptr[1] > max_val._data_ptr[1]:
+            self._data_ptr[1] = max_val._data_ptr[1]
+    
+    # New vector operations (return new instances)
+    cpdef Vector2Int add(self, Vector2Int other):
+        """Addition (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        result._data_ptr[0] = self._data_ptr[0] + other._data_ptr[0]
+        result._data_ptr[1] = self._data_ptr[1] + other._data_ptr[1]
+        return result
+    
+    cpdef Vector2Int sub(self, Vector2Int other):
+        """Subtraction (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        result._data_ptr[0] = self._data_ptr[0] - other._data_ptr[0]
+        result._data_ptr[1] = self._data_ptr[1] - other._data_ptr[1]
+        return result
+    
+    cpdef Vector2Int mul(self, int scalar):
+        """Scalar multiplication (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        result._data_ptr[0] = self._data_ptr[0] * scalar
+        result._data_ptr[1] = self._data_ptr[1] * scalar
+        return result
+    
+    cpdef Vector2Int floordiv(self, int scalar):
+        """Floor division (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        if scalar != 0:
+            result._data_ptr[0] = self._data_ptr[0] // scalar
+            result._data_ptr[1] = self._data_ptr[1] // scalar
+        else:
+            result._data_ptr[0] = 0
+            result._data_ptr[1] = 0
+        return result
+    
+    cpdef Vector2Int mod(self, int scalar):
+        """Modulo operation (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        if scalar != 0:
+            result._data_ptr[0] = self._data_ptr[0] % scalar
+            result._data_ptr[1] = self._data_ptr[1] % scalar
+        else:
+            result._data_ptr[0] = 0
+            result._data_ptr[1] = 0
+        return result
+    
+    cpdef Vector2Int mul_vec(self, Vector2Int other):
+        """Component-wise multiplication (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        result._data_ptr[0] = self._data_ptr[0] * other._data_ptr[0]
+        result._data_ptr[1] = self._data_ptr[1] * other._data_ptr[1]
+        return result
+    
+    cpdef Vector2Int abs_vec(self):
+        """Absolute value (returns new vector)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        result._data_ptr[0] = self._data_ptr[0] if self._data_ptr[0] >= 0 else -self._data_ptr[0]
+        result._data_ptr[1] = self._data_ptr[1] if self._data_ptr[1] >= 0 else -self._data_ptr[1]
+        return result
+    
+    @cython.cdivision(True)
+    cdef inline int _dot(self, Vector2Int other) nogil:
+        """Dot product (inline, no GIL)"""
+        return self._data_ptr[0] * other._data_ptr[0] + self._data_ptr[1] * other._data_ptr[1]
+    
+    cpdef int dot_product(self, Vector2Int other):
+        """Dot product"""
+        return self._dot(other)
+    
+    cpdef long long distance_squared(self, Vector2Int other):
+        """Squared distance to another vector (avoids sqrt)"""
+        cdef int dx
+        cdef int dy
+        
+        dx = self._data_ptr[0] - other._data_ptr[0]
+        dy = self._data_ptr[1] - other._data_ptr[1]
+        return <long long>dx * <long long>dx + <long long>dy * <long long>dy
+    
+    cpdef double distance_to(self, Vector2Int other):
+        """Distance to another vector (float result)"""
+        return sqrt(<double>self.distance_squared(other))
+    
+    cpdef int manhattan_distance(self, Vector2Int other):
+        """Manhattan distance (grid distance)"""
+        cdef int dx
+        cdef int dy
+        
+        dx = self._data_ptr[0] - other._data_ptr[0]
+        dy = self._data_ptr[1] - other._data_ptr[1]
+        
+        return (dx if dx >= 0 else -dx) + (dy if dy >= 0 else -dy)
+    
+    cpdef int chebyshev_distance(self, Vector2Int other):
+        """Chebyshev distance (max of abs differences)"""
+        cdef int dx
+        cdef int dy
+        cdef int abs_dx
+        cdef int abs_dy
+        
+        dx = self._data_ptr[0] - other._data_ptr[0]
+        dy = self._data_ptr[1] - other._data_ptr[1]
+        
+        abs_dx = dx if dx >= 0 else -dx
+        abs_dy = dy if dy >= 0 else -dy
+        
+        return abs_dx if abs_dx > abs_dy else abs_dy
+    
+    cpdef Vector2Int clamp(self, Vector2Int min_val, Vector2Int max_val):
+        """Clamp (returns new)"""
+        cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+        result.data = np.empty(2, dtype=np.int32)
+        result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+        
+        result._data_ptr[0] = self._data_ptr[0]
+        if result._data_ptr[0] < min_val._data_ptr[0]:
+            result._data_ptr[0] = min_val._data_ptr[0]
+        elif result._data_ptr[0] > max_val._data_ptr[0]:
+            result._data_ptr[0] = max_val._data_ptr[0]
+        
+        result._data_ptr[1] = self._data_ptr[1]
+        if result._data_ptr[1] < min_val._data_ptr[1]:
+            result._data_ptr[1] = min_val._data_ptr[1]
+        elif result._data_ptr[1] > max_val._data_ptr[1]:
+            result._data_ptr[1] = max_val._data_ptr[1]
+        
+        return result
+    
+    # Conversion methods
+    cpdef Vector2D to_float(self):
+        """Convert to Vector2D (float)"""
+        return Vector2D(<double>self._data_ptr[0], <double>self._data_ptr[1])
+    
+    cpdef tuple to_tuple(self):
+        """Convert to Python tuple"""
+        return (self._data_ptr[0], self._data_ptr[1])
+    
+    cpdef list to_list(self):
+        """Convert to Python list"""
+        return [self._data_ptr[0], self._data_ptr[1]]
+    
+    # Python operator overloads
+    def __add__(self, other):
+        cdef Vector2Int result
+        
+        if isinstance(other, Vector2Int):
+            return self.add(other)
+        elif isinstance(other, (int, np.integer)):
+            result = self.copy()
+            result.iadd_scalar(other)
+            return result
+        return NotImplemented
+    
+    def __sub__(self, other):
+        cdef Vector2Int result
+        
+        if isinstance(other, Vector2Int):
+            return self.sub(other)
+        elif isinstance(other, (int, np.integer)):
+            result = self.copy()
+            result.isub_scalar(other)
+            return result
+        return NotImplemented
+    
+    def __mul__(self, other):
+        if isinstance(other, (int, np.integer)):
+            return self.mul(other)
+        elif isinstance(other, Vector2Int):
+            return self.mul_vec(other)
+        return NotImplemented
+    
+    def __floordiv__(self, other):
+        if isinstance(other, (int, np.integer)):
+            return self.floordiv(other)
+        elif isinstance(other, Vector2Int):
+            cdef Vector2Int other_vec = <Vector2Int>other
+            cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+            result.data = np.empty(2, dtype=np.int32)
+            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = self._data_ptr[0] // other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
+            result._data_ptr[1] = self._data_ptr[1] // other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
+            return result
+        return NotImplemented
+    
+    def __mod__(self, other):
+        if isinstance(other, (int, np.integer)):
+            return self.mod(other)
+        elif isinstance(other, Vector2Int):
+            cdef Vector2Int other_vec = <Vector2Int>other
+            cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+            result.data = np.empty(2, dtype=np.int32)
+            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = self._data_ptr[0] % other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
+            result._data_ptr[1] = self._data_ptr[1] % other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
+            return result
+        return NotImplemented
+    
+    def __iadd__(self, other):
+        if isinstance(other, Vector2Int):
+            self.iadd(other)
+        elif isinstance(other, (int, np.integer)):
+            self.iadd_scalar(other)
+        return self
+    
+    def __isub__(self, other):
+        if isinstance(other, Vector2Int):
+            self.isub(other)
+        elif isinstance(other, (int, np.integer)):
+            self.isub_scalar(other)
+        return self
+    
+    def __imul__(self, other):
+        if isinstance(other, (int, np.integer)):
+            self.imul(other)
+        elif isinstance(other, Vector2Int):
+            self.imul_vec(other)
+        return self
+    
+    def __ifloordiv__(self, other):
+        if isinstance(other, (int, np.integer)) and other != 0:
+            self.ifloordiv(other)
+        return self
+    
+    def __imod__(self, other):
+        if isinstance(other, (int, np.integer)) and other != 0:
+            self.imod(other)
+        return self
+    
+    # Reverse operators
+    def __radd__(self, other):
+        return self.__add__(other)
+    
+    def __rsub__(self, other):
+        cdef Vector2Int result
+        
+        if isinstance(other, (int, np.integer)):
+            result = Vector2Int.__new__(Vector2Int)
+            result.data = np.empty(2, dtype=np.int32)
+            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = other - self._data_ptr[0]
+            result._data_ptr[1] = other - self._data_ptr[1]
+            return result
+        return NotImplemented
+    
+    def __rmul__(self, other):
+        return self.__mul__(other)
+    
+    def __rfloordiv__(self, other):
+        cdef Vector2Int result
+        
+        if isinstance(other, (int, np.integer)):
+            result = Vector2Int.__new__(Vector2Int)
+            result.data = np.empty(2, dtype=np.int32)
+            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
+            result._data_ptr[0] = other // self._data_ptr[0] if self._data_ptr[0] != 0 else 0
+            result._data_ptr[1] = other // self._data_ptr[1] if self._data_ptr[1] != 0 else 0
+            return result
+        return NotImplemented
+    
+    def __neg__(self):
+        return self.mul(-1)
+    
+    def __abs__(self):
+        return self.abs_vec()
+    
+    def __pos__(self):
+        return self.copy()
+    
+    # Comparison operators
+    def __eq__(self, other):
+        if isinstance(other, Vector2Int):
+            return self._data_ptr[0] == (<Vector2Int>other)._data_ptr[0] and \
+                   self._data_ptr[1] == (<Vector2Int>other)._data_ptr[1]
+        elif isinstance(other, Vector2D):
+            return <double>self._data_ptr[0] == (<Vector2D>other)._data_ptr[0] and \
+                   <double>self._data_ptr[1] == (<Vector2D>other)._data_ptr[1]
+        return False
+    
+    def __ne__(self, other):
+        return not self.__eq__(other)
+    
+    def __lt__(self, other):
+        """Less than (compares length squared for speed)"""
+        if isinstance(other, Vector2Int):
+            return self._length_squared() < (<Vector2Int>other)._length_squared()
+        return NotImplemented
+    
+    def __le__(self, other):
+        """Less than or equal"""
+        if isinstance(other, Vector2Int):
+            return self._length_squared() <= (<Vector2Int>other)._length_squared()
+        return NotImplemented
+    
+    def __gt__(self, other):
+        """Greater than"""
+        if isinstance(other, Vector2Int):
+            return self._length_squared() > (<Vector2Int>other)._length_squared()
+        return NotImplemented
+    
+    def __ge__(self, other):
+        """Greater than or equal"""
+        if isinstance(other, Vector2Int):
+            return self._length_squared() >= (<Vector2Int>other)._length_squared()
+        return NotImplemented
+    
+    def __call__(self):
+        """Return vector as tuple when called: v() -> (x, y)"""
+        return (self._data_ptr[0], self._data_ptr[1])
+    
+    def __getitem__(self, int idx):
+        if idx == 0:
+            return self._data_ptr[0]
+        elif idx == 1:
+            return self._data_ptr[1]
+        raise IndexError("Index out of range")
+    
+    def __setitem__(self, int idx, int value):
+        if idx == 0:
+            self._data_ptr[0] = value
+        elif idx == 1:
+            self._data_ptr[1] = value
+        else:
+            raise IndexError("Index out of range")
+    
+    def __len__(self):
+        """Always returns 2 (for x, y)"""
+        return 2
+    
+    def __iter__(self):
+        """Allow iteration: x, y = vector"""
+        yield self._data_ptr[0]
+        yield self._data_ptr[1]
+    
+    def __hash__(self):
+        """Allow use in sets and as dict keys"""
+        return hash((self._data_ptr[0], self._data_ptr[1]))
+    
+    def __bool__(self):
+        """False if (0, 0), True otherwise"""
+        return self._data_ptr[0] != 0 or self._data_ptr[1] != 0
+    
+    def __str__(self):
+        return f"Vector2Int({self._data_ptr[0]}, {self._data_ptr[1]})"
+    
+    def __repr__(self):
+        return f"Vector2Int({self._data_ptr[0]}, {self._data_ptr[1]})"
+    
+    # Class methods for common vectors
+    @staticmethod
+    def zero():
+        return Vector2Int(0, 0)
+    
+    @staticmethod
+    def one():
+        return Vector2Int(1, 1)
+    
+    @staticmethod
+    def up():
+        return Vector2Int(0, 1)
+    
+    @staticmethod
+    def down():
+        return Vector2Int(0, -1)
+    
+    @staticmethod
+    def left():
+        return Vector2Int(-1, 0)
+    
+    @staticmethod
+    def right():
+        return Vector2Int(1, 0)
+    
+    @staticmethod
+    def random(int min_val=0, int max_val=1):
+        """Create random integer vector"""
+        cdef int range_val
+        cdef int rx
+        cdef int ry
+        
+        range_val = max_val - min_val + 1
+        rx = (rand() % range_val) + min_val
+        ry = (rand() % range_val) + min_val
+        return Vector2Int(rx, ry)
 

@@ -4,7 +4,7 @@ Shows Vector2D creation, operations, batch processing, and performance
 """
 
 from e2D import (
-    RootEnv, DefEnv, V2, Vector2D, CommonVectors,
+    RootEnv, DefEnv, V2, Vector2D, CommonVectors, WindowConfig,
     batch_add_inplace, batch_scale_inplace, batch_normalize_inplace,
     vectors_to_array, create_circle, lerp,
     WHITE, RED, GREEN, BLUE, YELLOW, CYAN
@@ -113,7 +113,13 @@ class VectorsExample(DefEnv):
 
 def main():
     """Run the vectors example"""
-    root = RootEnv(window_size=V2(900, 600), target_fps=60, title="e2D Vectors Example")
+    config = WindowConfig(
+        size=(900, 600),
+        title="e2D Vectors Example",
+        target_fps=60,
+        vsync=False
+    )
+    root = RootEnv(config=config)
     env = VectorsExample(root)
     root.init(env)
     root.loop()

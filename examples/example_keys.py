@@ -2,7 +2,7 @@
 Example demonstrating the new Keys and MouseButtons classes for better autocompletion
 """
 
-from e2D import RootEnv, DefEnv, V2, Keys, MouseButtons, KeyState, WHITE, RED, GREEN, BLUE, YELLOW
+from e2D import RootEnv, DefEnv, V2, WindowConfig, Keys, MouseButtons, KeyState, WHITE, RED, GREEN, BLUE, YELLOW
 
 class KeysDemo(DefEnv):
     def __init__(self, root: RootEnv):
@@ -75,7 +75,12 @@ class KeysDemo(DefEnv):
         self.root.draw_circle(self.root.mouse.position, 5, color=WHITE)
 
 if __name__ == "__main__":
-    root = RootEnv(window_size=V2(800, 600), target_fps=60)
+    config = WindowConfig(
+        size=(800, 600),
+        target_fps=60,
+        vsync=False
+    )
+    root = RootEnv(config=config)
     env = KeysDemo(root)
     root.init(env)
     root.loop()

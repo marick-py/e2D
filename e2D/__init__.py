@@ -48,10 +48,12 @@ try:
 except ImportError:
     _COLOR_COMPILED = False
 
-# Import Vector2D - vectors.py handles Cython/Python fallback internally
+# Import Vector2D and Vector2Int - vectors.py handles Cython/Python fallback internally
 from .vectors import (
     Vector2D,
+    Vector2Int,
     V2,
+    V2I,
     CommonVectors,
     batch_add_inplace,
     batch_scale_inplace,
@@ -880,7 +882,9 @@ __all__ = [
     'WindowConfig',
     # Vector classes and utilities
     'Vector2D',
+    'Vector2Int',
     'V2',
+    'V2I',
     'CommonVectors',
     'batch_add_inplace',
     'batch_scale_inplace',

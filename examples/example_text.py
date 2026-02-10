@@ -4,7 +4,7 @@ Shows basic text, styles, pivots, cached labels, and backgrounds
 """
 
 from e2D import (
-    RootEnv, DefEnv, V2,
+    RootEnv, DefEnv, V2, WindowConfig,
     TextRenderer, TextLabel, TextStyle, Pivots,
     DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE,
     WHITE, BLACK, RED, BLUE, GREEN, YELLOW, CYAN
@@ -156,7 +156,13 @@ class TextExample(DefEnv):
 
 def main():
     """Run the text example"""
-    root = RootEnv(window_size=V2(900, 600), target_fps=60, title="e2D Text Example")
+    config = WindowConfig(
+        size=(900, 600),
+        title="e2D Text Example",
+        target_fps=60,
+        vsync=False
+    )
+    root = RootEnv(config=config)
     env = TextExample(root)
     root.init(env)
     root.loop()

@@ -1,5 +1,5 @@
 """
-High-level Python wrapper for Vector2D with additional utilities
+High-level Python wrapper for Vector2D and Vector2Int with additional utilities
 Provides compatibility layer and convenience functions
 """
 
@@ -10,6 +10,7 @@ import numpy as np
 # Import compiled Cython implementation (required)
 from .cvectors import ( # type: ignore
     Vector2D,
+    Vector2Int,
     batch_add_inplace,
     batch_scale_inplace,
     batch_normalize_inplace,
@@ -21,6 +22,8 @@ from .cvectors import ( # type: ignore
 # Convenience aliases
 V2 = Vector2D
 Vec2 = Vector2D
+V2I = Vector2Int
+Vec2I = Vector2Int
 
 
 # Pre-defined common vectors (reusable instances for performance)
