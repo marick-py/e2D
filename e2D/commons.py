@@ -82,3 +82,8 @@ def set_pattr_value(prog_id: str | ProgramType, name: str, value: Number | pArra
         attr.write(data.tobytes())
     else:
         attr.value = value
+
+PI = np.pi
+PI_HALF = np.pi / 2
+PI_QUARTER = np.pi / 4
+TAU = np.pi * 2

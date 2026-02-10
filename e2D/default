@@ -1,4 +1,4 @@
-from e2D import RootEnv, DefEnv, WindowConfig
+from e2D import RootEnv, DefEnv
 from e2D import WHITE, RED, GREEN, BLUE, Keys, KeyState
 from e2D.vectors import Vector2D, V2
 
@@ -15,16 +15,12 @@ class MyApp(DefEnv):
 
 
 # Create the window and rendering environment
-win_conf = WindowConfig(
-    size=V2(1920, 1080),  # Window width and height
+root = RootEnv(
+    window_size=V2(1920, 1080),  # Window width and height
     target_fps=60,              # Target frame rate
     title="My e2D App",         # Window title
     vsync=True,                 # Enable vertical sync
     resizable=False             # Allow window resizing
-)
-
-root = RootEnv(
-    config=win_conf,
 )
 
 # Initialize your application
