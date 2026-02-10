@@ -328,8 +328,6 @@ cdef class Vector2D:
     
     # Python operator overloads
     def __add__(self, other):
-        cdef Vector2D result
-        
         if isinstance(other, Vector2D):
             return self.add(other)
         elif isinstance(other, (int, float)):
@@ -339,8 +337,6 @@ cdef class Vector2D:
         return NotImplemented
     
     def __sub__(self, other):
-        cdef Vector2D result
-        
         if isinstance(other, Vector2D):
             return self.sub(other)
         elif isinstance(other, (int, float)):
@@ -357,9 +353,6 @@ cdef class Vector2D:
         return NotImplemented
     
     def __truediv__(self, other):
-        cdef Vector2D result
-        cdef Vector2D other_vec
-        
         if isinstance(other, (int, float)):
             if other != 0.0:
                 result = self.copy()
@@ -406,8 +399,6 @@ cdef class Vector2D:
         return self.__add__(other)
     
     def __rsub__(self, other):
-        cdef Vector2D result
-        
         if isinstance(other, (int, float, np.integer, np.floating)):
             result = Vector2D.__new__(Vector2D)
             result.data = np.empty(2, dtype=np.float64)
@@ -421,8 +412,6 @@ cdef class Vector2D:
         return self.__mul__(other)
     
     def __rtruediv__(self, other):
-        cdef Vector2D result
-        
         if isinstance(other, (int, float, np.integer, np.floating)):
             result = Vector2D.__new__(Vector2D)
             result.data = np.empty(2, dtype=np.float64)
@@ -947,8 +936,6 @@ cdef class Vector2Int:
     
     # Python operator overloads
     def __add__(self, other):
-        cdef Vector2Int result
-        
         if isinstance(other, Vector2Int):
             return self.add(other)
         elif isinstance(other, (int, np.integer)):
@@ -958,8 +945,6 @@ cdef class Vector2Int:
         return NotImplemented
     
     def __sub__(self, other):
-        cdef Vector2Int result
-        
         if isinstance(other, Vector2Int):
             return self.sub(other)
         elif isinstance(other, (int, np.integer)):
@@ -979,8 +964,8 @@ cdef class Vector2Int:
         if isinstance(other, (int, np.integer)):
             return self.floordiv(other)
         elif isinstance(other, Vector2Int):
-            cdef Vector2Int other_vec = <Vector2Int>other
-            cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+            other_vec = <Vector2Int>other
+            result = Vector2Int.__new__(Vector2Int)
             result.data = np.empty(2, dtype=np.int32)
             result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
             result._data_ptr[0] = self._data_ptr[0] // other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
@@ -992,8 +977,8 @@ cdef class Vector2Int:
         if isinstance(other, (int, np.integer)):
             return self.mod(other)
         elif isinstance(other, Vector2Int):
-            cdef Vector2Int other_vec = <Vector2Int>other
-            cdef Vector2Int result = Vector2Int.__new__(Vector2Int)
+            other_vec = <Vector2Int>other
+            result = Vector2Int.__new__(Vector2Int)
             result.data = np.empty(2, dtype=np.int32)
             result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
             result._data_ptr[0] = self._data_ptr[0] % other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
@@ -1037,8 +1022,6 @@ cdef class Vector2Int:
         return self.__add__(other)
     
     def __rsub__(self, other):
-        cdef Vector2Int result
-        
         if isinstance(other, (int, np.integer)):
             result = Vector2Int.__new__(Vector2Int)
             result.data = np.empty(2, dtype=np.int32)
@@ -1052,8 +1035,6 @@ cdef class Vector2Int:
         return self.__mul__(other)
     
     def __rfloordiv__(self, other):
-        cdef Vector2Int result
-        
         if isinstance(other, (int, np.integer)):
             result = Vector2Int.__new__(Vector2Int)
             result.data = np.empty(2, dtype=np.int32)
