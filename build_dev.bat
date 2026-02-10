@@ -21,7 +21,7 @@ echo Cleaned build artifacts
 echo.
 echo Step 2: Build Cython extensions in-place
 echo ============================================
-python setup.py build_ext --inplace
+py -3.13 setup.py build_ext --inplace
 if errorlevel 1 (
     echo.
     echo ============================================
@@ -40,6 +40,6 @@ echo.
 echo Extensions compiled to e2D/ directory
 echo You can now test locally before publishing
 echo.
-echo To test: python -c "from e2D import Vector2D, Vector2Int, V2, V2I; print('OK')"
+echo To test: py -3.13 -c "from e2D import Vector2D, Vector2Int, V2, V2I; print('OK')"
 echo.
 pause

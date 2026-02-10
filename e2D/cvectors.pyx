@@ -360,12 +360,9 @@ cdef class Vector2D:
                 return result
         elif isinstance(other, Vector2D):
             other_vec = <Vector2D>other
-            result = Vector2D.__new__(Vector2D)
-            result.data = np.empty(2, dtype=np.float64)
-            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = self._data_ptr[0] / other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0.0
-            result._data_ptr[1] = self._data_ptr[1] / other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0.0
-            return result
+            x_val = self._data_ptr[0] / other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0.0
+            y_val = self._data_ptr[1] / other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0.0
+            return Vector2D(x_val, y_val)
         return NotImplemented
     
     def __iadd__(self, other):
@@ -400,12 +397,9 @@ cdef class Vector2D:
     
     def __rsub__(self, other):
         if isinstance(other, (int, float, np.integer, np.floating)):
-            result = Vector2D.__new__(Vector2D)
-            result.data = np.empty(2, dtype=np.float64)
-            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = other - self._data_ptr[0]
-            result._data_ptr[1] = other - self._data_ptr[1]
-            return result
+            x_val = other - self._data_ptr[0]
+            y_val = other - self._data_ptr[1]
+            return Vector2D(x_val, y_val)
         return NotImplemented
     
     def __rmul__(self, other):
@@ -413,12 +407,9 @@ cdef class Vector2D:
     
     def __rtruediv__(self, other):
         if isinstance(other, (int, float, np.integer, np.floating)):
-            result = Vector2D.__new__(Vector2D)
-            result.data = np.empty(2, dtype=np.float64)
-            result._data_ptr = <DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = other / self._data_ptr[0] if self._data_ptr[0] != 0 else 0.0
-            result._data_ptr[1] = other / self._data_ptr[1] if self._data_ptr[1] != 0 else 0.0
-            return result
+            x_val = other / self._data_ptr[0] if self._data_ptr[0] != 0 else 0.0
+            y_val = other / self._data_ptr[1] if self._data_ptr[1] != 0 else 0.0
+            return Vector2D(x_val, y_val)
         return NotImplemented
     
     def __neg__(self):
@@ -654,8 +645,6 @@ cpdef list array_to_vectors(cnp.ndarray[DTYPE_t, ndim=2] arr):
 # ============================================================================
 # Vector2Int - Integer Vector for Grid Systems and Precise Calculations
 # ============================================================================
-
-ctypedef cnp.int32_t INT_DTYPE_t
 
 cdef class Vector2Int:
     """
@@ -965,12 +954,9 @@ cdef class Vector2Int:
             return self.floordiv(other)
         elif isinstance(other, Vector2Int):
             other_vec = <Vector2Int>other
-            result = Vector2Int.__new__(Vector2Int)
-            result.data = np.empty(2, dtype=np.int32)
-            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = self._data_ptr[0] // other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
-            result._data_ptr[1] = self._data_ptr[1] // other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
-            return result
+            x_val = self._data_ptr[0] // other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
+            y_val = self._data_ptr[1] // other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
+            return Vector2Int(x_val, y_val)
         return NotImplemented
     
     def __mod__(self, other):
@@ -978,12 +964,9 @@ cdef class Vector2Int:
             return self.mod(other)
         elif isinstance(other, Vector2Int):
             other_vec = <Vector2Int>other
-            result = Vector2Int.__new__(Vector2Int)
-            result.data = np.empty(2, dtype=np.int32)
-            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = self._data_ptr[0] % other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
-            result._data_ptr[1] = self._data_ptr[1] % other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
-            return result
+            x_val = self._data_ptr[0] % other_vec._data_ptr[0] if other_vec._data_ptr[0] != 0 else 0
+            y_val = self._data_ptr[1] % other_vec._data_ptr[1] if other_vec._data_ptr[1] != 0 else 0
+            return Vector2Int(x_val, y_val)
         return NotImplemented
     
     def __iadd__(self, other):
@@ -1023,12 +1006,9 @@ cdef class Vector2Int:
     
     def __rsub__(self, other):
         if isinstance(other, (int, np.integer)):
-            result = Vector2Int.__new__(Vector2Int)
-            result.data = np.empty(2, dtype=np.int32)
-            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = other - self._data_ptr[0]
-            result._data_ptr[1] = other - self._data_ptr[1]
-            return result
+            x_val = other - self._data_ptr[0]
+            y_val = other - self._data_ptr[1]
+            return Vector2Int(x_val, y_val)
         return NotImplemented
     
     def __rmul__(self, other):
@@ -1036,12 +1016,9 @@ cdef class Vector2Int:
     
     def __rfloordiv__(self, other):
         if isinstance(other, (int, np.integer)):
-            result = Vector2Int.__new__(Vector2Int)
-            result.data = np.empty(2, dtype=np.int32)
-            result._data_ptr = <INT_DTYPE_t*> cnp.PyArray_DATA(result.data)
-            result._data_ptr[0] = other // self._data_ptr[0] if self._data_ptr[0] != 0 else 0
-            result._data_ptr[1] = other // self._data_ptr[1] if self._data_ptr[1] != 0 else 0
-            return result
+            x_val = other // self._data_ptr[0] if self._data_ptr[0] != 0 else 0
+            y_val = other // self._data_ptr[1] if self._data_ptr[1] != 0 else 0
+            return Vector2Int(x_val, y_val)
         return NotImplemented
     
     def __neg__(self):

@@ -50,6 +50,8 @@ dev = [
     "build",
     "twine",
     "pytest",
+    "pytest-asyncio",
+    "pytest-xprocess",
     "black",
     "mypy",
 ]
@@ -70,3 +72,9 @@ Issues = "https://github.com/marick-py/e2D/issues"
 
 [tool.setuptools.dynamic]
 version = {attr = "e2D.__version__"}
+
+[tool.pytest.ini_options]
+addopts = "-p no:anchorpy -p no:pytest_xprocess"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
