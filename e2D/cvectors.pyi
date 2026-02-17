@@ -167,6 +167,10 @@ class Vector2Int:
         """Convert to Python list"""
         ...
     
+    def to_array(self) -> np.ndarray:
+        """Conver to numpy array"""
+        ...
+    
     # Operators
     def __add__(self, other: Union[Vector2Int, int]) -> Vector2Int: ...
     def __sub__(self, other: Union[Vector2Int, int]) -> Vector2Int: ...
@@ -431,6 +435,10 @@ class Vector2D:
     
     def to_int(self) -> Vector2Int:
         """Convert to Vector2Int (truncates to integer)"""
+        ...
+    
+    def to_array(self) -> np.ndarray:
+        """Conver to numpy array"""
         ...
     
     # Class methods for common vectors

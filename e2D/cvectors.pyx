@@ -515,6 +515,10 @@ cdef class Vector2D:
         """Convert to Vector2Int (truncates to integer)"""
         return Vector2Int(<int>self._data_ptr[0], <int>self._data_ptr[1])
     
+    cpdef cnp.ndarray to_array(self):
+        """Convert to numpy array"""
+        return self.data
+    
     # Class methods for common vectors
     @staticmethod
     def zero():
@@ -922,6 +926,10 @@ cdef class Vector2Int:
     cpdef list to_list(self):
         """Convert to Python list"""
         return [self._data_ptr[0], self._data_ptr[1]]
+    
+    cpdef cnp.ndarray to_array(self):
+        """Convert to numpy array"""
+        return self.data
     
     # Python operator overloads
     def __add__(self, other):

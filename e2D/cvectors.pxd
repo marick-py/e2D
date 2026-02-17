@@ -47,6 +47,7 @@ cdef class Vector2Int:
     cpdef Vector2D to_float(self)
     cpdef tuple to_tuple(self)
     cpdef list to_list(self)
+    cpdef cnp.ndarray to_array(self)
 
 cdef class Vector2D:
     cdef public cnp.ndarray data
@@ -86,6 +87,7 @@ cdef class Vector2D:
     cpdef list to_list(self)
     cpdef tuple to_tuple(self)
     cpdef Vector2Int to_int(self)
+    cpdef cnp.ndarray to_array(self)
 
 # Batch operation functions
 cpdef void batch_add_inplace(list vectors, Vector2D displacement)

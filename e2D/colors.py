@@ -4,7 +4,7 @@ Designed for ModernGL and GLTF compatibility (0.0-1.0 range)
 """
 
 from __future__ import annotations
-from typing import Union, Sequence, overload, TYPE_CHECKING, TypeAlias
+from typing import Iterator, Union, Sequence, overload, TYPE_CHECKING, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 from colorsys import hsv_to_rgb, hls_to_rgb, rgb_to_hsv, rgb_to_hls
@@ -235,9 +235,20 @@ class Color:
     
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, Color):
-            return False
+            if isinstance(other, tuple):
+                if len(other) == 4:
+                    return self.to_rgba() == other
+                else:
+                    return self.to_rgb() == other and self._a == 1.0
+            return NotImplemented
         return (self._r == other._r and self._g == other._g and 
                 self._b == other._b and self._a == other._a)
+
+    def __ne__(self, other: object) -> bool:
+        eq = self.__eq__(other)
+        if eq is NotImplemented:
+            return NotImplemented
+        return not eq
     
     def __hash__(self) -> int:
         return hash((self._r, self._g, self._b, self._a))
@@ -248,7 +259,7 @@ class Color:
     def __str__(self) -> str:
         return self.to_hex(include_alpha=True)
     
-    def __iter__(self):
+    def __iter__(self) -> Iterator[float]:
         """Support tuple unpacking: r, g, b, a = color"""
         return iter((self._r, self._g, self._b, self._a))
     
