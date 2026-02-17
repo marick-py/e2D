@@ -213,7 +213,7 @@ class Plot2D:
     def render(self, draw_callback) -> None:
         self.ctx.viewport = self.viewport
         self.ctx.scissor = self.viewport
-        self.ctx.clear(*normalize_color(self.settings.bg_color))
+        self.ctx.clear(*normalize_color(self.settings.bg_color).to_array())
         
         self.view.buffer.bind_to_uniform_block(0)
         

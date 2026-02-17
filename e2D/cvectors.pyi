@@ -497,3 +497,7 @@ def vectors_to_array(vectors: List[Vector2D]) -> npt.NDArray[np.float64]:
 def array_to_vectors(arr: npt.NDArray[np.float64]) -> List[Vector2D]:
     """Convert numpy array to list of vectors (fast)"""
     ...
+
+def seed_rng(seed: int) -> None:
+    """Seed the C RNG used by Vector2D/Vector2Int random()"""
+    ...

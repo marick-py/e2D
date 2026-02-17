@@ -330,63 +330,67 @@ class Color:
 
 
 # Utility functions for batch operations
-def normalize_color(color: ColorInput) -> tuple[float, float, float, float]:
+def normalize_color(color: ColorInput) -> Color:
     """
     Normalize various color inputs to RGBA float tuple.
     Supports: Color objects, tuples, lists, hex strings, single floats
     Always returns a tuple for performance (avoids Color object creation).
     """
     if isinstance(color, Color):
-        return color.to_rgba()
+        return color
     elif isinstance(color, str):
-        return Color.from_hex(color).to_rgba()
+        return Color.from_hex(color)
     elif isinstance(color, (int, float)):
         v = float(color)
-        return (v, v, v, 1.0)
+        return Color(v, v, v, 1.0)
     elif isinstance(color, (tuple, list)):
         if len(color) == 3:
-            return (float(color[0]), float(color[1]), float(color[2]), 1.0)
+            return Color(float(color[0]), float(color[1]), float(color[2]), 1.0)
         elif len(color) == 4:
-            return (float(color[0]), float(color[1]), float(color[2]), float(color[3]))
+            return Color(float(color[0]), float(color[1]), float(color[2]), float(color[3]))
         raise ValueError(f"Color tuple must have 3 or 4 elements, got {len(color)}")
     raise TypeError(f"Cannot convert {type(color)} to color")
 
 
-def lerp_colors(color1: ColorInput, color2: ColorInput, t: float) -> tuple[float, float, float, float]:
+def lerp_colors(color1: ColorInput, color2: ColorInput, t: float) -> Color:
     """Interpolate between two colors"""
     c1 = normalize_color(color1)
     c2 = normalize_color(color2)
-    return (
+    return Color(
         c1[0] + (c2[0] - c1[0]) * t,
         c1[1] + (c2[1] - c1[1]) * t,
         c1[2] + (c2[2] - c1[2]) * t,
         c1[3] + (c2[3] - c1[3]) * t
     )
 
-
-def gradient(colors: list[ColorInput], steps: int) -> list[tuple[float, float, float, float]]:
+def gradient(colors: list[ColorInput], output_count: int, to_array_batch: bool = False) -> list[Color] | NDArray[np.float32]:
     """Generate gradient between multiple colors"""
     if len(colors) < 2:
         raise ValueError("Need at least 2 colors for gradient")
     
     normalized = [normalize_color(c) for c in colors]
-    result: list[tuple[float, float, float, float]] = []
+    result: list[Color] = []
     
     segments = len(normalized) - 1
-    steps_per_segment = steps // segments
+    steps_per_segment = (output_count - 1) // segments if segments > 0 else 0
+    error = (output_count - 1) % segments  # Distribute remaining steps
     
     for i in range(segments):
-        for j in range(steps_per_segment):
-            t = j / steps_per_segment
+        for j in range(steps_per_segment + (1 if error > 0 else 0)):
+            t = j / steps_per_segment if steps_per_segment > 0 else 0
             result.append(lerp_colors(normalized[i], normalized[i + 1], t))
+        error -= 1
     
     result.append(normalized[-1])
-    return result
+    
+    if to_array_batch:
+        return batch_colors_to_array(result)
 
+    return result
 
 def batch_colors_to_array(colors: Sequence[ColorInput]) -> NDArray[np.float32]:
     """Convert list of colors to numpy array for GPU"""
     result = np.empty((len(colors), 4), dtype=np.float32)
     for i, color in enumerate(colors):
-        result[i] = normalize_color(color)
+        result[i] = normalize_color(color).to_array()
     return result

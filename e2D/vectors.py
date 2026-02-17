@@ -3,10 +3,6 @@ High-level Python wrapper for Vector2D and Vector2Int with additional utilities
 Provides compatibility layer and convenience functions
 """
 
-from typing import List
-from numpy.typing import NDArray
-import numpy as np
-
 # Import compiled Cython implementation (required)
 from .cvectors import ( # type: ignore
     Vector2D,
@@ -16,6 +12,7 @@ from .cvectors import ( # type: ignore
     batch_normalize_inplace,
     vectors_to_array,
     array_to_vectors,
+    seed_rng,
 )
 
 
@@ -78,6 +75,7 @@ __all__ = [
     'batch_normalize_inplace',
     'vectors_to_array',
     'array_to_vectors',
+    'seed_rng',
 ]
 
 

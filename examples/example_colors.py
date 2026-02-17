@@ -114,12 +114,12 @@ class ColorsExample(DefEnv):
         self.root.print("Gradients:", V2(500, 280), scale=1.2)
         
         # Two-color gradient
-        colors = gradient([RED, BLUE], steps=20)
+        colors = gradient([RED, BLUE], 20)
         for i, color in enumerate(colors):
             self.root.draw_rect(V2(500 + i * 15, 310), V2(14, 30), color=color)
         
         # Multi-color gradient
-        colors = gradient([RED, GREEN, BLUE], steps=20)
+        colors = gradient([RED, GREEN, BLUE], 20)
         for i, color in enumerate(colors):
             self.root.draw_rect(V2(500 + i * 15, 350), V2(14, 30), color=color)
         

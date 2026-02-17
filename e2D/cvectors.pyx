@@ -15,9 +15,13 @@ import numpy as np
 cimport numpy as cnp
 cimport cython
 from libc.math cimport sqrt, sin, cos, atan2, floor, ceil, fabs, fmod, pow as c_pow
-from libc.stdlib cimport rand, RAND_MAX
+from libc.stdlib cimport rand, RAND_MAX, srand
 
 cnp.import_array()
+
+cpdef void seed_rng(unsigned int seed):
+    """Seed the C RNG used by Vector2D/Vector2Int random()"""
+    srand(seed)
 
 cdef class Vector2D:
     """

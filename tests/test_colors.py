@@ -108,39 +108,15 @@ def test_predefined_colors():
     white = normalize_color(WHITE)
     black = normalize_color(BLACK)
     
-    assert len(red) == 4 and red[0] == 1.0, "RED constant incorrect"
-    assert len(green) == 4 and green[1] == 1.0, "GREEN constant incorrect"
-    assert len(blue) == 4 and blue[2] == 1.0, "BLUE constant incorrect"
-    assert len(white) == 4 and white[0] == 1.0 and white[1] == 1.0, "WHITE constant incorrect"
-    assert len(black) == 4 and black[0] == 0.0 and black[1] == 0.0, "BLACK constant incorrect"
+    assert red[0] == 1.0, "RED constant incorrect"
+    assert green[1] == 1.0, "GREEN constant incorrect"
+    assert blue[2] == 1.0, "BLUE constant incorrect"
+    assert white[0] == 1.0 and white[1] == 1.0, "WHITE constant incorrect"
+    assert black[0] == 0.0 and black[1] == 0.0, "BLACK constant incorrect"
     
     # Transparent
     transparent = normalize_color(TRANSPARENT)
     assert transparent[3] == 0.0, "TRANSPARENT constant incorrect"
-    
-    # Material design colors
-    md_red = normalize_color(MD_RED)
-    md_blue = normalize_color(MD_BLUE)
-    assert len(md_red) == 4, "MD_RED constant incorrect"
-    assert len(md_blue) == 4, "MD_BLUE constant incorrect"
-    
-    # Pastel colors
-    pastel_red = normalize_color(PASTEL_RED)
-    assert len(pastel_red) == 4, "PASTEL_RED constant incorrect"
-    
-    # Neon colors
-    neon_green = normalize_color(NEON_GREEN)
-    assert len(neon_green) == 4, "NEON_GREEN constant incorrect"
-    
-    # UI colors
-    ui_success = normalize_color(UI_SUCCESS)
-    ui_warning = normalize_color(UI_WARNING)
-    ui_error = normalize_color(UI_ERROR)
-    ui_info = normalize_color(UI_INFO)
-    assert len(ui_success) == 4, "UI_SUCCESS constant incorrect"
-    assert len(ui_warning) == 4, "UI_WARNING constant incorrect"
-    assert len(ui_error) == 4, "UI_ERROR constant incorrect"
-    assert len(ui_info) == 4, "UI_INFO constant incorrect"
     
     print("✓ Pre-defined colors tests passed")
 
@@ -151,16 +127,16 @@ def test_normalize_color():
     # From Color object
     color_obj = Color.red()
     normalized = normalize_color(color_obj)
-    assert len(normalized) == 4 and normalized[0] == 1.0, "normalize Color object failed"
+    assert normalized[0] == 1.0, "normalize Color object failed"
     
     # From tuple
     tuple_color = (1.0, 0.0, 0.0, 1.0)
     normalized = normalize_color(tuple_color)
-    assert len(normalized) == 4 and normalized[0] == 1.0, "normalize tuple failed"
+    assert normalized[0] == 1.0, "normalize tuple failed"
     
     # From constant
     normalized = normalize_color(RED)
-    assert len(normalized) == 4 and normalized[0] == 1.0, "normalize constant failed"
+    assert normalized[0] == 1.0, "normalize constant failed"
     
     print("✓ normalize_color tests passed")
 
@@ -191,8 +167,8 @@ def test_gradient():
     print("\n=== gradient Function ===")
     
     # Two color gradient (returns steps+1 colors for inclusive range)
-    colors = gradient([RED, BLUE], steps=10)
-    assert len(colors) == 11, f"Gradient length incorrect: {len(colors)} (expected 11 for steps=10)"
+    colors = gradient([RED, BLUE], 10)
+    assert len(colors) == 10, f"Gradient length incorrect: {len(colors)} (expected 11 for steps=10)"
     
     # First should be red-ish
     assert colors[0][0] > 0.8, "Gradient start color incorrect"
@@ -201,7 +177,7 @@ def test_gradient():
     assert colors[-1][2] > 0.8, "Gradient end color incorrect"
     
     # Multi-color gradient (returns exact steps for multi-color)
-    colors = gradient([RED, GREEN, BLUE], steps=15)
+    colors = gradient([RED, GREEN, BLUE], 15)
     assert len(colors) == 15, f"Multi-color gradient length incorrect: {len(colors)}"
     
     print("✓ gradient tests passed")

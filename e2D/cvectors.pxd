@@ -95,4 +95,5 @@ cpdef void batch_scale_inplace(list vectors, double scalar)
 cpdef void batch_normalize_inplace(list vectors)
 cpdef cnp.ndarray vectors_to_array(list vectors)
 cpdef list array_to_vectors(cnp.ndarray arr)
+cpdef void seed_rng(unsigned int seed)
 

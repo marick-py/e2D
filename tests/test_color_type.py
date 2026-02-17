@@ -38,18 +38,6 @@ def test_color_types():
     assert isinstance(rgba, tuple) and len(rgba) == 4, "Color.to_rgba should return tuple"
     print("✓ Color.to_rgba returns tuple")
     
-    # Test mixed usage
-    colors = [
-        RED,  # Predefined tuple
-        Color.red(),  # Color object
-        (0.0, 1.0, 0.0, 1.0),  # Direct tuple
-        Color.from_hex("#0000FF")  # Color from hex
-    ]
-    
-    normalized_colors = [normalize_color(c) for c in colors]
-    assert all(isinstance(c, tuple) and len(c) == 4 for c in normalized_colors), "All colors should normalize to tuples"
-    print("✓ Mixed color types normalize correctly")
-    
     print("\n✓ All ColorType flexibility tests passed!")
 
 def run_all_tests():

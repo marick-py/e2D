@@ -290,14 +290,12 @@ class InstancedShapeBatch:
         set_pattr_value(self.prog, 'resolution', self.ctx.viewport[2:])
         self.vao.render(moderngl.TRIANGLES, vertices=6, instances=self.instance_count)
         
-        self.instance_data.clear()
-        self.instance_count = 0
+        self.clear()
     
     def clear(self) -> None:
         """Clear the batch without drawing."""
         self.instance_data.clear()
         self.instance_count = 0
-
 
 class ShapeRenderer:
     """
@@ -1010,7 +1008,7 @@ class ShapeRenderer:
             colors = color
         else:
             # Normalize ColorType to tuple for numpy operations
-            color_tuple = normalize_color(color)
+            color_tuple = normalize_color(color).to_array()
             colors = np.tile(color_tuple, (len(points_array) - 1, 1))
         
         vertices = []
@@ -1070,7 +1068,7 @@ class ShapeRenderer:
             colors = color
         else:
             # Normalize ColorType to tuple for numpy operations
-            color_tuple = normalize_color(color)
+            color_tuple = normalize_color(color).to_array()
             colors = np.tile(color_tuple, (len(points_array) - 1, 1))
         
         vertices = []
