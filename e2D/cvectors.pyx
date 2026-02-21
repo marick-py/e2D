@@ -82,48 +82,56 @@ cdef class Vector2D:
         return result
     
     # In-place operations (fastest)
-    cpdef void set(self, double x, double y):
+    cpdef Vector2D set(self, double x, double y):
         """Set both components"""
         self._data_ptr[0] = x
         self._data_ptr[1] = y
+        return self
     
-    cpdef void iadd(self, Vector2D other):
+    cpdef Vector2D iadd(self, Vector2D other):
         """In-place addition"""
         self._data_ptr[0] += other._data_ptr[0]
         self._data_ptr[1] += other._data_ptr[1]
+        return self
     
-    cpdef void isub(self, Vector2D other):
+    cpdef Vector2D isub(self, Vector2D other):
         """In-place subtraction"""
         self._data_ptr[0] -= other._data_ptr[0]
         self._data_ptr[1] -= other._data_ptr[1]
+        return self
     
-    cpdef void imul(self, double scalar):
+    cpdef Vector2D imul(self, double scalar):
         """In-place scalar multiplication"""
         self._data_ptr[0] *= scalar
         self._data_ptr[1] *= scalar
+        return self
     
-    cpdef void idiv(self, double scalar):
+    cpdef Vector2D idiv(self, double scalar):
         """In-place division"""
         cdef double inv = 1.0 / scalar
         self._data_ptr[0] *= inv
         self._data_ptr[1] *= inv
+        return self
     
-    cpdef void imul_vec(self, Vector2D other):
+    cpdef Vector2D imul_vec(self, Vector2D other):
         """In-place component-wise multiplication"""
         self._data_ptr[0] *= other._data_ptr[0]
         self._data_ptr[1] *= other._data_ptr[1]
+        return self
     
-    cpdef void iadd_scalar(self, double scalar):
+    cpdef Vector2D iadd_scalar(self, double scalar):
         """In-place scalar addition"""
         self._data_ptr[0] += scalar
         self._data_ptr[1] += scalar
+        return self
     
-    cpdef void isub_scalar(self, double scalar):
+    cpdef Vector2D isub_scalar(self, double scalar):
         """In-place scalar subtraction"""
         self._data_ptr[0] -= scalar
         self._data_ptr[1] -= scalar
+        return self
     
-    cpdef void normalize(self):
+    cpdef Vector2D normalize(self):
         """Normalize in-place"""
         cdef double length
         cdef double inv_length
@@ -132,8 +140,9 @@ cdef class Vector2D:
             inv_length = 1.0 / length
             self._data_ptr[0] *= inv_length
             self._data_ptr[1] *= inv_length
+        return self
     
-    cpdef void clamp_inplace(self, Vector2D min_val, Vector2D max_val):
+    cpdef Vector2D clamp_inplace(self, Vector2D min_val, Vector2D max_val):
         """Clamp components in-place"""
         if self._data_ptr[0] < min_val._data_ptr[0]:
             self._data_ptr[0] = min_val._data_ptr[0]
@@ -144,6 +153,7 @@ cdef class Vector2D:
             self._data_ptr[1] = min_val._data_ptr[1]
         elif self._data_ptr[1] > max_val._data_ptr[1]:
             self._data_ptr[1] = max_val._data_ptr[1]
+        return self
     
     # New vector operations (return new instances)
     cpdef Vector2D add(self, Vector2D other):
@@ -262,7 +272,7 @@ cdef class Vector2D:
         result._data_ptr[1] = self._data_ptr[0] * sin_a + self._data_ptr[1] * cos_a
         return result
     
-    cpdef void irotate(self, double angle):
+    cpdef Vector2D irotate(self, double angle):
         """Rotate in-place"""
         cdef double cos_a
         cdef double sin_a
@@ -274,6 +284,7 @@ cdef class Vector2D:
         new_y = self._data_ptr[0] * sin_a + self._data_ptr[1] * cos_a
         self._data_ptr[0] = new_x
         self._data_ptr[1] = new_y
+        return self
     
     cpdef Vector2D lerp(self, Vector2D other, double t):
         """Linear interpolation"""
@@ -713,61 +724,71 @@ cdef class Vector2Int:
         return result
     
     # In-place operations (fastest)
-    cpdef void set(self, int x, int y):
+    cpdef Vector2Int set(self, int x, int y):
         """Set both components"""
         self._data_ptr[0] = x
         self._data_ptr[1] = y
+        return self
     
-    cpdef void iadd(self, Vector2Int other):
+    cpdef Vector2Int iadd(self, Vector2Int other):
         """In-place addition"""
         self._data_ptr[0] += other._data_ptr[0]
         self._data_ptr[1] += other._data_ptr[1]
+        return self
     
-    cpdef void isub(self, Vector2Int other):
+    cpdef Vector2Int isub(self, Vector2Int other):
         """In-place subtraction"""
         self._data_ptr[0] -= other._data_ptr[0]
         self._data_ptr[1] -= other._data_ptr[1]
+        return self
     
-    cpdef void imul(self, int scalar):
+    cpdef Vector2Int imul(self, int scalar):
         """In-place scalar multiplication"""
         self._data_ptr[0] *= scalar
         self._data_ptr[1] *= scalar
+        return self
     
-    cpdef void ifloordiv(self, int scalar):
+    cpdef Vector2Int ifloordiv(self, int scalar):
         """In-place integer floor division"""
         if scalar != 0:
             self._data_ptr[0] //= scalar
             self._data_ptr[1] //= scalar
+        return self
     
-    cpdef void imod(self, int scalar):
+    cpdef Vector2Int imod(self, int scalar):
         """In-place modulo operation"""
         if scalar != 0:
             self._data_ptr[0] %= scalar
             self._data_ptr[1] %= scalar
+        return self
     
-    cpdef void imul_vec(self, Vector2Int other):
+    cpdef Vector2Int imul_vec(self, Vector2Int other):
         """In-place component-wise multiplication"""
         self._data_ptr[0] *= other._data_ptr[0]
         self._data_ptr[1] *= other._data_ptr[1]
+        return self
     
-    cpdef void iadd_scalar(self, int scalar):
+    cpdef Vector2Int iadd_scalar(self, int scalar):
         """In-place scalar addition"""
         self._data_ptr[0] += scalar
         self._data_ptr[1] += scalar
+        return self
     
-    cpdef void isub_scalar(self, int scalar):
+    cpdef Vector2Int isub_scalar(self, int scalar):
         """In-place scalar subtraction"""
         self._data_ptr[0] -= scalar
         self._data_ptr[1] -= scalar
+        return self
     
-    cpdef void iabs(self):
+    cpdef Vector2Int iabs(self):
         """Take absolute value in-place"""
         if self._data_ptr[0] < 0:
             self._data_ptr[0] = -self._data_ptr[0]
         if self._data_ptr[1] < 0:
             self._data_ptr[1] = -self._data_ptr[1]
+        return self
     
-    cpdef void clamp_inplace(self, Vector2Int min_val, Vector2Int max_val):
+    cpdef Vector2Int clamp_inplace(self, Vector2Int min_val, Vector2Int max_val):
         """Clamp components in-place"""
         if self._data_ptr[0] < min_val._data_ptr[0]:
             self._data_ptr[0] = min_val._data_ptr[0]
@@ -778,6 +799,7 @@ cdef class Vector2Int:
             self._data_ptr[1] = min_val._data_ptr[1]
         elif self._data_ptr[1] > max_val._data_ptr[1]:
             self._data_ptr[1] = max_val._data_ptr[1]
+        return self
     
     # New vector operations (return new instances)
     cpdef Vector2Int add(self, Vector2Int other):

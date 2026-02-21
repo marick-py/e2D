@@ -59,47 +59,47 @@ class Vector2Int:
         """Fast copy"""
         ...
     
-    def set(self, x: int, y: int) -> None:
+    def set(self, x: int, y: int) -> Vector2D:
         """Set both components"""
         ...
     
-    def iadd(self, other: Vector2Int) -> None:
+    def iadd(self, other: Vector2Int) -> Vector2D:
         """In-place addition"""
         ...
     
-    def isub(self, other: Vector2Int) -> None:
+    def isub(self, other: Vector2Int) -> Vector2D:
         """In-place subtraction"""
         ...
     
-    def imul(self, scalar: int) -> None:
+    def imul(self, scalar: int) -> Vector2D:
         """In-place scalar multiplication"""
         ...
     
-    def ifloordiv(self, scalar: int) -> None:
+    def ifloordiv(self, scalar: int) -> Vector2D:
         """In-place integer floor division"""
         ...
     
-    def imod(self, scalar: int) -> None:
+    def imod(self, scalar: int) -> Vector2D:
         """In-place modulo operation"""
         ...
     
-    def imul_vec(self, other: Vector2Int) -> None:
+    def imul_vec(self, other: Vector2Int) -> Vector2D:
         """In-place component-wise multiplication"""
         ...
     
-    def iadd_scalar(self, scalar: int) -> None:
+    def iadd_scalar(self, scalar: int) -> Vector2D:
         """In-place scalar addition"""
         ...
     
-    def isub_scalar(self, scalar: int) -> None:
+    def isub_scalar(self, scalar: int) -> Vector2D:
         """In-place scalar subtraction"""
         ...
     
-    def iabs(self) -> None:
+    def iabs(self) -> Vector2D:
         """Take absolute value in-place"""
         ...
     
-    def clamp_inplace(self, min_val: Vector2Int, max_val: Vector2Int) -> None:
+    def clamp_inplace(self, min_val: Vector2Int, max_val: Vector2Int) -> Vector2D:
         """Clamp components in-place"""
         ...
     
@@ -297,43 +297,43 @@ class Vector2D:
         """Fast copy"""
         ...
     
-    def set(self, x: float, y: float) -> None:
+    def set(self, x: float, y: float) -> Vector2D:
         """Set both components"""
         ...
     
-    def iadd(self, other: Vector2D) -> None:
+    def iadd(self, other: Vector2D) -> Vector2D:
         """In-place addition"""
         ...
     
-    def isub(self, other: Vector2D) -> None:
+    def isub(self, other: Vector2D) -> Vector2D:
         """In-place subtraction"""
         ...
     
-    def imul(self, scalar: float) -> None:
+    def imul(self, scalar: float) -> Vector2D:
         """In-place scalar multiplication"""
         ...
     
-    def idiv(self, scalar: float) -> None:
+    def idiv(self, scalar: float) -> Vector2D:
         """In-place division"""
         ...
     
-    def imul_vec(self, other: Vector2D) -> None:
+    def imul_vec(self, other: Vector2D) -> Vector2D:
         """In-place component-wise multiplication"""
         ...
     
-    def iadd_scalar(self, scalar: float) -> None:
+    def iadd_scalar(self, scalar: float) -> Vector2D:
         """In-place scalar addition"""
         ...
     
-    def isub_scalar(self, scalar: float) -> None:
+    def isub_scalar(self, scalar: float) -> Vector2D:
         """In-place scalar subtraction"""
         ...
     
-    def normalize(self) -> None:
+    def normalize(self) -> Vector2D:
         """Normalize in-place"""
         ...
     
-    def clamp_inplace(self, min_val: Vector2D, max_val: Vector2D) -> None:
+    def clamp_inplace(self, min_val: Vector2D, max_val: Vector2D) -> Vector2D:
         """Clamp components in-place"""
         ...
     
@@ -373,7 +373,7 @@ class Vector2D:
         """Rotate vector by angle (returns new)"""
         ...
     
-    def irotate(self, angle: float) -> None:
+    def irotate(self, angle: float) -> Vector2D:
         """Rotate in-place"""
         ...
     

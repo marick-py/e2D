@@ -363,7 +363,7 @@ def lerp_colors(color1: ColorInput, color2: ColorInput, t: float) -> Color:
         c1[3] + (c2[3] - c1[3]) * t
     )
 
-def gradient(colors: list[ColorInput], output_count: int, to_array_batch: bool = False) -> list[Color] | NDArray[np.float32]:
+def gradient(colors: list[ColorInput], output_count: int) -> list[Color]:
     """Generate gradient between multiple colors"""
     if len(colors) < 2:
         raise ValueError("Need at least 2 colors for gradient")
@@ -382,11 +382,11 @@ def gradient(colors: list[ColorInput], output_count: int, to_array_batch: bool =
         error -= 1
     
     result.append(normalized[-1])
-    
-    if to_array_batch:
-        return batch_colors_to_array(result)
-
     return result
+
+def gradient_array(colors: list[ColorInput], output_count: int) -> NDArray[np.float32]:
+    """Generate gradient and return as numpy array for GPU"""
+    return batch_colors_to_array(gradient(colors, output_count))
 
 def batch_colors_to_array(colors: Sequence[ColorInput]) -> NDArray[np.float32]:
     """Convert list of colors to numpy array for GPU"""

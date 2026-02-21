@@ -6,7 +6,7 @@ Copyright (c) 2025 Riccardo Mariani
 MIT License
 """
 
-__version__ = "2.1.4"
+__version__ = "2.1.5"
 __author__ = "Riccardo Mariani"
 __email__ = "riccardo.mariani@emptyhead.dev"
 
@@ -171,7 +171,7 @@ class WindowConfig:
         alpha_bits: int = 8,
         depth_bits: int = 24,
         stencil_bits: int = 8,
-    ):
+    ) -> None:
         """Initialize window configuration with all GLFW settings.
         
         Args:
@@ -472,6 +472,15 @@ class RootEnv:
         """
         glfw.set_window_pos(self.window, int(x), int(y))
     
+    def set_target_fps(self, fps: int) -> None:
+        """Set the target frames per second for the window.
+        
+        Args:
+            fps: Desired FPS (0 = unlimited)
+        """
+        self.target_fps = fps
+        self.target_frame_time = 1.0 / fps if (fps and fps > 0) else 0.0
+    
     def center_window(self) -> None:
         """Center the window on the primary monitor."""
         video_mode = glfw.get_video_mode(glfw.get_primary_monitor())
@@ -720,7 +729,7 @@ class RootEnv:
         glfw.set_mouse_button_callback(self.window, self.mouse._on_mouse_button)
         glfw.set_key_callback(self.window, self.keyboard._on_key)
 
-        target_frame_time = 1.0 / self.target_fps if (self.target_fps and self.target_fps > 0) else 0.0
+        self.target_frame_time = 1.0 / self.target_fps if (self.target_fps and self.target_fps > 0) else 0.0
             
         while not glfw.window_should_close(self.window):
             start_time = time.perf_counter()
@@ -747,9 +756,9 @@ class RootEnv:
                 break
             
             # FPS Limiting
-            if target_frame_time > 0:
+            if self.target_frame_time > 0:
                 elapsed = time.perf_counter() - start_time
-                wait = target_frame_time - elapsed
+                wait = self.target_frame_time - elapsed
                 if wait > 0:
                     time.sleep(wait)
         
