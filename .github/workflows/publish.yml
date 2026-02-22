@@ -12,10 +12,13 @@ permissions:
 jobs:
   build:
     name: Build source distribution
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
+
+    - name: Clean workspace artifacts
+      run: rm -rf dist/ build/
     
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -39,13 +42,16 @@ jobs:
   publish-to-pypi:
     name: Publish to PyPI
     needs: [build]
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     if: github.repository == 'marick-py/e2D'
     environment:
       name: release
       url: https://pypi.org/p/e2D
     
     steps:
+    - name: Clean dist before download   # ← ADD THIS
+      run: rm -rf dist/
+    
     - name: Download distributions
       uses: actions/download-artifact@v4
       with:

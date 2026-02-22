@@ -292,7 +292,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📈 Version History
 
 ### Version 2.x (ModernGL-based - Current)
-- **2.1.6** (Current) - Bug fixes and documentation improvements
+- **2.1.5** (Current) - Bug fixes and documentation improvements
 - **2.0.0** - Complete rewrite with ModernGL rendering, Cython-optimized vectors, modern color system, screen recording, removed pygame dependency
 
 ### Version 1.x (Pygame-based - Legacy)
