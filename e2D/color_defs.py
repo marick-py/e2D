@@ -4,7 +4,7 @@ All colors are RGBA tuples (0.0-1.0) for GPU compatibility
 Import individual colors as needed: from e2D.color_defs import RED, BLUE
 """
 
-from typing import Final, Union, TYPE_CHECKING, TypeAlias
+from typing import Final, Literal, Union, TYPE_CHECKING, TypeAlias
 
 from .colors import Color
 ColorType: TypeAlias = Color
@@ -111,7 +111,10 @@ UI_DISABLED: Final[ColorType] = Color(0.62, 0.62, 0.62, 1.0)  # Grey
 # ============================================================================
 # Color Dictionary (for dynamic lookup)
 # ============================================================================
-COLOR_NAMES: dict[str, ColorType] = {
+
+COLORS_NAMES_LITERAL = Literal['transparent','white','black','red','green','blue','cyan','magenta','yellow','orange','purple','pink','brown','lime','teal','navy','maroon','olive','silver','gold','indigo','violet','turquoise','coral','gray10','gray20','gray30','gray40','gray50','gray60','gray70','gray80','gray90','md_red','md_pink','md_purple','md_deep_purple','md_indigo','md_blue','md_light_blue','md_cyan','md_teal','md_green','md_light_green','md_lime','md_yellow','md_amber','md_orange','md_deep_orange','md_brown','md_grey','md_blue_grey','pastel_red','pastel_orange','pastel_yellow','pastel_green','pastel_cyan','pastel_blue','pastel_purple','pastel_pink','neon_red','neon_orange','neon_yellow','neon_green','neon_cyan','neon_blue','neon_purple','neon_pink','ui_success','ui_warning','ui_error','ui_info','ui_disabled']
+
+COLOR_NAMES: dict[COLORS_NAMES_LITERAL, ColorType] = {
     # Basic
     'transparent': TRANSPARENT,
     'white': WHITE,
@@ -195,12 +198,12 @@ COLOR_NAMES: dict[str, ColorType] = {
 }
 
 
-def get_color(name: str) -> ColorType:
+def get_color(name: COLORS_NAMES_LITERAL) -> ColorType:
     """Get color by name (case-insensitive)"""
     return COLOR_NAMES[name.lower()]
 
 
-def has_color(name: str) -> bool:
+def has_color(name: COLORS_NAMES_LITERAL) -> bool:
     """Check if color name exists"""
     return name.lower() in COLOR_NAMES
 

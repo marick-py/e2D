@@ -1,5 +1,6 @@
 from e2D import RootEnv, DefEnv, WindowConfig
-from e2D import WHITE, RED, GREEN, BLUE, Keys, KeyState
+from e2D.devices import Keys, KeyState
+from e2D.color_defs import WHITE, RED, GREEN, BLUE, get_color
 from e2D.vectors import Vector2D, V2
 
 class MyApp(DefEnv):
@@ -14,25 +15,16 @@ class MyApp(DefEnv):
         ...
 
 
-# Create the window and rendering environment
 win_conf = WindowConfig(
-    size=V2(1920, 1080),  # Window width and height
-    target_fps=60,              # Target frame rate
-    title="My e2D App",         # Window title
-    vsync=True,                 # Enable vertical sync
-    resizable=False             # Allow window resizing
+    size=V2(1920, 1080),
+    target_fps=60,
+    title="My e2D App",
+    vsync=True,
+    resizable=False
 )
-
-root = RootEnv(
-    config=win_conf,
-)
-
-# Initialize your application
-app = MyApp()
-root.init(app)
+rootEnv = RootEnv(config=win_conf)
+rootEnv.init(env:=MyApp())
 
 # Optional: Enable screen recording (need e2D[rec] installation)
 # root.init_rec(fps=30, draw_on_screen=True, path='recording.mp4')
-
-# Start the main loop
-root.loop()
+rootEnv.loop()

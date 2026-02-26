@@ -410,7 +410,8 @@ class RootEnv:
         # Delta time tracking
         self.delta = 0.0
         self.last_frame_time = time.perf_counter()
-        
+
+        self.frames_count = 0
         # Runtime tracking (elapsed time from initialization)
         self.start_time = time.perf_counter()
     
@@ -723,6 +724,10 @@ class RootEnv:
         return set_pattr_value(prog_id, name, value, force_write=force_write, programs=self.programs)
 
     def loop(self) -> None:
+        """
+        Main application loop. Handles input, updates, drawing, and FPS control.
+        The loop will continue until the window is closed or an error occurs.
+        """
         # Register callbacks
         glfw.set_scroll_callback(self.window, self.mouse._on_scroll)
         glfw.set_cursor_pos_callback(self.window, self.mouse._on_cursor_pos)
@@ -730,13 +735,14 @@ class RootEnv:
         glfw.set_key_callback(self.window, self.keyboard._on_key)
 
         self.target_frame_time = 1.0 / self.target_fps if (self.target_fps and self.target_fps > 0) else 0.0
-            
+        
         while not glfw.window_should_close(self.window):
             start_time = time.perf_counter()
             
             # Calculate delta time
             self.delta = start_time - self.last_frame_time
             self.last_frame_time = start_time
+            self.frames_count += 1
             
             self.keyboard.update()
             self.mouse.update()
