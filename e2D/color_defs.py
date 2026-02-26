@@ -200,7 +200,7 @@ COLOR_NAMES: dict[COLORS_NAMES_LITERAL, ColorType] = {
 
 def get_color(name: COLORS_NAMES_LITERAL) -> ColorType:
     """Get color by name (case-insensitive)"""
-    return COLOR_NAMES[name.lower()]
+    return COLOR_NAMES[name]
 
 
 def has_color(name: COLORS_NAMES_LITERAL) -> bool:
