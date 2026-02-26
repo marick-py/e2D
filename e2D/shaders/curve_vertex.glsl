@@ -9,8 +9,5 @@ layout(std140, binding=0) uniform View {
 in vec2 in_pos;
 
 void main() {
-    vec2 diff = in_pos - view.center;
-    vec2 norm = diff * view.scale;
-    norm.x /= view.aspect;
-    gl_Position = vec4(norm, 0.0, 1.0);
+    gl_Position = vec4((in_pos - view.center) * view.scale, 0.0, 1.0);
 }

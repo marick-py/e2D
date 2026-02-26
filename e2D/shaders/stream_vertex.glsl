@@ -19,9 +19,6 @@ void main() {
     int idx = (start_index + gl_VertexID) % capacity;
     vec2 p = points[idx];
     
-    vec2 diff = p - view.center;
-    vec2 norm = diff * view.scale;
-    norm.x /= view.aspect;
-    gl_Position = vec4(norm, 0.0, 1.0);
+    gl_Position = vec4((p - view.center) * view.scale, 0.0, 1.0);
     gl_PointSize = point_size;
 }

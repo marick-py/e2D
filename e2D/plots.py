@@ -1,4 +1,5 @@
 from typing import Optional
+from e2D import V2, Color, RootEnv, lerp
 import numpy as np
 import moderngl
 import struct
@@ -49,14 +50,17 @@ class View2D:
     Layout std140:
         vec2 resolution;  // 0
         vec2 center;      // 8
-        vec2 scale;       // 16 (zoom_x, zoom_y)
-        float aspect;     // 24
+        vec2 scale;       // 16 (zoom_x, zoom_y) — independent per axis
+        float aspect;     // 24 — kept for UBO alignment, unused by shaders
         float _pad;       // 28
+    
+    World → NDC:  ndc = (world - center) * scale
+    NDC → World:  world = ndc / scale + center
     """
     ctx: ContextType
     binding: int
     center: ArrayLike
-    zoom: float
+    zoom: ArrayLike   # vec2: [zoom_x, zoom_y]
     aspect: float
     resolution: ArrayLike
     buffer: BufferType
@@ -65,7 +69,7 @@ class View2D:
         self.ctx = ctx
         self.binding = binding
         self.center = np.array([0.0, 0.0], dtype='f4')
-        self.zoom = 1.0
+        self.zoom = np.array([1.0, 1.0], dtype='f4')
         self.aspect = 1.0
         self.resolution = np.array([1920.0, 1080.0], dtype='f4')
         
@@ -79,24 +83,22 @@ class View2D:
         self.update_buffer()
 
     def pan(self, dx: float, dy: float) -> None:
-        world_scale = 1.0 / self.zoom
-        self.center[0] -= dx * world_scale * self.aspect
-        self.center[1] -= dy * world_scale
+        """dx, dy in NDC units [-1, 1]."""
+        self.center[0] -= dx / self.zoom[0]
+        self.center[1] -= dy / self.zoom[1]
         self.update_buffer()
 
     def zoom_step(self, factor: float) -> None:
+        """Uniform zoom on both axes."""
         self.zoom *= factor
         self.update_buffer()
 
     def zoom_at(self, factor: float, ndc_x: float, ndc_y: float) -> None:
-        """Zooms by factor, keeping the point at (ndc_x, ndc_y) stationary."""
-        prev_zoom = self.zoom
+        """Uniform zoom by factor, keeping (ndc_x, ndc_y) stationary."""
+        prev_zoom = self.zoom.copy()
         self.zoom *= factor
-        
-        diff_scale = (1.0/prev_zoom - 1.0/self.zoom)
-        self.center[0] += ndc_x * self.aspect * diff_scale
-        self.center[1] += ndc_y * diff_scale
-        
+        self.center[0] += ndc_x * (1.0 / prev_zoom[0] - 1.0 / self.zoom[0])
+        self.center[1] += ndc_y * (1.0 / prev_zoom[1] - 1.0 / self.zoom[1])
         self.update_buffer()
 
     def update_buffer(self) -> None:
@@ -104,11 +106,36 @@ class View2D:
             '2f2f2f1f1f',
             self.resolution[0], self.resolution[1],
             self.center[0], self.center[1],
-            self.zoom, self.zoom,
+            self.zoom[0], self.zoom[1],
             self.aspect,
             0.0
         )
         self.buffer.write(data)
+    
+    def set_viewport(self, top_left: V2, bottom_right: V2, center_interpolate: float = 1, zoom_interpolate: float = 1) -> None:
+        """
+        Fit the given world-space rect exactly into the view, with independent per-axis zoom.
+        
+        Example:
+            set_viewport(V2(-1, 1), V2(1, -1))  →  zoom_x=1, zoom_y=1 (world fits NDC exactly)
+            set_viewport(V2(-2, 1), V2(2, -1))  →  zoom_x=0.5, zoom_y=1 (X stretched 2x wider)
+        
+        The pixel-level stretch is determined by the viewport dimensions (e.g. 1920x1080),
+        so showing (-1,1)→(1,-1) on 1920x1080 will naturally stretch X by 16/9.
+        """
+        world_w = abs(bottom_right.x - top_left.x)
+        world_h = abs(top_left.y - bottom_right.y)  # top_left.y > bottom_right.y by convention
+        
+        target_cx = (top_left.x + bottom_right.x) * 0.5
+        target_cy = (top_left.y + bottom_right.y) * 0.5
+        target_zx = 2.0 / world_w if world_w > 0 else 1.0
+        target_zy = 2.0 / world_h if world_h > 0 else 1.0
+        
+        self.center[0] = lerp(self.center[0], target_cx, center_interpolate)
+        self.center[1] = lerp(self.center[1], target_cy, center_interpolate)
+        self.zoom[0]   = lerp(self.zoom[0],   target_zx, zoom_interpolate)
+        self.zoom[1]   = lerp(self.zoom[1],   target_zy, zoom_interpolate)
+        self.update_buffer()
 
 @dataclass
 class PlotSettings:
@@ -117,7 +144,7 @@ class PlotSettings:
     axis_color: ColorType = GRAY50
     axis_width: float = 2.0
     show_grid: bool = True
-    grid_color: ColorType = (0.2, 0.2, 0.2, 1.0)
+    grid_color: ColorType = Color(0.2, 0.2, 0.2, 1.0)
     grid_spacing: float = 1.0
 
 @dataclass
@@ -165,8 +192,9 @@ class Plot2D:
     is_dragging: bool
     last_mouse_pos: tuple[float, float]
     
-    def __init__(self, ctx: ContextType, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D, settings: Optional[PlotSettings] = None) -> None:
-        self.ctx = ctx
+    def __init__(self, rootEnv: RootEnv, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D, settings: Optional[PlotSettings] = None) -> None:
+        self.rootEnv = rootEnv
+        self.ctx = rootEnv.ctx
         self.top_left = top_left
         self.bottom_right = bottom_right
         self.settings = settings if settings else PlotSettings()
@@ -174,10 +202,10 @@ class Plot2D:
         self.width = bottom_right[0] - top_left[0]
         self.height = bottom_right[1] - top_left[1]
         
-        self.view = View2D(ctx)
+        self.view = View2D(self.ctx)
         self.view.update_win_size(self.width, self.height)
         
-        self.viewport = (int(top_left[0]), 1080 - int(bottom_right[1]), int(self.width), int(self.height))
+        self.viewport = (int(top_left[0]), int(rootEnv.window_size.y - bottom_right[1]), int(self.width), int(self.height))
         self._init_grid_renderer()
         
         self.is_dragging = False
@@ -211,6 +239,7 @@ class Plot2D:
         self.viewport = (int(x), int(y), int(w), int(h))
         
     def render(self, draw_callback) -> None:
+        last_viewport = self.ctx.viewport
         self.ctx.viewport = self.viewport
         self.ctx.scissor = self.viewport
         self.ctx.clear(*normalize_color(self.settings.bg_color).to_array())
@@ -227,6 +256,8 @@ class Plot2D:
         
         draw_callback()
         self.ctx.scissor = None
+        
+        self.ctx.viewport = last_viewport
 
     def contains(self, x, y) -> bool:
         return (self.top_left[0] <= x <= self.bottom_right[0] and 
@@ -324,7 +355,6 @@ class GpuStream:
                 
                 vec2 diff = pos - view.center;
                 vec2 norm = diff * view.scale;
-                norm.x /= view.aspect;
                 gl_Position = vec4(norm, 0.0, 1.0);
             }
             """,
@@ -342,6 +372,9 @@ class GpuStream:
         except:
             pass
         self.smooth_vao = ctx.vertex_array(self.smooth_prog, [])
+    
+    def clear_buffer(self) -> None:
+        self.buffer.clear()
 
     def push(self, points: np.ndarray) -> None:
         if points.shape[0] == 0:
@@ -368,7 +401,9 @@ class GpuStream:
     def draw(self) -> None:
         if self.size == 0:
             return
-            
+
+        self.buffer.bind_to_storage_buffer(binding=1)
+    
         start_index = (self.head - self.size + self.capacity) % self.capacity
         
         # Draw lines
@@ -383,7 +418,9 @@ class GpuStream:
                 self.ctx.line_width = self.settings.line_width
                 
                 num_vertices = (self.size - 1) * self.settings.curve_segments + 1
+                
                 self.smooth_vao.render(moderngl.LINE_STRIP, vertices=num_vertices)
+
             else:
                 self.prog['start_index'] = start_index
                 self.prog['capacity'] = self.capacity
@@ -504,7 +541,6 @@ class ImplicitPlot:
         
         void main() {{
             vec2 ndc = uv * 2.0 - 1.0;
-            ndc.x *= view.aspect;
             vec2 p = (ndc / view.scale) + view.center;
             
             float x = p.x;

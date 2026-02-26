@@ -18,7 +18,6 @@ out vec4 color;
 void main() {
     // Calculate world position
     vec2 ndc = uv * 2.0 - 1.0;
-    ndc.x *= view.aspect;
     vec2 world_pos = (ndc / view.scale) + view.center;
     
     vec4 final_color = vec4(0.0);
