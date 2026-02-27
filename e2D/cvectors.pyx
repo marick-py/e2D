@@ -88,10 +88,10 @@ cdef class Vector2D:
         self._data_ptr[1] = y
         return self
     
-    cpdef Vector2D copy_from(self, Vector2Int other):
+    cpdef Vector2D copy_from(self, Vector2D other):
         """Copy components from another vector (int to float)"""
-        self._data_ptr[0] = <double>other._data_ptr[0]
-        self._data_ptr[1] = <double>other._data_ptr[1]
+        self._data_ptr[0] = other._data_ptr[0]
+        self._data_ptr[1] = other._data_ptr[1]
         return self
     
     cpdef Vector2D iadd(self, Vector2D other):
@@ -736,10 +736,10 @@ cdef class Vector2Int:
         self._data_ptr[1] = y
         return self
     
-    cpdef Vector2Int copy_from(self, Vector2D other):
+    cpdef Vector2Int copy_from(self, Vector2Int other):
         """Copy components from another vector (float to int, truncates)"""
-        self._data_ptr[0] = <int>other._data_ptr[0]
-        self._data_ptr[1] = <int>other._data_ptr[1]
+        self._data_ptr[0] = other._data_ptr[0]
+        self._data_ptr[1] = other._data_ptr[1]
         return self
     
     cpdef Vector2Int iadd(self, Vector2Int other):
