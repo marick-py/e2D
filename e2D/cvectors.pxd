@@ -21,6 +21,7 @@ cdef class Vector2Int:
     # cpdef methods
     cpdef Vector2Int copy(self)
     cpdef Vector2Int set(self, int x, int y)
+    cpdef Vector2Int copy_from(self, Vector2D other)
     cpdef Vector2Int iadd(self, Vector2Int other)
     cpdef Vector2Int isub(self, Vector2Int other)
     cpdef Vector2Int imul(self, int scalar)
@@ -61,6 +62,7 @@ cdef class Vector2D:
     # cpdef methods (callable from Python and Cython)
     cpdef Vector2D copy(self)
     cpdef Vector2D set(self, double x, double y)
+    cpdef Vector2D copy_from(self, Vector2Int other)
     cpdef Vector2D iadd(self, Vector2D other)
     cpdef Vector2D isub(self, Vector2D other)
     cpdef Vector2D imul(self, double scalar)

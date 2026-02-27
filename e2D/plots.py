@@ -242,7 +242,7 @@ class Plot2D:
         last_viewport = self.ctx.viewport
         self.ctx.viewport = self.viewport
         self.ctx.scissor = self.viewport
-        self.ctx.clear(*normalize_color(self.settings.bg_color).to_array())
+        # self.ctx.clear(*normalize_color(self.settings.bg_color).to_array())
         
         self.view.buffer.bind_to_uniform_block(0)
         

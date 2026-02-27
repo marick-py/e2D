@@ -301,6 +301,10 @@ class Vector2D:
         """Set both components"""
         ...
     
+    def copy_from(self, other: Vector2D) -> Vector2D:
+        """Copy components from another vector"""
+        ...
+    
     def iadd(self, other: Vector2D) -> Vector2D:
         """In-place addition"""
         ...
