@@ -173,11 +173,15 @@ class Keyboard:
     pressed: set[int]
     just_pressed: set[int]
     just_released: set[int]
+    char_buffer: list[str]
+    is_consumed: bool
     
     def __init__(self) -> None:
         self.pressed = set()
         self.just_pressed = set()
         self.just_released = set()
+        self.char_buffer: list[str] = []
+        self.is_consumed: bool = False
 
     def _on_key(self, window: WindowType, key: int, scancode: int, action: int, mods: int) -> None:
         if action == glfw.PRESS:
@@ -187,9 +191,15 @@ class Keyboard:
             self.pressed.discard(key)
             self.just_released.add(key)
 
+    def _on_char(self, window: WindowType, codepoint: int) -> None:
+        """GLFW character callback — collects typed characters (Unicode)."""
+        self.char_buffer.append(chr(codepoint))
+
     def update(self) -> None:
         self.just_pressed.clear()
         self.just_released.clear()
+        self.char_buffer.clear()
+        self.is_consumed = False
 
     def get_key(self, key: int, state: KeyState|int = KeyState.PRESSED) -> bool:
         if state == KeyState.PRESSED:
@@ -199,6 +209,10 @@ class Keyboard:
         elif state == KeyState.JUST_RELEASED:
             return key in self.just_released
         return False
+
+    def get_chars(self) -> list[str]:
+        """Return characters typed this frame (Unicode strings)."""
+        return list(self.char_buffer)
 
 class Mouse:
     position: Vector2D

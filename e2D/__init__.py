@@ -14,7 +14,9 @@ import numpy as np
 import moderngl
 import glfw
 import time
+import sys
 import os
+import ctypes
 
 # Import type definitions
 from .types import (
@@ -23,10 +25,17 @@ from .types import (
 )
 
 # Import original e2D modules
-from .text_renderer import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, Pivots, TextRenderer, TextLabel, TextStyle
+from .text_renderer import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
 from .devices import Keyboard, Mouse, KeyState, Keys, MouseButtons
 from .commons import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI, PI_HALF, PI_QUARTER, TAU
+
+# UI system
+from .ui.base import Pivot
+from .ui import UIManager, UITheme, Label
+
+# Backward-compat alias
+Pivots = Pivot
 
 from typing import Optional
 
@@ -48,22 +57,27 @@ try:
 except ImportError:
     _COLOR_COMPILED = False
 
-# Import Vector2D and Vector2Int - vectors.py handles Cython/Python fallback internally
-from .vectors import (
-    Vector2D,
-    Vector2Int,
-    V2,
-    V2I,
-    CommonVectors,
-    batch_add_inplace,
-    batch_scale_inplace,
-    batch_normalize_inplace,
-    vectors_to_array,
-    array_to_vectors,
-    lerp,
-    create_grid,
-    create_circle,
-)
+# Import Vector2D and Vector2Int - requires compiled Cython extension
+try:
+    from .vectors import (
+        Vector2D,
+        Vector2Int,
+        V2,
+        V2I,
+        CommonVectors,
+        batch_add_inplace,
+        batch_scale_inplace,
+        batch_normalize_inplace,
+        vectors_to_array,
+        array_to_vectors,
+        lerp,
+        create_grid,
+        create_circle,
+    )
+    _VECTOR_COMPILED = True
+except ImportError:
+    _VECTOR_COMPILED = False
+    raise
 
 
 class DefEnv:
@@ -74,7 +88,130 @@ class DefEnv:
 
     def update(self) -> None: ...
 
+    def fixed_update(self, dt: float) -> None: ...
+
     def on_resize(self, width: int, height: int) -> None: ...
+
+
+class Camera2D:
+    """2D camera providing world ↔ screen coordinate transforms with pan and zoom.
+
+    All draw_* calls accept screen-space coordinates. Use Camera2D to maintain a
+    world-space simulation and convert to screen-space before drawing.
+
+    Example::
+
+        cam = Camera2D(env.window_size)
+
+        def update(self):
+            if env.keyboard.get_key(Keys.W): cam.pan(0, -5)
+            if env.keyboard.get_key(Keys.S): cam.pan(0,  5)
+
+        def draw(self):
+            screen = cam.world_to_screen(player.pos)
+            env.draw_circle(screen, cam.world_to_screen_scale(player.radius))
+
+        def on_resize(self, w, h):
+            cam.update_window_size(w, h)
+    """
+
+    def __init__(
+        self,
+        window_size: "Vector2D | tuple[float, float]",
+        position: "Vector2D | tuple[float, float]" = (0.0, 0.0),
+        zoom: float = 1.0,
+    ) -> None:
+        self.window_size: Vector2D = (
+            V2(float(window_size[0]), float(window_size[1]))
+            if not isinstance(window_size, Vector2D)
+            else window_size
+        )
+        self.position: Vector2D = (
+            V2(float(position[0]), float(position[1]))
+            if not isinstance(position, Vector2D)
+            else position
+        )
+        self.zoom: float = zoom
+
+    # ------------------------------------------------------------------
+    # Coordinate transforms
+    # ------------------------------------------------------------------
+
+    def world_to_screen(self, point: "Vector2D | tuple[float, float]") -> Vector2D:
+        """Convert a world-space point to screen-pixel coordinates."""
+        cx = self.window_size[0] * 0.5
+        cy = self.window_size[1] * 0.5
+        sx = (point[0] - self.position[0]) * self.zoom + cx
+        sy = (point[1] - self.position[1]) * self.zoom + cy
+        return V2(sx, sy)
+
+    def screen_to_world(self, point: "Vector2D | tuple[float, float]") -> Vector2D:
+        """Convert a screen-pixel point to world-space coordinates."""
+        cx = self.window_size[0] * 0.5
+        cy = self.window_size[1] * 0.5
+        wx = (point[0] - cx) / self.zoom + self.position[0]
+        wy = (point[1] - cy) / self.zoom + self.position[1]
+        return V2(wx, wy)
+
+    def world_to_screen_scale(self, length: float) -> float:
+        """Convert a world-space length to screen pixels."""
+        return length * self.zoom
+
+    def screen_to_world_scale(self, pixels: float) -> float:
+        """Convert screen pixels to a world-space length."""
+        return pixels / self.zoom
+
+    # ------------------------------------------------------------------
+    # Navigation
+    # ------------------------------------------------------------------
+
+    def pan(self, dx: float, dy: float) -> None:
+        """Translate the camera by (dx, dy) in world units."""
+        self.position[0] += dx
+        self.position[1] += dy
+
+    def zoom_at(
+        self,
+        factor: float,
+        screen_point: "Vector2D | tuple[float, float]",
+    ) -> None:
+        """Zoom by *factor* keeping *screen_point* fixed over its world position.
+
+        *factor* > 1 zooms in; < 1 zooms out.
+        """
+        world_anchor = self.screen_to_world(screen_point)
+        self.zoom *= factor
+        cx = self.window_size[0] * 0.5
+        cy = self.window_size[1] * 0.5
+        self.position[0] = world_anchor[0] - (screen_point[0] - cx) / self.zoom
+        self.position[1] = world_anchor[1] - (screen_point[1] - cy) / self.zoom
+
+    # ------------------------------------------------------------------
+    # Housekeeping
+    # ------------------------------------------------------------------
+
+    def update_window_size(self, width: float, height: float) -> None:
+        """Call from on_resize() so aspect ratio stays correct after window rescaling."""
+        self.window_size.set(width, height)
+
+    def get_matrix(self) -> "np.ndarray":
+        """Return the 3×3 world→screen transform matrix (float32, row-major).
+
+        Useful for passing to a shader uniform::
+
+            prog['u_camera'].write(cam.get_matrix().tobytes())
+        """
+        cx = self.window_size[0] * 0.5
+        cy = self.window_size[1] * 0.5
+        z = self.zoom
+        return np.array(
+            [
+                [z,   0.0, -self.position[0] * z + cx],
+                [0.0, z,   -self.position[1] * z + cy],
+                [0.0, 0.0, 1.0],
+            ],
+            dtype='f4',
+        )
 
 
 class WindowConfig:
@@ -155,6 +292,7 @@ class WindowConfig:
         vsync: bool = False,
         target_fps: int = 60,
         draw_fps: bool = False,
+        fixed_update_rate: int = 0,  # 0 = disabled; e.g. 120 runs fixed_update at 120 Hz
         
         # OpenGL settings
         opengl_version: tuple[int, int] = (4, 3),
@@ -221,6 +359,7 @@ class WindowConfig:
         self.vsync = vsync
         self.target_fps = target_fps
         self.draw_fps = draw_fps
+        self.fixed_update_rate = fixed_update_rate
         
         self.opengl_version = opengl_version
         self.opengl_profile = opengl_profile
@@ -406,6 +545,9 @@ class RootEnv:
         self.mouse = Mouse()
         self.text_renderer = TextRenderer(self.ctx)
         self.shape_renderer = ShapeRenderer(self.ctx)
+
+        # UI system
+        self.ui = UIManager(self.ctx, self.text_renderer, self.window_size)
         
         # Delta time tracking
         self.delta = 0.0
@@ -414,6 +556,28 @@ class RootEnv:
         self.frames_count = 0
         # Runtime tracking (elapsed time from initialization)
         self.start_time = time.perf_counter()
+
+        # Windows: raise timer resolution to 1ms for precise frame pacing.
+        # Without this, time.sleep() has ~15ms granularity on Windows.
+        self._win_timer_set = False
+        if sys.platform == 'win32':
+            if ctypes.windll.winmm.timeBeginPeriod(1) == 0:  # TIMERR_NOERROR == 0
+                self._win_timer_set = True
+
+        # Fixed timestep state (disabled when fixed_update_rate == 0)
+        self.fixed_update_rate = config.fixed_update_rate
+        self._fixed_dt = 1.0 / config.fixed_update_rate if config.fixed_update_rate > 0 else 0.0
+        self._accumulator = 0.0
+        # Render interpolation factor: how far we are between the last two fixed steps.
+        # Available inside update() / draw() for state interpolation.
+        self.alpha = 0.0
+
+        # FPS / UPS display counters (updated once per second)
+        self._fps_counter: int = 0
+        self._ups_counter: int = 0
+        self._fps_timer: float = 0.0
+        self._fps_display: float = 0.0
+        self._ups_display: float = 0.0
     
     @property
     def window_size_f(self) -> tuple[float, float]:
@@ -513,6 +677,8 @@ class RootEnv:
         self.window_size.set(width, height)
         fb_size = glfw.get_framebuffer_size(window)
         self.ctx.viewport = (0, 0, fb_size[0], fb_size[1])
+        if hasattr(self, 'ui'):
+            self.ui.on_resize(fb_size[0], fb_size[1])
         if hasattr(self, 'env') and hasattr(self.env, 'on_resize'):
             self.env.on_resize(fb_size[0], fb_size[1])
 
@@ -562,10 +728,18 @@ class RootEnv:
     def __draw__(self) -> None:
         self.ctx.clear(0.0, 0.0, 0.0, 1.0)
         self.env.draw()
+        # Flush all queued draw_circle / draw_rect / draw_line calls now that
+        # the user's draw() has finished enqueuing everything for this frame.
+        self.shape_renderer.flush_queue()
+
+        # Render UI layer on top of the scene
+        self.ui.draw()
 
         if self.draw_fps:
-            fps = 1.0 / self.delta if self.delta > 0 else 0.0
-            self.print(f"FPS: {fps:.2f}", V2(10, 10), scale=1.0, style=MONO_16_TEXT_STYLE, pivot=Pivots.TOP_LEFT)
+            info = f"FPS: {self._fps_display:.0f}"
+            if self._fixed_dt > 0:
+                info += f" | UPS: {self._ups_display:.0f}"
+            self.print(info, V2(10, 10), scale=1.0, style=MONO_16_TEXT_STYLE, pivot=Pivot.TOP_LEFT)
         
         # Screen recording: capture frame before overlay, draw stats after
         if hasattr(self, '__winrecorder__'):
@@ -711,6 +885,10 @@ class RootEnv:
     def __update__(self) -> None:
         self.env.update()
 
+    def __fixed_update__(self) -> None:
+        self._ups_counter += 1
+        self.env.fixed_update(self._fixed_dt)
+
     def get_pattr(self, prog_id:str|ProgramType, name:str) -> ProgramAttrType:
         return get_pattr(prog_id, name, programs=self.programs)
     
@@ -733,26 +911,56 @@ class RootEnv:
         glfw.set_cursor_pos_callback(self.window, self.mouse._on_cursor_pos)
         glfw.set_mouse_button_callback(self.window, self.mouse._on_mouse_button)
         glfw.set_key_callback(self.window, self.keyboard._on_key)
+        glfw.set_char_callback(self.window, self.keyboard._on_char)
 
         self.target_frame_time = 1.0 / self.target_fps if (self.target_fps and self.target_fps > 0) else 0.0
         
         while not glfw.window_should_close(self.window):
             start_time = time.perf_counter()
-            
-            # Calculate delta time
-            self.delta = start_time - self.last_frame_time
-            self.last_frame_time = start_time
-            self.frames_count += 1
-            
+
             self.keyboard.update()
             self.mouse.update()
             glfw.poll_events()
+
+            # Calculate delta time after poll_events so input processing
+            # time does not bleed into the physics/update timestep.
+            now = time.perf_counter()
+            self.delta = now - self.last_frame_time
+            self.last_frame_time = now
+            self.frames_count += 1
+
+            # FPS / UPS counter (updated once per second)
+            self._fps_counter += 1
+            self._fps_timer += self.delta
+            if self._fps_timer >= 1.0:
+                self._fps_display = self._fps_counter / self._fps_timer
+                self._ups_display = self._ups_counter / self._fps_timer
+                self._fps_counter = 0
+                self._ups_counter = 0
+                self._fps_timer = 0.0
             
             if self.keyboard.get_key(Keys.X, KeyState.JUST_PRESSED):
                 glfw.set_window_should_close(self.window, True)
             
             try:
+                # Fixed timestep physics (only when fixed_update_rate > 0)
+                if self._fixed_dt > 0:
+                    self._accumulator += self.delta
+                    # Clamp accumulator to avoid spiral-of-death on lag spikes
+                    if self._accumulator > self._fixed_dt * 8:
+                        self._accumulator = self._fixed_dt * 8
+                    while self._accumulator >= self._fixed_dt:
+                        self.__fixed_update__()
+                        self._accumulator -= self._fixed_dt
+                    # alpha: how far between last two physics ticks (0.0–1.0)
+                    # Use this in update()/draw() to interpolate rendered state
+                    self.alpha = self._accumulator / self._fixed_dt
+
+                # UI input dispatch (before user update so wants_keyboard is set)
+                self.ui.process_input(self.mouse, self.keyboard)
+
                 self.__update__()
+                self.ui.update(self.delta)
                 self.__draw__()
                 glfw.swap_buffers(self.window)
             except Exception as e:
@@ -761,18 +969,24 @@ class RootEnv:
                 traceback.print_exc()
                 break
             
-            # FPS Limiting
+            # FPS Limiting: sleep most of the budget, then busy-wait the tail
+            # for microsecond-precision wakeup (plain sleep has ~15ms jitter on Windows).
             if self.target_frame_time > 0:
                 elapsed = time.perf_counter() - start_time
-                wait = self.target_frame_time - elapsed
+                wait = self.target_frame_time - elapsed - 0.002  # leave 2ms for busy-wait
                 if wait > 0:
                     time.sleep(wait)
+                while time.perf_counter() - start_time < self.target_frame_time:
+                    pass
         
         # Cleanup recording before terminating
         if hasattr(self, '__winrecorder__'):
             self.__winrecorder__.quit()
-        
+
         glfw.terminate()
+
+        if self._win_timer_set:
+            ctypes.windll.winmm.timeEndPeriod(1)
 
     def print(
         self,
@@ -780,7 +994,7 @@ class RootEnv:
         position: Vector2D,
         scale: float = 1.0,
         style: TextStyle = MONO_16_TEXT_STYLE,
-        pivot: Pivots|int = Pivots.TOP_LEFT,
+        pivot: Pivot = Pivot.TOP_LEFT,
         save_cache: bool = False
     ) -> Optional[TextLabel]:
 
@@ -799,31 +1013,35 @@ class RootEnv:
                    rotation: float = 0.0,
                    border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                    border_width: float = 0.0,
-                   antialiasing: float = 1.0) -> None:
-        """Draw a circle. See ShapeRenderer.draw_circle for parameters."""
+                   antialiasing: float = 1.0,
+                   layer: int = 0) -> None:
+        """Queue a circle for rendering. See ShapeRenderer.draw_circle for parameters."""
         self.shape_renderer.draw_circle(center, radius, color=color, rotation=rotation,
                                        border_color=border_color, border_width=border_width,
-                                       antialiasing=antialiasing)
-    
+                                       antialiasing=antialiasing, layer=layer)
+
     def draw_rect(self, position: Vector2D, size: Vector2D,
                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
                  rotation: float = 0.0,
                  corner_radius: float = 0.0,
                  border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                  border_width: float = 0.0,
-                 antialiasing: float = 1.0) -> None:
-        """Draw a rectangle. See ShapeRenderer.draw_rect for parameters."""
+                 antialiasing: float = 1.0,
+                 layer: int = 0) -> None:
+        """Queue a rectangle for rendering. See ShapeRenderer.draw_rect for parameters."""
         self.shape_renderer.draw_rect(position, size, color=color, rotation=rotation,
                                      corner_radius=corner_radius, border_color=border_color,
-                                     border_width=border_width, antialiasing=antialiasing)
-    
+                                     border_width=border_width, antialiasing=antialiasing,
+                                     layer=layer)
+
     def draw_line(self, start: Vector2D, end: Vector2D,
                  width: float = 1.0,
                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
-                 antialiasing: float = 1.0) -> None:
-        """Draw a line. See ShapeRenderer.draw_line for parameters."""
+                 antialiasing: float = 1.0,
+                 layer: int = 0) -> None:
+        """Queue a line for rendering. See ShapeRenderer.draw_line for parameters."""
         self.shape_renderer.draw_line((start.x, start.y), (end.x, end.y), width=width, color=color,
-                                     antialiasing=antialiasing)
+                                     antialiasing=antialiasing, layer=layer)
     
     def draw_lines(self, points,
                   width: float = 1.0,
@@ -939,6 +1157,7 @@ __all__ = [
     'TextRenderer',
     'TextLabel',
     'TextStyle',
+    'Pivot',
     'Pivots',
     'DEFAULT_16_TEXT_STYLE',
     'MONO_16_TEXT_STYLE',
@@ -947,6 +1166,10 @@ __all__ = [
     'ShapeLabel',
     'InstancedShapeBatch',
     'FillMode',
+    # UI system
+    'UIManager',
+    'UITheme',
+    'Label',
     # Input devices
     'Keyboard',
     'Mouse',
@@ -959,6 +1182,7 @@ __all__ = [
     'set_pattr_value',
     'get_uniform',
     # Compilation flags
+    '_VECTOR_COMPILED',
     '_COLOR_COMPILED',
     'PI',
     'PI_HALF',

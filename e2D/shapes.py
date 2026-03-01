@@ -727,7 +727,14 @@ class ShapeRenderer:
         self.line_vao = self.ctx.vertex_array(self.line_prog, [
             (self.line_vbo, '2f 4f', 'in_pos', 'in_color')
         ])
-    
+
+        # Persistent internal batches used by the deferred render queue
+        self._q_circle = InstancedShapeBatch(ctx, self.circle_instanced_prog, 'circle')
+        self._q_rect   = InstancedShapeBatch(ctx, self.rect_instanced_prog,   'rect')
+        self._q_line   = InstancedShapeBatch(ctx, self.line_instanced_prog,   'line')
+        # (layer: int, type_char: str, *shape_data_floats)
+        self._queue: list = []
+
     # ========== CIRCLE ==========
     
     def _generate_circle_vertices(self, center: Vector2D, radius: float, 
@@ -774,28 +781,30 @@ class ShapeRenderer:
                    rotation: float = 0.0,
                    border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                    border_width: float = 0.0,
-                   antialiasing: float = 1.0) -> None:
-        """
-        Draw a circle immediately.
-        
+                   antialiasing: float = 1.0,
+                   layer: int = 0) -> None:
+        """Queue a circle for deferred, layer-sorted rendering.
+
         Args:
             center: (x, y) position in screen coordinates
             radius: Circle radius in pixels
             color: (r, g, b, a) fill color
-            rotation: Rotation angle in radians (not used for circles, included for API consistency)
+            rotation: Unused (kept for API consistency)
             border_color: (r, g, b, a) border color
             border_width: Border width in pixels (0 = no border)
             antialiasing: Antialiasing smoothness in pixels
+            layer: Draw order — lower values render first (behind higher values)
         """
-        vertices = self._generate_circle_vertices(center, radius, color, rotation, 
-                                                  border_color, border_width, antialiasing)
-        
-        data = np.array(vertices, dtype='f4')
-        self.circle_vbo.write(data.tobytes())
-        
-        self.ctx.enable(moderngl.BLEND)
-        set_pattr_value(self.circle_prog, 'resolution', self.ctx.viewport[2:])
-        self.circle_vao.render(moderngl.TRIANGLES, vertices=6)
+        # Layout mirrors InstancedShapeBatch.add_circle:
+        # cx cy  r g b a  radius  br bg bb ba  border_width  aa
+        self._queue.append((
+            layer, 'c',
+            center[0], center[1],
+            color[0], color[1], color[2], color[3],
+            radius,
+            border_color[0], border_color[1], border_color[2], border_color[3],
+            border_width, antialiasing,
+        ))
     
     def create_circle(self, center: Vector2D, radius: float,
                      color: ColorType = (1.0, 1.0, 1.0, 1.0),
@@ -873,10 +882,10 @@ class ShapeRenderer:
                  corner_radius: float = 0.0,
                  border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
                  border_width: float = 0.0,
-                 antialiasing: float = 1.0) -> None:
-        """
-        Draw a rectangle immediately.
-        
+                 antialiasing: float = 1.0,
+                 layer: int = 0) -> None:
+        """Queue a rectangle for deferred, layer-sorted rendering.
+
         Args:
             position: (x, y) top-left corner in screen coordinates
             size: (width, height) in pixels
@@ -886,16 +895,21 @@ class ShapeRenderer:
             border_color: (r, g, b, a) border color
             border_width: Border width in pixels (0 = no border)
             antialiasing: Antialiasing smoothness in pixels
+            layer: Draw order — lower values render first (behind higher values)
         """
-        vertices = self._generate_rect_vertices(position, size, color, rotation,
-                                               corner_radius, border_color, border_width, antialiasing)
-        
-        data = np.array(vertices, dtype='f4')
-        self.rect_vbo.write(data.tobytes())
-        
-        self.ctx.enable(moderngl.BLEND)
-        set_pattr_value(self.rect_prog, 'resolution', self.ctx.viewport[2:])
-        self.rect_vao.render(moderngl.TRIANGLES, vertices=6)
+        # Instanced shader expects center, not top-left
+        cx = position[0] + size[0] * 0.5
+        cy = position[1] + size[1] * 0.5
+        # Layout mirrors InstancedShapeBatch.add_rect:
+        # cx cy  sw sh  r g b a  corner_r  br bg bb ba  border_width  aa  rotation
+        self._queue.append((
+            layer, 'r',
+            cx, cy, size[0], size[1],
+            color[0], color[1], color[2], color[3],
+            corner_radius,
+            border_color[0], border_color[1], border_color[2], border_color[3],
+            border_width, antialiasing, rotation,
+        ))
     
     def create_rect(self, position: Vector2D, size: Vector2D,
                    color: ColorType = (1.0, 1.0, 1.0, 1.0),
@@ -957,28 +971,26 @@ class ShapeRenderer:
     def draw_line(self, start: tuple[float, float], end: tuple[float, float],
                  width: float = 1.0,
                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
-                 antialiasing: float = 1.0) -> None:
-        """
-        Draw a single line segment.
-        
+                 antialiasing: float = 1.0,
+                 layer: int = 0) -> None:
+        """Queue a line segment for deferred, layer-sorted rendering.
+
         Args:
             start: (x, y) start point in screen coordinates
             end: (x, y) end point in screen coordinates
             width: Line width in pixels
             color: (r, g, b, a) line color
-            antialiasing: Antialiasing smoothness in pixels
+            antialiasing: Unused in instanced path (kept for API consistency)
+            layer: Draw order — lower values render first (behind higher values)
         """
-        vertices = self._generate_line_segment_vertices(start, end, width, color, antialiasing)
-        
-        if not vertices:
-            return
-        
-        data = np.array(vertices, dtype='f4')
-        self.line_vbo.write(data.tobytes())
-        
-        self.ctx.enable(moderngl.BLEND)
-        set_pattr_value(self.line_prog, 'resolution', self.ctx.viewport[2:])
-        self.line_vao.render(moderngl.TRIANGLES, vertices=6)
+        # Layout mirrors InstancedShapeBatch.add_line:
+        # sx sy  ex ey  width  r g b a
+        self._queue.append((
+            layer, 'l',
+            start[0], start[1], end[0], end[1],
+            width,
+            color[0], color[1], color[2], color[3],
+        ))
     
     def draw_lines(self, points: np.ndarray | Sequence[tuple[float, float]],
                   width: float = 1.0,
@@ -1095,7 +1107,56 @@ class ShapeRenderer:
         return ShapeLabel(self.ctx, self.line_prog, vbo, num_segments * 6, 'line')
     
     # ========== BATCHING ==========
-    
+
+    def flush_queue(self) -> None:
+        """Flush all queued draw_circle / draw_rect / draw_line calls.
+
+        Sorts by (layer, type) so shapes at lower layer values are drawn first.
+        Within the same layer, all circles are batched together, then lines,
+        then rects — minimising GPU draw call count regardless of how many
+        shapes were queued.
+
+        Called automatically by RootEnv at the end of every frame.
+        """
+        if not self._queue:
+            return
+
+        # Sort by (layer, type_char): groups same-type shapes within each layer
+        self._queue.sort(key=lambda x: (x[0], x[1]))
+
+        current_type: str | None = None
+        for cmd in self._queue:
+            typ = cmd[1]
+            if typ != current_type:
+                # Flush the previously accumulated batch before switching type
+                if current_type == 'c':
+                    self._q_circle.flush()
+                elif current_type == 'r':
+                    self._q_rect.flush()
+                elif current_type == 'l':
+                    self._q_line.flush()
+                current_type = typ
+
+            if typ == 'c':
+                self._q_circle.instance_data.extend(cmd[2:])
+                self._q_circle.instance_count += 1
+            elif typ == 'r':
+                self._q_rect.instance_data.extend(cmd[2:])
+                self._q_rect.instance_count += 1
+            elif typ == 'l':
+                self._q_line.instance_data.extend(cmd[2:])
+                self._q_line.instance_count += 1
+
+        # Flush the last active batch
+        if current_type == 'c':
+            self._q_circle.flush()
+        elif current_type == 'r':
+            self._q_rect.flush()
+        elif current_type == 'l':
+            self._q_line.flush()
+
+        self._queue.clear()
+
     def create_circle_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
         """Create a batch for drawing multiple circles efficiently using GPU instancing.
         
