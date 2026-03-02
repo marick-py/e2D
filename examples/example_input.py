@@ -1,6 +1,8 @@
 """
-Example demonstrating keyboard and mouse input in e2D
-Shows Keys class, MouseButtons class, and input states (PRESSED, JUST_PRESSED, JUST_RELEASED)
+Example demonstrating keyboard and mouse input in e2D.
+
+Shows Keys class, MouseButtons class, KeyState (PRESSED / JUST_PRESSED /
+JUST_RELEASED), and the new get_chars() typed-text API.
 """
 
 from e2D import (
@@ -18,6 +20,9 @@ class InputExample(DefEnv):
         self.messages = []
         self.player_pos = V2(450, 300)
         self.speed = 200.0
+        # Typed-text buffer (updated via get_chars each frame)
+        self.typed_text: str = ""
+        self._TYPED_MAXLEN = 60
         
     def update(self):
         # WASD Movement (PRESSED state - continuous)
@@ -72,6 +77,16 @@ class InputExample(DefEnv):
             import glfw
             glfw.set_window_should_close(self.root.window, True)
         
+        # --- Typed text via get_chars() -----------------------------------
+        # get_chars() returns all Unicode characters typed this frame.
+        # BACKSPACE is a control key (not a char), so handle it separately.
+        for ch in self.root.keyboard.get_chars():
+            self.typed_text += ch
+        if self.root.keyboard.get_key(Keys.BACKSPACE, KeyState.JUST_PRESSED):
+            self.typed_text = self.typed_text[:-1]
+        if len(self.typed_text) > self._TYPED_MAXLEN:
+            self.typed_text = self.typed_text[-self._TYPED_MAXLEN:]
+
         self.frame += 1
     
     def draw(self):
@@ -109,6 +124,10 @@ class InputExample(DefEnv):
             "Mouse:",
             "  Left/Right/Middle Click - Show colored circle",
             "",
+            "Type text (right panel):",
+            "  Any key - append character",
+            "  BACKSPACE - delete last character",
+            "",
             "Recent Events:"
         ]
         
@@ -142,6 +161,27 @@ class InputExample(DefEnv):
             f"Mouse: ({mouse_pos.x:.0f}, {mouse_pos.y:.0f})",
             V2(10, 570),
             scale=0.9
+        )
+
+        # ---- Typed text demo (get_chars) ---------------------------------
+        self.root.print("Type anything:", V2(500, 40), scale=1.1, style=TextStyle(font_size=18, color=CYAN))
+        # Box outline
+        self.root.draw_rect(V2(500, 65), V2(380, 32),
+                            color=(0.1, 0.1, 0.15, 1.0),
+                            border_color=(0.4, 0.8, 1.0, 0.9),
+                            border_width=1.5)
+        display = self.typed_text if self.typed_text else "..."
+        self.root.print(
+            display,
+            V2(508, 73),
+            scale=0.9,
+            style=TextStyle(font_size=16, color=WHITE)
+        )
+        self.root.print(
+            "(BACKSPACE to delete)",
+            V2(500, 104),
+            scale=0.8,
+            style=TextStyle(font_size=14, color=(0.6, 0.6, 0.6, 1.0))
         )
 
 def main():

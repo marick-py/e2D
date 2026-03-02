@@ -18,14 +18,8 @@ del /s /q *.pyd 2>nul
 
 REM Remove Cython build files
 del /s /q e2D\*.c 2>nul
-del /s /q e2D\*.html 2>nul
 
 echo.
 echo Cleanup complete!
-echo.
-echo Kept:
-echo   - Source code (.py, .pyx, .pxd)
-echo   - Documentation (.md)
-echo   - Configuration files
 echo.
 pause

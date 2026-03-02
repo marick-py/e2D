@@ -5,6 +5,7 @@ Combines ultra-optimized vector operations with moderngl rendering
 Copyright (c) 2025 Riccardo Mariani
 MIT License
 """
+from __future__ import annotations
 
 __version__ = "2.1.8"
 __author__ = "Riccardo Mariani"
@@ -19,19 +20,19 @@ import os
 import ctypes
 
 # Import type definitions
-from .types import (
+from ._types import (
     ComputeShaderType, ProgramAttrType, UniformType, ColorType, Number,
     ContextType, ProgramType, BufferType, WindowType, pArray
 )
 
 # Import original e2D modules
-from .text_renderer import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
+from .text import DEFAULT_32_TEXT_STYLE, MONO_32_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
-from .devices import Keyboard, Mouse, KeyState, Keys, MouseButtons
-from .commons import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI, PI_HALF, PI_QUARTER, TAU
+from .input import Keyboard, Mouse, KeyState, Keys, MouseButtons
+from .utils import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI, PI_HALF, PI_QUARTER, TAU
 
 # UI system
-from .ui.base import Pivot
+from ._pivot import Pivot
 from .ui import UIManager, UITheme, Label
 
 # Backward-compat alias
@@ -41,7 +42,7 @@ from typing import Optional
 
 # Import color utilities
 from .colors import Color, normalize_color, lerp_colors, gradient, batch_colors_to_array
-from .color_defs import (
+from .palette import (
     # Basic colors
     TRANSPARENT, WHITE, BLACK, RED, GREEN, BLUE, CYAN, MAGENTA, YELLOW,
     # Extended colors (most common)
@@ -687,7 +688,7 @@ class RootEnv:
         return self
     
     def init_rec(self, fps: int = 30, draw_on_screen: bool = True, path: str = 'output.mp4') -> None:
-        from .winrec import WinRec
+        from .recorder import WinRec
         self.__winrecorder__ = WinRec(self, fps=fps, draw_on_screen=draw_on_screen, path=path)
     
     def load_shader_file(self, path: str) -> str:
@@ -739,7 +740,7 @@ class RootEnv:
             info = f"FPS: {self._fps_display:.0f}"
             if self._fixed_dt > 0:
                 info += f" | UPS: {self._ups_display:.0f}"
-            self.print(info, V2(10, 10), scale=1.0, style=MONO_16_TEXT_STYLE, pivot=Pivot.TOP_LEFT)
+            self.print(info, V2(10, 10), scale=1.0, style=MONO_32_TEXT_STYLE, pivot=Pivot.TOP_LEFT)
         
         # Screen recording: capture frame before overlay, draw stats after
         if hasattr(self, '__winrecorder__'):
@@ -993,7 +994,7 @@ class RootEnv:
         text_or_label: str|TextLabel,
         position: Vector2D,
         scale: float = 1.0,
-        style: TextStyle = MONO_16_TEXT_STYLE,
+        style: TextStyle = MONO_32_TEXT_STYLE,
         pivot: Pivot = Pivot.TOP_LEFT,
         save_cache: bool = False
     ) -> Optional[TextLabel]:
@@ -1159,8 +1160,8 @@ __all__ = [
     'TextStyle',
     'Pivot',
     'Pivots',
-    'DEFAULT_16_TEXT_STYLE',
-    'MONO_16_TEXT_STYLE',
+    'DEFAULT_32_TEXT_STYLE',
+    'MONO_32_TEXT_STYLE',
     # Shape rendering
     'ShapeRenderer',
     'ShapeLabel',

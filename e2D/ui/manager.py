@@ -11,9 +11,9 @@ from .theme import UITheme, DARK_THEME
 from .label import Label
 
 if TYPE_CHECKING:
-    from ..types import ContextType
-    from ..text_renderer import TextRenderer, TextStyle
-    from ..devices import Keyboard, Mouse
+    from .._types import ContextType
+    from ..text import TextRenderer, TextStyle
+    from ..input import Keyboard, Mouse
     from ..vectors import Vector2D
 
 
@@ -151,7 +151,7 @@ class UIManager:
         Called by :class:`RootEnv` each frame **before** ``env.update()``.
         """
         import glfw
-        from ..devices import KeyState, Keys
+        from ..input import KeyState, Keys
 
         mx, my = mouse.position.x, mouse.position.y
 

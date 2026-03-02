@@ -6,11 +6,11 @@ import struct
 from dataclasses import dataclass
 from enum import Enum
 import os
-from .commons import set_uniform_block_binding
-from .types import ColorType, ComputeShaderType, Number, VAOType, ContextType, ProgramType, BufferType, ArrayLike
+from .utils import set_uniform_block_binding
+from ._types import ColorType, ComputeShaderType, Number, VAOType, ContextType, ProgramType, BufferType, ArrayLike
 from .vectors import Vector2D
 from .colors import normalize_color
-from .color_defs import GRAY10, GRAY50, WHITE, RED, CYAN
+from .palette import GRAY10, GRAY50, WHITE, RED, CYAN
 
 class ShaderManager:
     """Cache and manage shader files for the plots module."""

@@ -1,9 +1,10 @@
 """
 Unit tests for e2D input system
-Tests Keys and MouseButtons classes without requiring a window
+Tests Keys, MouseButtons, KeyState, Keyboard, and Mouse without requiring a window
 """
 
 from e2D import Keys, MouseButtons, KeyState
+from e2D.input import Keyboard, Mouse
 
 def test_keys_class():
     """Test Keys class constants"""
@@ -162,6 +163,174 @@ def test_mouse_buttons_values():
     
     print("✓ MouseButtons values tests passed")
 
+def test_keyboard_instantiation():
+    """Test Keyboard can be instantiated without a window"""
+    print("\n=== Keyboard Instantiation ===")
+
+    kb = Keyboard()
+    assert isinstance(kb.pressed, set), "pressed should be a set"
+    assert isinstance(kb.just_pressed, set), "just_pressed should be a set"
+    assert isinstance(kb.just_released, set), "just_released should be a set"
+    assert isinstance(kb.char_buffer, list), "char_buffer should be a list"
+    assert isinstance(kb.is_consumed, bool), "is_consumed should be a bool"
+    assert len(kb.pressed) == 0
+    assert len(kb.char_buffer) == 0
+    assert kb.is_consumed is False
+
+    print("✓ Keyboard instantiation tests passed")
+
+def test_keyboard_key_states():
+    """Test Keyboard key state tracking via internal _on_key callback"""
+    print("\n=== Keyboard Key States ===")
+
+    import glfw
+
+    kb = Keyboard()
+
+    # Simulate PRESS
+    kb._on_key(None, Keys.A, 0, glfw.PRESS, 0)
+    assert Keys.A in kb.pressed, "A should be in pressed after PRESS"
+    assert Keys.A in kb.just_pressed, "A should be in just_pressed after PRESS"
+    assert Keys.A not in kb.just_released
+
+    # get_key helpers
+    assert kb.get_key(Keys.A, KeyState.PRESSED)
+    assert kb.get_key(Keys.A, KeyState.JUST_PRESSED)
+    assert not kb.get_key(Keys.A, KeyState.JUST_RELEASED)
+
+    # Update clears transient sets
+    kb.update()
+    assert Keys.A in kb.pressed, "A should remain in pressed after update"
+    assert Keys.A not in kb.just_pressed, "just_pressed should clear after update"
+    assert len(kb.just_released) == 0
+
+    # Simulate RELEASE
+    kb._on_key(None, Keys.A, 0, glfw.RELEASE, 0)
+    assert Keys.A not in kb.pressed
+    assert Keys.A in kb.just_released
+    assert kb.get_key(Keys.A, KeyState.JUST_RELEASED)
+
+    kb.update()
+    assert Keys.A not in kb.just_released, "just_released should clear after update"
+
+    print("✓ Keyboard key state tests passed")
+
+def test_keyboard_char_buffer():
+    """Test Keyboard char_buffer and get_chars()"""
+    print("\n=== Keyboard char_buffer / get_chars ===")
+
+    kb = Keyboard()
+
+    # Simulate typing "Hi!"
+    for cp in [ord('H'), ord('i'), ord('!')]:
+        kb._on_char(None, cp)
+
+    assert kb.char_buffer == ['H', 'i', '!'], f"Expected ['H','i','!'], got {kb.char_buffer}"
+
+    chars = kb.get_chars()
+    assert chars == ['H', 'i', '!'], "get_chars() should return typed characters"
+    # get_chars returns a copy — mutating it must not affect internal buffer
+    chars.clear()
+    assert kb.char_buffer == ['H', 'i', '!'], "get_chars() must return a copy"
+
+    # update() clears the buffer
+    kb.update()
+    assert kb.char_buffer == [], "char_buffer should be empty after update()"
+    assert kb.get_chars() == []
+
+    print("✓ Keyboard char_buffer / get_chars tests passed")
+
+def test_keyboard_is_consumed():
+    """Test Keyboard.is_consumed flag"""
+    print("\n=== Keyboard is_consumed ===")
+
+    kb = Keyboard()
+    assert kb.is_consumed is False
+
+    kb.is_consumed = True
+    assert kb.is_consumed is True
+
+    # update() should reset the flag
+    kb.update()
+    assert kb.is_consumed is False
+
+    print("✓ Keyboard is_consumed tests passed")
+
+def test_mouse_instantiation():
+    """Test Mouse can be instantiated and helper methods work without a window"""
+    print("\n=== Mouse Instantiation ===")
+
+    from e2D.vectors import Vector2D
+
+    m = Mouse()
+    assert isinstance(m.position, Vector2D)
+    assert isinstance(m.delta, Vector2D)
+    assert isinstance(m.scroll, Vector2D)
+    assert len(m.pressed) == 0
+    assert len(m.just_pressed) == 0
+    assert len(m.just_released) == 0
+
+    print("✓ Mouse instantiation tests passed")
+
+def test_mouse_movement():
+    """Test Mouse position tracking"""
+    print("\n=== Mouse Movement ===")
+
+    m = Mouse()
+
+    m._on_cursor_pos(None, 100.0, 200.0)
+    assert m.position.x == 100.0
+    assert m.position.y == 200.0
+
+    m.update()
+    assert m.delta.x == 100.0, f"Expected delta.x=100.0, got {m.delta.x}"
+    assert m.delta.y == 200.0
+
+    m._on_cursor_pos(None, 110.0, 195.0)
+    m.update()
+    assert m.delta.x == 10.0
+    assert m.delta.y == -5.0
+
+    print("✓ Mouse movement tests passed")
+
+def test_mouse_buttons():
+    """Test Mouse button state tracking"""
+    print("\n=== Mouse Button States ===")
+
+    import glfw
+
+    m = Mouse()
+
+    m._on_mouse_button(None, MouseButtons.LEFT, glfw.PRESS, 0)
+    assert MouseButtons.LEFT in m.pressed
+    assert MouseButtons.LEFT in m.just_pressed
+    assert m.get_button(MouseButtons.LEFT, KeyState.PRESSED)
+    assert m.get_button(MouseButtons.LEFT, KeyState.JUST_PRESSED)
+
+    m.update()
+    assert MouseButtons.LEFT in m.pressed
+    assert MouseButtons.LEFT not in m.just_pressed
+
+    m._on_mouse_button(None, MouseButtons.LEFT, glfw.RELEASE, 0)
+    assert MouseButtons.LEFT not in m.pressed
+    assert m.get_button(MouseButtons.LEFT, KeyState.JUST_RELEASED)
+
+    print("✓ Mouse button state tests passed")
+
+def test_mouse_scroll():
+    """Test Mouse scroll tracking"""
+    print("\n=== Mouse Scroll ===")
+
+    m = Mouse()
+    m._on_scroll(None, 0.0, 3.0)
+    assert m.scroll.y == 3.0
+
+    m.update()
+    assert m.scroll.x == 0.0 and m.scroll.y == 0.0, "scroll should reset after update"
+
+    print("✓ Mouse scroll tests passed")
+
+
 def run_all_tests():
     """Run all input tests"""
     print("\n" + "="*50)
@@ -174,6 +343,14 @@ def run_all_tests():
     test_keys_completeness()
     test_keys_values_unique()
     test_mouse_buttons_values()
+    test_keyboard_instantiation()
+    test_keyboard_key_states()
+    test_keyboard_char_buffer()
+    test_keyboard_is_consumed()
+    test_mouse_instantiation()
+    test_mouse_movement()
+    test_mouse_buttons()
+    test_mouse_scroll()
     
     print("\n" + "="*50)
     print("✓ ALL INPUT TESTS PASSED")

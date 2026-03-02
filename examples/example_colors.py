@@ -9,7 +9,7 @@ from e2D import (
     WHITE, BLACK, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA,
     TextStyle
 )
-from e2D.color_defs import (
+from e2D.palette import (
     MD_RED, MD_PINK, MD_PURPLE, MD_DEEP_PURPLE, MD_INDIGO,
     MD_BLUE, MD_LIGHT_BLUE, MD_CYAN, MD_TEAL, MD_GREEN,
     PASTEL_RED, PASTEL_ORANGE, PASTEL_YELLOW, PASTEL_GREEN,
@@ -21,14 +21,14 @@ from e2D.color_defs import (
 class ColorsExample(DefEnv):
     """Example showing color system features"""
     
-    def __init__(self, root: RootEnv):
+    def __init__(self, root: RootEnv) -> None:
         self.root = root
         self.frame = 0
         
-    def update(self):
+    def update(self) -> None:
         self.frame += 1
         
-    def draw(self):
+    def draw(self) -> None:
         # Title
         self.root.print("Color System Examples", V2(10, 10), scale=1.8)
         
@@ -144,7 +144,7 @@ class ColorsExample(DefEnv):
         self.root.draw_circle(V2(690, 440), 20, color=fading_color.to_rgba())
         
         # Instructions
-        self.root.print("ESC to exit", V2(10, 560), scale=0.9)
+        self.root.print("X to exit", V2(10, 560), scale=0.9)
 
 def main():
     """Run the colors example"""

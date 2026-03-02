@@ -26,11 +26,11 @@ import numpy as np
 import moderngl
 
 from .base import Pivot, UIElement
-from ..text_renderer import TextStyle, DEFAULT_16_TEXT_STYLE
+from ..text import TextStyle, DEFAULT_16_TEXT_STYLE
 
 if TYPE_CHECKING:
-    from ..text_renderer import TextRenderer
-    from ..types import ContextType
+    from ..text import TextRenderer
+    from .._types import ContextType
 
 
 class Label(UIElement):

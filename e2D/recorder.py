@@ -83,7 +83,7 @@ class WinRec:
     def handle_input(self) -> None:
         """Handle recording control keyboard inputs (F9-F12)."""
         import glfw
-        from .devices import KeyState
+        from .input import KeyState
         
         # F9: Toggle pause/resume recording
         if self.rootEnv.keyboard.get_key(glfw.KEY_F9, KeyState.JUST_PRESSED):
@@ -158,8 +158,8 @@ class WinRec:
         rec_status = "REC" if self.is_recording else "PAUSED"
         
         # Format with fixed width for stable display
-        from .text_renderer import TextStyle, Pivots
-        from .color_defs import WHITE, BLACK
+        from .text import TextStyle, Pivots
+        from .palette import WHITE, BLACK
         
         row1 = (f"[{rec_status}] RecFrames:{self.recording_frames:>6} | "
                 f"RecTime:{self.get_rec_seconds():>6.2f}s | "

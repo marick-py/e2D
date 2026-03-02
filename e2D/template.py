@@ -1,6 +1,6 @@
 from e2D import RootEnv, DefEnv, WindowConfig
-from e2D.devices import Keys, KeyState
-from e2D.color_defs import WHITE, RED, GREEN, BLUE, get_color
+from e2D.input import Keys, KeyState
+from e2D.palette import WHITE, RED, GREEN, BLUE, get_color
 from e2D.vectors import Vector2D, V2
 
 class MyApp(DefEnv):

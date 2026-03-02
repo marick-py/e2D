@@ -7,7 +7,7 @@ from e2D import (
     Color, normalize_color, lerp_colors, gradient,
     WHITE, BLACK, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, TRANSPARENT
 )
-from e2D.color_defs import (
+from e2D.palette import (
     MD_RED, MD_BLUE, PASTEL_RED, NEON_GREEN,
     UI_SUCCESS, UI_WARNING, UI_ERROR, UI_INFO
 )

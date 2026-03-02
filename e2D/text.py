@@ -1,12 +1,13 @@
+from __future__ import annotations
 from typing import Optional
 from PIL import Image, ImageFont
 from attr import dataclass
 import numpy as np
 import moderngl
-from .types import ColorType, VAOType, ContextType, ProgramType, BufferType, TextureType
+from ._types import ColorType, VAOType, ContextType, ProgramType, BufferType, TextureType
 from .colors import normalize_color
-from .color_defs import WHITE, BLACK
-from .ui.base import Pivot, resolve_pivot
+from .palette import WHITE, BLACK
+from ._pivot import Pivot, resolve_pivot
 
 # Backward-compat alias — new code should use ``Pivot`` directly.
 Pivots = Pivot

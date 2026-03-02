@@ -4,7 +4,7 @@ Provides type hints for all vector operations
 """
 
 from typing import List, Tuple, Union, Iterator
-from .types import Number
+from ._types import Number
 import numpy as np
 import numpy.typing as npt
 

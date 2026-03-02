@@ -1,9 +1,10 @@
+from __future__ import annotations
 import moderngl
 import numpy as np
-from .commons import get_pattr, get_pattr_value, set_pattr_value
-from .types import VAOType, ColorType, ContextType, ProgramType, BufferType
+from .utils import get_pattr, get_pattr_value, set_pattr_value
+from ._types import VAOType, ColorType, ContextType, ProgramType, BufferType
 from .colors import normalize_color
-from .color_defs import WHITE, BLACK, TRANSPARENT
+from .palette import WHITE, BLACK, TRANSPARENT
 from .vectors import Vector2D
 from typing import Optional, Sequence
 from enum import Enum

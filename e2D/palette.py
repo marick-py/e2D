@@ -1,7 +1,7 @@
 """
 Pre-defined color palette for e2D
 All colors are RGBA tuples (0.0-1.0) for GPU compatibility
-Import individual colors as needed: from e2D.color_defs import RED, BLUE
+Import individual colors as needed: from e2D.palette import RED, BLUE
 """
 
 from typing import Final, Literal, Union, TYPE_CHECKING, TypeAlias

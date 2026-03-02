@@ -1,6 +1,7 @@
+from __future__ import annotations
 from enum import Enum
 import glfw
-from .types import WindowType
+from ._types import WindowType
 from .vectors import Vector2D
 
 
