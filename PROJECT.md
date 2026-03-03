@@ -16,7 +16,7 @@ e2D is a high-performance Python 2D graphics and simulation library built on top
 The project lives at:
 `c:\Users\User\OneDrive\MyDev\Python\MyModules\e2D_2.0\e2D\`
 
-**Phases 1 and 2 are COMPLETE.** This document covers Phases 3–6.
+**Phases 1, 2, and 3 are COMPLETE.** This document covers Phases 4–6.
 
 ---
 
@@ -118,7 +118,7 @@ These files were created or heavily modified in Phase 2:
 - `ui/slider.py` — `Slider(UIElement)` (horizontal/vertical, `start`/`end`/`step`/`value`/`on_change`, Ctrl=snap, Shift=fine drag, optional labels) and `RangeSlider(UIElement)` (dual handle, `low_value`/`high_value`/`on_change`); factory shortcuts: `env.ui.slider(...)` / `env.ui.range_slider(...)`
 
 **Modified files:**
-- `ui/base.py` — added 6 interaction event hook stubs to `UIElement`: `on_hover_enter()`, `on_hover_exit()`, `on_mouse_press(mx, my)`, `on_mouse_release(mx, my)`, `on_mouse_drag(mx, my, dx, dy)`, `on_key_press(key)`
+- `ui/base.py` — added 6 interaction event hook stubs to `UIElement`: `on_hover_enter()`, `on_hover_exit()`, `on_mouse_press(mx, my)`, `on_mouse_release(mx, my)`, `on_mouse_drag(mx, my, dx, dy)`, `on_key_press(key)`; added `tab_index: int = 0` constructor parameter (sets `self._tab_index`) so widgets can declare their focus-cycle order at creation time
 - `ui/manager.py` — constructor now accepts `shape_renderer: ShapeRenderer` (stored as `self.shape_renderer`); added `_pressed_on`, `_keyboard`, `_mouse`, `_prev_mx/y` fields; `process_input()` completely rewritten to dispatch all six event hooks using `MouseButtons.LEFT` checks; `draw()` calls `self.shape_renderer.flush_queue()` after all elements render; five new factory methods: `button()`, `switch()`, `checkbox()`, `slider()`, `range_slider()`
 - `ui/__init__.py` — exports `Button`, `Switch`, `Checkbox`, `Slider`, `RangeSlider`
 - `__init__.py` — `UIManager(...)` now receives `self.shape_renderer`; `Button`, `Switch`, `Checkbox`, `Slider`, `RangeSlider` in `__all__`
@@ -204,7 +204,22 @@ ui/
 
 ---
 
-## PHASE 3 — InputField and MultiLineInput
+### Phase 3 (complete)
+
+These files were created or heavily modified in Phase 3:
+
+**New files:**
+- `ui/input_field.py` — `InputField(UIElement)` (single-line: placeholder, password mode (`*` char), cursor blink, text selection, copy/paste via GLFW clipboard, Ctrl+word-delete, validation + error state, horizontal scroll, **Ctrl+Z/Ctrl+Shift+Z undo/redo**) and `MultiLineInput(UIElement)` (multi-line: Enter inserts newline, Ctrl+Enter submits, Tab inserts spaces, Up/Down arrow line navigation, vertical scroll, auto-expand mode with `min_height`/`max_height`, optional scrollbar, Ctrl+Tab for focus cycle, **Ctrl+Z/Ctrl+Shift+Z undo/redo**)
+
+**Modified files:**
+- `ui/base.py` — added `_consumes_tab: bool` flag to `UIElement.__init__`; added `on_char_input(chars: list[str])` and `on_scroll(dy: float)` virtual methods with no-op defaults
+- `ui/manager.py` — `__init__` now accepts optional `window` parameter (stored as `self._window`, used for clipboard); `process_input()` updated: Tab forwarded to element if `_consumes_tab` is True (Ctrl+Tab always cycles focus), `on_char_input()` called on focused element each frame with this frame's char buffer, `on_scroll()` dispatched to hovered element; two new factory methods: `input_field()`, `multi_line_input()`
+- `ui/__init__.py` — exports `InputField`, `MultiLineInput`
+- `__init__.py` — `UIManager(…)` call passes `window=self.window`; `InputField` and `MultiLineInput` in imports and `__all__`
+
+---
+
+## PHASE 3 — InputField and MultiLineInput (COMPLETE — do not re-implement)
 
 **Target files:**
 ```
@@ -220,11 +235,12 @@ ui/
   - `value`: initial text content
   - `on_submit`: callable called with current text string when Enter is pressed
   - `validate`: callable passed the current string, returns `bool`. Called on Enter — if False, show error state visual, do NOT call `on_submit`
-  - `password=True`: renders text as bullet points `•` instead of actual characters
+  - `password=True`: renders text as `*` characters (ASCII — the font atlas is ASCII-only, so non-ASCII mask chars are invisible)
 - Text editing uses `input.py` `Keyboard.get_chars()` and `Keyboard.char_buffer` system built in Phase 1 — read `input.py` first
 - **Cursor:** blinking cursor (configurable blink rate via `cursor_blink_rate` in seconds) when focused. Cursor drawn as a thin vertical line using existing shape renderer
 - **Text selection:** click and drag to select. Selected region highlighted with a configurable selection color. `Ctrl+A` selects all
-- **Copy/paste:** `Ctrl+C` copies selection, `Ctrl+V` pastes from clipboard (use Python `tkinter.Tk().clipboard_get()` / `clipboard_clear()+clipboard_append()` for clipboard access — it's the safest cross-platform way with no extra deps)
+- **Copy/paste:** `Ctrl+C` copies selection, `Ctrl+V` pastes from clipboard (`glfw.get_clipboard_string` / `glfw.set_clipboard_string` — cross-platform: Windows / X11 / Wayland; Linux returns `bytes`, decoded automatically)
+- **Undo/redo:** `Ctrl+Z` undoes the last change (up to 100 snapshots, consecutive character inputs are coalesced into one undoable unit); `Ctrl+Shift+Z` redoes. All destructive operations (Backspace, Delete, Ctrl+X, Ctrl+V) push an undo snapshot first.
 - **Navigation keys:** Left/Right arrows move cursor, Home/End jump to start/end, Shift+arrows extend selection
 - **Backspace/Delete:** remove character before/after cursor, or delete selection if any
 - **Max length:** optional `max_length: int = None`
@@ -234,13 +250,17 @@ ui/
 ### MultiLineInput
 
 - Separate class from InputField, also inherits from `UIElement`
-- Same text editing features as InputField (selection, copy/paste, cursor)
+- Same text editing features as InputField (selection, copy/paste, cursor, **undo/redo**)
 - Enter key inserts newline instead of submitting
 - `on_submit` triggered by `Ctrl+Enter` instead
 - **Scrolling:** when text exceeds visible area, scroll vertically. Use mouse wheel when focused/hovered
 - **Expand mode:** optional `auto_expand=True` — field grows vertically to fit content instead of scrolling
+  - `min_height: float = 0.0` — minimum height in pixels (0 = unconstrained)
+  - `max_height: float = 0.0` — maximum height cap in pixels (0 = no cap); once reached, `auto_expand` stops growing and scrolling is enabled transparently
+  - When `auto_expand=True` and content fits (not capped), `_scroll_y` is always reset to 0 and `_ensure_cursor_visible` skips scroll adjustment to prevent phantom scroll
 - Tab key inserts spaces (configurable `tab_width: int = 4`) — does NOT change focus when inside MultiLineInput; use Ctrl+Tab to change focus
 - Visible scrollbar when content overflows (configurable `show_scrollbar=True`)
+- **Scissor note:** the bottom pad is excluded from the scissor height so descenders on the bottom-most row are not clipped
 
 ### Tab / Focus Navigation
 
@@ -255,6 +275,202 @@ ui/
 - Hook into existing `Keyboard` char system from `input.py`
 - Hook into `UIManager` for focus, `wants_keyboard` flag must be `True` when any InputField/MultiLineInput is focused so the user's game loop knows keyboard is consumed
 - Update `ui/__init__.py` and root `__init__.py` exports
+
+---
+
+## THEME SYSTEM REBUILD (COMPLETE — do not re-implement)
+
+These changes were applied on top of Phases 1–3 and are already in the codebase. Read the relevant files before modifying them.
+
+### Summary of changes
+
+**Modified files:**
+- `ui/theme.py` — `UITheme` fully filled out; new `bg_window` field; 9 built-in theme constants
+- `ui/manager.py` — `theme` is now a **property** with setter that rebuilds all elements
+- `ui/label.py` — fully theme-aware with `_explicit_style` / `_raw_segments` tracking
+- `ui/button.py` — draw-order fix: `sr.flush_queue()` before `self._label.draw()`
+- `ui/slider.py` — draw-order fix: layer params + flush before labels; vertical fill direction fix; range fill rounded caps
+- `ui/toggle.py` — draw-order fix: track `layer=0`, thumb `layer=1`
+- `ui/__init__.py` — all 9 theme constants exported
+- `__init__.py` — all 9 theme constants in `__all__`
+- `examples/example_widgets.py` — T key cycles all 9 themes, bg uses `theme.bg_window`
+- `examples/example_input_fields.py` — T key cycles all 9 themes, window height 730px, `theme.bg_window`
+
+---
+
+### UITheme fields (complete as of this session)
+
+```python
+@dataclass
+class UITheme:
+    # ── Colors ─────────────────────────────────────────────────────────────
+    bg_window:      Color   # window clear color  ← NEW
+    bg_normal:      Color   # element background at rest
+    bg_hover:       Color
+    bg_pressed:     Color
+    bg_focused:     Color
+    bg_disabled:    Color
+
+    border_color:   Color
+    border_width:   float
+    corner_radius:  float
+
+    text_color:     Color
+    text_disabled:  Color
+    placeholder_color: Color
+    selection_color: Color
+    error_color:    Color
+    cursor_color:   Color
+    scrollbar_color: Color
+    scrollbar_thumb: Color
+    track_color:    Color
+    fill_color:     Color
+    thumb_color:    Color
+    thumb_low_color: Color
+    thumb_high_color: Color
+
+    primary:        Color   # accent / fill for active state
+    secondary:      Color   # accent 2
+    accent:         Color   # extra highlight
+
+    # ── Typography ─────────────────────────────────────────────────────────
+    font:           str
+    font_size:      int
+
+    # ── Spacing ────────────────────────────────────────────────────────────
+    padding_x:      float
+    padding_y:      float
+
+    # ── Animation ──────────────────────────────────────────────────────────
+    animation_speed: float  # t multiplier; 0.0 = no animation
+
+    # ── Checkbox / Switch ──────────────────────────────────────────────────
+    checkmark_color: Color
+    switch_on_color: Color
+    switch_off_color: Color
+```
+
+**Rule:** All UIElements must derive their default colors from the active theme. Never hardcode `Color(...)` literals in a widget's `_build()` method — always read from `self._manager.theme`.
+
+---
+
+### UIManager.theme (property)
+
+`theme` is now a Python **property** backed by `self._theme`:
+
+- **Getter:** returns `self._theme`
+- **Setter:** stores `self._theme`, then calls `elem._build(self.ctx, self.text_renderer)` on **every registered element** immediately. This guarantees all widgets instantly reflect the new theme's colors, fonts, and sizes.
+- After setting a theme, there is no need to call anything else — the rebuild is automatic.
+- Default theme: `MONOKAI_THEME` (was `DARK_THEME`)
+
+```python
+ui.theme = SOLARIZED_DARK    # rebuilds everything immediately
+root.clear_color = ui.theme.bg_window
+```
+
+---
+
+### Label theme-awareness
+
+The `Label` class tracks whether its style was set explicitly by the caller:
+
+| Field | Purpose |
+|-------|---------|
+| `_explicit_style: bool` | `True` if caller passed a concrete `TextStyle`; those labels ignore theme rebuilds |
+| `_raw_segments: tuple` | Copy of original init segments, kept in sync by `set_text()` / `set_plain_text()` |
+| `default_style: TextStyle / None` | `None` means "follow active theme"; `_build()` re-derives from `theme.font/font_size/text_color` |
+
+When `UIManager.theme` is set it calls `Label._build()` which, for non-explicit labels, re-derives `default_style` from the new theme and re-parses `_raw_segments` so text picks up the new color/font immediately.
+
+---
+
+### Built-in themes
+
+All 9 constants are exported from `e2D.ui.theme`, `e2D.ui`, and `e2D` (root).
+
+```python
+from e2D import (
+    MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
+    SOLARIZED_DARK, SOLARIZED_LIGHT,
+    NORD_THEME, DRACULA_THEME, TOKYO_NIGHT_THEME,
+    HIGH_CONTRAST,
+)
+```
+
+| Constant | Palette origin |
+|----------|----------------|
+| `MONOKAI_THEME` *(default)* | olive-black bg (`#272822`), neon orange/cyan/green, semi-transparent surfaces |
+| `DARK_THEME` | neutral Material near-black, purple/teal |
+| `LIGHT_THEME` | near-white bg, dark text, muted blue accent |
+| `SOLARIZED_DARK` | `#002B36` warm dark, blue+cyan accents |
+| `SOLARIZED_LIGHT` | `#FDF6E3` cream bg, blue+cyan accents |
+| `NORD_THEME` | `#2E3440` Arctic blue-grey |
+| `DRACULA_THEME` | `#282A36` purple-slate, neon pink+purple |
+| `TOKYO_NIGHT_THEME` | `#1A1B26` deep navy, soft blue/violet, 8px radius |
+| `HIGH_CONTRAST` | pure black/white, yellow accents, 0px radius, instant animation |
+
+---
+
+### Draw-order architecture (ShapeRenderer deferred queue)
+
+`shapes.py` maintains a `_queue` list. `draw_rect`, `draw_circle`, and `draw_line` all take an optional `layer: int = 0` and append `(layer, type_char, ...)` to the queue. When `flush_queue()` is called, the list is sorted by `(layer, type_char)` and then all shapes are rendered in order.
+
+**Critical:** `type_char` is a single letter: `'c'` = circle, `'l'` = line, `'r'` = rect. Alphabetically `'c' < 'l' < 'r'`, so **within the same layer, circles always render before rects**. If a circle (thumb) and a rect (track) are both at `layer=0`, the track rect will draw OVER the circle.
+
+#### Rule for any widget that draws a circle ON TOP of a rect (thumb, switch knob, etc.)
+
+```python
+# Background rects (track, fill):  layer=0, type 'r'
+sr.draw_rect(..., layer=0)
+# Foreground circles (thumb, knob): layer=1, type 'c'
+sr.draw_circle(..., layer=1)
+# Result: layer 0 'r' renders first, then layer 1 'c' renders on top ✓
+```
+
+Applied to:
+- `Slider`: track + fill at `layer=0`; thumb circle at `layer=1`
+- `RangeSlider`: track + fill at `layer=0`; both handle circles at `layer=1`
+- `Switch`: track rect at `layer=0`; thumb circle at `layer=1`
+
+#### Rule for widgets that draw text (Label) on top of a background rect
+
+`Label.draw()` renders immediately and bypasses the deferred queue. `flush_queue()` runs after ALL `UIManager.draw()` element calls. This means: if a widget queues a background rect and then calls `label.draw()`, the rect will render AFTER the text when `flush_queue()` fires — covering the text.
+
+**Fix:** call `sr.flush_queue()` BEFORE any `label.draw()` inside a widget's `draw()` method.
+
+```python
+# Button.draw():
+sr.draw_rect(...)       # queued at layer=0
+sr.flush_queue()        # flush NOW → background renders immediately
+self._label.draw(ctx)   # text renders on top ✓
+```
+
+Applied to:
+- `Button.draw()` — flushes before `self._label.draw()`
+- `Slider.draw()` — flushes before optional labels block (`if self.show_labels:`)
+- `RangeSlider.draw()` — same
+
+**Any future widget that draws a `Label` (or any immediate text) after queuing shapes must follow this pattern.**
+
+---
+
+### Vertical slider fill direction
+
+The fill rect for a vertical `Slider` was previously computed as:
+
+```python
+fill_y = ty + th - fh   # fills upward from bottom → wrong: thumb goes top→down
+```
+
+Corrected to:
+
+```python
+sr.draw_rect(V2(tx, ty), V2(tw, fh), ...)  # fills downward from top → matches thumb position ✓
+```
+
+### RangeSlider rounded fill caps
+
+The fill rect for `RangeSlider` now passes `corner_radius=track_r` so the filled region between the two handles has rounded ends matching the track shape.
 
 ---
 
@@ -462,18 +678,19 @@ The split is intentional to break a circular import chain: `text.py → ui/base 
 
 **Rule:** All Phase 2–6 code must import `Pivot` from `e2D._pivot` (or from the `e2D` root, which re-exports it). **Never import Pivot from `e2D.ui.base`** — that file does not define it, it only uses it.
 
-#### Module import reference for Phases 2–6:
+#### Module import reference for Phases 4–6:
 - `_pivot.py` — `Pivot`, `resolve_pivot()`, `_PIVOTS_ENUM_MAP`
 - `ui/base.py` — `UIElement` base class only
 - `ui/theme.py` — `UITheme` (read to get exact field names)
-- `ui/manager.py` — `UIManager` (read to understand focus/input dispatch API)
+- `ui/manager.py` — `UIManager` (read to understand focus/input dispatch API; now stores `self._window` for clipboard)
+- `ui/input_field.py` — `InputField`, `MultiLineInput` (read before implementing any text-input in Phase 4+)
 - `colors.py` — `Color` class (read to understand existing Color utilities)
 - `palette.py` — pre-defined colors (read to see what's available)
 - `input.py` — `Keyboard`/`Mouse` (read to understand the input system)
 - `text.py` — `TextRenderer`/`TextStyle`/`TextLabel` (read to understand text API)
 - `shapes.py` — `ShapeRenderer` (read to understand how shapes are drawn before adding new ones)
 - `__init__.py` — `RootEnv` (read to understand the main loop, UIManager integration, and existing exports)
-- `utils.py` ← **root level only** — utility functions (was `commons.py`)
+- `utils.py` ← **root level only** — utility functions (was `commons.py`); now also contains `find_system_font()`
 - `_types.py` — type aliases (read before writing type annotations)
 
 ### Shader Files

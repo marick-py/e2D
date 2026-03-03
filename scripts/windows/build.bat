@@ -5,6 +5,8 @@ REM Builds and installs to Python 3.13 site-packages
 REM Backs up existing install to e2D-old
 REM ============================================
 
+pushd "%~dp0..\.."
+
 echo.
 echo ============================================
 echo e2D Site-Packages Installer
@@ -30,6 +32,7 @@ if errorlevel 1 (
     echo ============================================
     echo ERROR: Cython build failed
     echo ============================================
+    popd
     pause
     exit /b 1
 )
@@ -42,6 +45,7 @@ REM Use the actual target pip will install to (user site-packages if system is n
 for /f "delims=" %%i in ('py -3.13 -c "import site, os; sp=site.getsitepackages()[0]; print(sp if os.access(sp, os.W_OK) else site.getusersitepackages())"') do set SITE_PACKAGES=%%i
 if not defined SITE_PACKAGES (
     echo ERROR: Could not determine site-packages path
+    popd
     pause
     exit /b 1
 )
@@ -71,6 +75,7 @@ if errorlevel 1 (
     echo ============================================
     echo ERROR: pip install failed
     echo ============================================
+    popd
     pause
     exit /b 1
 )
@@ -85,4 +90,5 @@ echo Backup    : %SITE_PACKAGES%\e2D-old
 echo.
 echo To verify: py -3.13 -c "from e2D import Vector2D, Vector2Int, V2, V2I; print('OK')"
 echo.
+popd
 pause

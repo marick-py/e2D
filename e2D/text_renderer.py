@@ -7,6 +7,7 @@ from ._types import ColorType, VAOType, ContextType, ProgramType, BufferType, Te
 from .colors import normalize_color
 from .palette import WHITE, BLACK
 from .ui.base import Pivot, resolve_pivot
+from .utils import find_system_font
 
 # Backward-compat alias — new code should use ``Pivot`` directly.
 Pivots = Pivot
@@ -273,7 +274,7 @@ class TextRenderer:
 
         # Load font
         try:
-            font = ImageFont.truetype(font_path, font_size)
+            font = ImageFont.truetype(find_system_font(font_path), font_size)
         except IOError:
             print(f"Warning: Could not load font '{font_path}'. Using default.")
             font = ImageFont.load_default()

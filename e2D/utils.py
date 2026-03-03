@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+import os
+import sys
+import subprocess
 import numpy as np
 import moderngl
 
@@ -72,4 +75,55 @@ PI_HALF = np.pi / 2
 PI_QUARTER = np.pi / 4
 TAU = np.pi * 2
 
-TAU = np.pi * 2
+
+def find_system_font(font_name: str) -> str:
+    """Resolve a font name/filename to an absolute path on the current OS.
+
+    On Windows (and macOS) PIL/Pillow can find fonts by filename from the
+    system font directories automatically, so the name is returned as-is.
+
+    On Linux the Windows-style filenames (arial.ttf, consola.ttf …) are not
+    present.  This function tries the following in order:
+    1. Return the name unchanged if it is already an absolute path that exists.
+    2. Use ``fc-match`` (fontconfig, available on all major distros) to find
+       the best matching font file for the given family name.
+    3. Walk the common Linux font directories looking for an exact filename match.
+    4. Return the original name and let the caller handle the failure.
+    """
+    if sys.platform != "linux":
+        return font_name
+
+    # If it already looks like an absolute path that exists, use it directly.
+    if os.path.isabs(font_name) and os.path.isfile(font_name):
+        return font_name
+
+    # Strip extension to get the family name that fc-match understands.
+    base = font_name.rsplit(".", 1)[0] if "." in font_name else font_name
+
+    try:
+        result = subprocess.run(
+            ["fc-match", "--format=%{file}", base],
+            capture_output=True, text=True, timeout=3
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # Fallback: search common font directories for an exact filename match.
+    font_dirs = [
+        "/usr/share/fonts",
+        "/usr/local/share/fonts",
+        os.path.expanduser("~/.fonts"),
+        os.path.expanduser("~/.local/share/fonts"),
+    ]
+    font_lower = font_name.lower()
+    for font_dir in font_dirs:
+        if not os.path.isdir(font_dir):
+            continue
+        for root, _, files in os.walk(font_dir):
+            for f in files:
+                if f.lower() == font_lower:
+                    return os.path.join(root, f)
+
+    return font_name

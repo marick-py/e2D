@@ -275,14 +275,15 @@ class Slider(UIElement):
         tx, ty, tw, th = self._track_rect()
         track_r = (th if is_horiz else tw) * 0.5
 
-        # Empty track
+        # Empty track  (layer 0 — drawn first)
         sr.draw_rect(
             V2(tx, ty), V2(tw, th),
             color=(c_track.r, c_track.g, c_track.b, c_track.a * alpha),
             corner_radius=track_r,
+            layer=0,
         )
 
-        # Filled portion
+        # Filled portion  (layer 0 — same pass as track, on top because of insertion order)
         if is_horiz:
             fw = tw * self._thumb_frac
             if fw > 0:
@@ -290,18 +291,20 @@ class Slider(UIElement):
                     V2(tx, ty), V2(fw, th),
                     color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha),
                     corner_radius=track_r,
+                    layer=0,
                 )
         else:
             fh = th * self._thumb_frac
             if fh > 0:
-                fill_y = ty + th - fh
+                # Fill from TOP down to thumb (frac=0 → top, frac=1 → bottom)
                 sr.draw_rect(
-                    V2(tx, fill_y), V2(tw, fh),
+                    V2(tx, ty), V2(tw, fh),
                     color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha),
                     corner_radius=track_r,
+                    layer=0,
                 )
 
-        # Thumb circle
+        # Thumb circle  (layer 1 — drawn AFTER all layer-0 rects)
         thumb_x, thumb_y = self._thumb_center(self._thumb_frac)
         thumb_r = self._thumb_radius()
         sr.draw_circle(
@@ -309,10 +312,12 @@ class Slider(UIElement):
             color=(c_thumb.r, c_thumb.g, c_thumb.b, c_thumb.a * alpha),
             border_color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha * 0.6),
             border_width=1.5,
+            layer=1,
         )
 
-        # Optional labels
+        # Optional labels  (flush deferred shapes first so labels render on top)
         if self.show_labels:
+            sr.flush_queue()
             if is_horiz:
                 if self._lbl_min is not None:
                     self._lbl_min._position.set(tx, ry + rh + 4)
@@ -694,14 +699,15 @@ class RangeSlider(UIElement):
         tx, ty, tw, th = self._track_rect()
         track_r = (th if is_horiz else tw) * 0.5
 
-        # Empty track
+        # Empty track  (layer 0)
         sr.draw_rect(
             V2(tx, ty), V2(tw, th),
             color=(c_track.r, c_track.g, c_track.b, c_track.a * alpha),
             corner_radius=track_r,
+            layer=0,
         )
 
-        # Filled region between handles
+        # Filled region between handles  (layer 0)
         lo_pos = self._thumb_pos(self._low_frac)
         hi_pos = self._thumb_pos(self._high_frac)
         if is_horiz:
@@ -710,6 +716,8 @@ class RangeSlider(UIElement):
                 sr.draw_rect(
                     V2(lo_pos[0], ty), V2(fill_w, th),
                     color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha),
+                    corner_radius=track_r,
+                    layer=0,
                 )
         else:
             fill_h = hi_pos[1] - lo_pos[1]
@@ -717,27 +725,32 @@ class RangeSlider(UIElement):
                 sr.draw_rect(
                     V2(tx, lo_pos[1]), V2(tw, fill_h),
                     color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha),
+                    corner_radius=track_r,
+                    layer=0,
                 )
 
         thumb_r = self._thumb_radius()
 
-        # Low handle
+        # Low handle  (layer 1 — on top of all track rects)
         sr.draw_circle(
             V2(*lo_pos), thumb_r,
             color=(c_lo.r, c_lo.g, c_lo.b, c_lo.a * alpha),
             border_color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha * 0.6),
             border_width=1.5,
+            layer=1,
         )
-        # High handle
+        # High handle  (layer 1)
         sr.draw_circle(
             V2(*hi_pos), thumb_r,
             color=(c_hi.r, c_hi.g, c_hi.b, c_hi.a * alpha),
             border_color=(c_fill.r, c_fill.g, c_fill.b, c_fill.a * alpha * 0.6),
             border_width=1.5,
+            layer=1,
         )
 
-        # Labels
+        # Labels  (flush deferred shapes first so labels render on top)
         if self.show_labels:
+            sr.flush_queue()
             if is_horiz:
                 if self._lbl_min is not None:
                     self._lbl_min._position.set(tx, ry + rh + 4)

@@ -36,12 +36,7 @@ This folder contains interactive visual examples demonstrating various features 
   - MouseButtons class
   - Key states (PRESSED, JUST_PRESSED, JUST_RELEASED)
   - Interactive player movement
-
-- **[example_keys.py](example_keys.py)** - Keys class demonstration
-  - Clean autocompletion for key names
-  - WASD movement example
-  - Number key detection
-  - Key state management
+  - Typed-text capture via `get_chars()`
 
 ### UI System
 
@@ -61,6 +56,14 @@ This folder contains interactive visual examples demonstrating various features 
   - Vertical `Slider` — controls number of circles drawn
   - T key toggles DARK/LIGHT theme, R resets all widgets
 
+- **[example_input_fields.py](example_input_fields.py)** - Text-entry widgets (Phase 3)
+  - `InputField` plain text with keyboard, mouse selection, clipboard
+  - `InputField` password mode (characters masked)
+  - `InputField` with live validation (port number 1–65535)
+  - `MultiLineInput` — fixed height with vertical scrollbar (default mode)
+  - `MultiLineInput` — auto-expand height as content grows (opt-in)
+  - Tab cycles focus; Ctrl+Enter submits multi-line; Ctrl+C/X/V clipboard
+
 ## Running Examples
 
 Each example is a standalone Python file. Run them directly:
@@ -72,9 +75,9 @@ python example_colors.py
 python example_shapes.py
 python example_text.py
 python example_input.py
-python example_keys.py
 python example_ui.py
 python example_widgets.py
+python example_input_fields.py
 ```
 
 Or from anywhere:

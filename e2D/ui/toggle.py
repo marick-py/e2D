@@ -173,16 +173,17 @@ class Switch(UIElement):
         tc = self._cur_track
         bc = self._border_c
 
-        # Track (pill-shaped rounded rectangle)
+        # Track (pill-shaped rounded rectangle)  (layer 0)
         sr.draw_rect(
             V2(rx, ry), V2(rw, rh),
             color=(tc.r, tc.g, tc.b, tc.a * alpha),
             corner_radius=rh * 0.5,
             border_color=(bc.r, bc.g, bc.b, bc.a * alpha),
             border_width=self._border_w,
+            layer=0,
         )
 
-        # Thumb (circle)
+        # Thumb circle  (layer 1 — on top of track)
         pad     = 3.0
         thumb_r = (rh - pad * 2) * 0.5
         travel  = rw - 2 * (pad + thumb_r)
@@ -193,6 +194,7 @@ class Switch(UIElement):
         sr.draw_circle(
             V2(thumb_x, thumb_y), thumb_r,
             color=(oc.r, oc.g, oc.b, oc.a * alpha),
+            layer=1,
         )
 
     # ---------------------------------------------------------------------------

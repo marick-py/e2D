@@ -1,5 +1,6 @@
 @echo off
 REM Clean up build artifacts and temporary files
+pushd "%~dp0..\.."
 
 echo Cleaning e2D project...
 
@@ -22,4 +23,5 @@ del /s /q e2D\*.c 2>nul
 echo.
 echo Cleanup complete!
 echo.
+popd
 pause

@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
 
 from .base import Pivot, UIElement
-from .theme import UITheme, DARK_THEME
+from .theme import UITheme, MONOKAI_THEME
 from .label import Label
 
 if TYPE_CHECKING:
@@ -31,12 +31,13 @@ class UIManager:
         shape_renderer: ShapeRenderer,
         window_size: Vector2D,
         theme: UITheme | None = None,
+        window=None,
     ) -> None:
         self.ctx: ContextType = ctx
         self.text_renderer: TextRenderer = text_renderer
         self.shape_renderer: ShapeRenderer = shape_renderer
         self._window_size: Vector2D = window_size
-        self.theme: UITheme = theme or DARK_THEME
+        self._theme: UITheme = theme or MONOKAI_THEME
 
         self._elements: list[UIElement] = []
         self._focused: Optional[UIElement] = None
@@ -53,8 +54,21 @@ class UIManager:
 
         self._wants_keyboard: bool = False
         self._wants_mouse: bool = False
+        # GLFW window handle (needed for clipboard in InputField / MultiLineInput)
+        self._window = window
 
     # -- public queries ------------------------------------------------------
+
+    @property
+    def theme(self) -> UITheme:
+        return self._theme
+
+    @theme.setter
+    def theme(self, new_theme: UITheme) -> None:
+        self._theme = new_theme
+        # Rebuild every registered element so colours / fonts update immediately
+        for elem in self._elements:
+            elem._build(self.ctx, self.text_renderer)
 
     @property
     def focused_element(self) -> Optional[UIElement]:
@@ -137,6 +151,20 @@ class UIManager:
         rs = RangeSlider(start=start, end=end, **kwargs)
         self.add(rs)
         return rs
+
+    def input_field(self, placeholder: str = '', value: str = '', **kwargs):
+        """Create an :class:`InputField`, add it, and return it."""
+        from .input_field import InputField
+        f = InputField(placeholder=placeholder, value=value, **kwargs)
+        self.add(f)
+        return f
+
+    def multi_line_input(self, placeholder: str = '', value: str = '', **kwargs):
+        """Create a :class:`MultiLineInput`, add it, and return it."""
+        from .input_field import MultiLineInput
+        m = MultiLineInput(placeholder=placeholder, value=value, **kwargs)
+        self.add(m)
+        return m
 
     # -- focus ---------------------------------------------------------------
 
@@ -252,16 +280,36 @@ class UIManager:
 
         # -- tab navigation --
         if keyboard.get_key(Keys.TAB, KeyState.JUST_PRESSED):
-            if keyboard.get_key(Keys.LEFT_SHIFT) or keyboard.get_key(Keys.RIGHT_SHIFT):
-                self.focus_prev()
+            focused_consumes_tab = (
+                self._focused is not None and self._focused._consumes_tab
+            )
+            is_ctrl_tab = (
+                keyboard.get_key(Keys.LEFT_CONTROL)
+                or keyboard.get_key(Keys.RIGHT_CONTROL)
+            )
+            if focused_consumes_tab and not is_ctrl_tab:
+                # Let MultiLineInput (and similar) handle Tab itself
+                self._focused.on_key_press(Keys.TAB)  # type: ignore[union-attr]
             else:
-                self.focus_next()
+                # Normal Tab / Shift+Tab / Ctrl+Tab focus cycle
+                if keyboard.get_key(Keys.LEFT_SHIFT) or keyboard.get_key(Keys.RIGHT_SHIFT):
+                    self.focus_prev()
+                else:
+                    self.focus_next()
 
         # -- forward other keys to focused element --
         if self._focused is not None:
             for key in keyboard.just_pressed:
                 if key != Keys.TAB:
                     self._focused.on_key_press(key)
+
+        # -- forward char input to focused element --
+        if self._focused is not None and keyboard.char_buffer:
+            self._focused.on_char_input(list(keyboard.char_buffer))
+
+        # -- mouse scroll (dispatch to hovered element) --
+        if mouse.scroll.y != 0 and new_hovered is not None:
+            new_hovered.on_scroll(mouse.scroll.y)
 
         # -- mark keyboard consumed when a focusable element has focus --
         keyboard.is_consumed = self._wants_keyboard

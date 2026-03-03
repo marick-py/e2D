@@ -100,6 +100,9 @@ class Color:
         """Create grayscale color"""
         return cls(gray, gray, gray, a)
     
+    def copy(self) -> 'Color':
+        return Color(self.r, self.g, self.b, self.a)
+    
     # Conversion methods
     def to_rgba(self) -> tuple[float, float, float, float]:
         """Convert to RGBA tuple (0.0-1.0)"""

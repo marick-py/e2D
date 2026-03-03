@@ -28,8 +28,25 @@ from e2D import (
     WHITE, BLACK, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA,
 )
 from e2D.colors import Color
-from e2D.ui.theme import DARK_THEME, LIGHT_THEME
+from e2D.ui.theme import (
+    MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
+    SOLARIZED_DARK, SOLARIZED_LIGHT,
+    NORD_THEME, DRACULA_THEME,
+    TOKYO_NIGHT_THEME, HIGH_CONTRAST,
+)
 from e2D._pivot import Pivot
+
+_THEMES = [
+    ("Monokai",         MONOKAI_THEME),
+    ("Dark",            DARK_THEME),
+    ("Light",           LIGHT_THEME),
+    ("Solarized Dark",  SOLARIZED_DARK),
+    ("Solarized Light", SOLARIZED_LIGHT),
+    ("Nord",            NORD_THEME),
+    ("Dracula",         DRACULA_THEME),
+    ("Tokyo Night",     TOKYO_NIGHT_THEME),
+    ("High Contrast",   HIGH_CONTRAST),
+]
 
 
 def style(size: int, color=None) -> TextStyle:
@@ -46,7 +63,8 @@ W_W      = 190      # default horizontal slider / range slider width
 class WidgetsExample(DefEnv):
     def __init__(self, root: RootEnv) -> None:
         self.root   = root
-        self._dark  = True
+        self._theme_idx = 0
+        root.ui.theme = _THEMES[0][1]
 
         ui = root.ui
 
@@ -59,7 +77,7 @@ class WidgetsExample(DefEnv):
             default_style=style(24, WHITE),
         )
         ui.label(
-            "T = theme   |   R = reset   |   ESC = quit",
+            "T = next theme   |   R = reset   |   ESC = quit",
             position=V2(10, 42),
             default_style=style(13, Color(0.6, 0.6, 0.6)),
         )
@@ -315,8 +333,10 @@ class WidgetsExample(DefEnv):
         kb = self.root.keyboard
 
         if kb.get_key(Keys.T, KeyState.JUST_PRESSED):
-            self._dark = not self._dark
-            self.root.ui.theme = DARK_THEME if self._dark else LIGHT_THEME
+            self._theme_idx = (self._theme_idx + 1) % len(_THEMES)
+            name, theme = _THEMES[self._theme_idx]
+            self.root.ui.theme = theme
+            print(f"Theme: {name}")
 
         if kb.get_key(Keys.R, KeyState.JUST_PRESSED):
             self._reset()
@@ -342,18 +362,20 @@ class WidgetsExample(DefEnv):
     def draw(self) -> None:
         root = self.root
         w, h = root.window_size.x, root.window_size.y
+        theme = root.ui.theme
+        bg = theme.bg_window
+        sep_c = theme.border_color
 
         # Panel background (left)
         root.draw_rect(V2(0, 0), V2(SEP_X, h),
-                       color=(0.06, 0.06, 0.08, 1.0))
-
+                       color=(bg.r + 0.01, bg.g + 0.01, bg.b + 0.01, 1.0))
         # Panel background (right / canvas)
         root.draw_rect(V2(SEP_X, 0), V2(w - SEP_X, h),
-                       color=(0.04, 0.04, 0.06, 1.0))
-
+                       color=(max(0.0, bg.r - 0.01), max(0.0, bg.g - 0.01),
+                              max(0.0, bg.b - 0.01), 1.0))
         # Separator line
         root.draw_line(V2(SEP_X, 0), V2(SEP_X, h),
-                       color=(0.2, 0.2, 0.2, 1.0), width=1.0)
+                       color=(sep_c.r, sep_c.g, sep_c.b, sep_c.a), width=1.0)
 
         # ---- Canvas: circles drawn in a ring ---------------------------
         cx   = self._canvas_cx
@@ -387,6 +409,7 @@ class WidgetsExample(DefEnv):
             root.draw_circle(
                 V2(px, py), r,
                 color=(cr * bright, cg * bright, cb * bright, 0.85),
+                layer=1,
             )
 
         # Centre dot

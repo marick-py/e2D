@@ -33,6 +33,7 @@ class UIElement:
         margin: float | tuple[float, ...] = 0.0,
         padding: float | tuple[float, ...] = 0.0,
         z_index: int = 0,
+        tab_index: int = 0,
         visible: bool = True,
         enabled: bool = True,
         opacity: float = 1.0,
@@ -58,7 +59,9 @@ class UIElement:
         # Focus / tab
         self._focused: bool = False
         self._focusable: bool = False
-        self._tab_index: int = 0
+        self._tab_index: int = tab_index
+        # Set True in subclasses that want to consume Tab (e.g. MultiLineInput)
+        self._consumes_tab: bool = False
 
         # Dirty flag — subclasses set True when GPU rebuild is needed
         self._dirty: bool = True
@@ -168,9 +171,24 @@ class UIElement:
         the pressed target.  *dx/dy* are pixel deltas since last frame."""
         pass
 
+    def on_char_input(self, chars: list[str]) -> None:
+        """Called each frame with the characters typed since the last frame.
+
+        Only called when this element has focus and ``chars`` is non-empty.
+        Override in text-input subclasses.
+        """
+        pass
+
+    def on_scroll(self, dy: float) -> None:
+        """Called when the mouse wheel scrolls over this element.
+
+        *dy* is positive for scroll-up, negative for scroll-down.
+        """
+        pass
+
     def on_key_press(self, key: int) -> None:
         """Called for every key in ``keyboard.just_pressed`` while this element
-        has focus (Tab is consumed by UIManager and not forwarded)."""
+        has focus (Tab is consumed by UIManager unless ``_consumes_tab`` is True)."""
         pass
 
     # -- layout (Godot-style anchors) ----------------------------------------

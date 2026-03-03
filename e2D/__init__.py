@@ -33,7 +33,14 @@ from .utils import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI,
 
 # UI system
 from ._pivot import Pivot
-from .ui import UIManager, UITheme, Label, Button, Switch, Checkbox, Slider, RangeSlider
+from .ui import (
+    UIManager, UITheme, Label, Button, Switch, Checkbox,
+    Slider, RangeSlider, InputField, MultiLineInput,
+    MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
+    SOLARIZED_DARK, SOLARIZED_LIGHT,
+    NORD_THEME, DRACULA_THEME,
+    TOKYO_NIGHT_THEME, HIGH_CONTRAST,
+)
 
 # Backward-compat alias
 Pivots = Pivot
@@ -548,7 +555,8 @@ class RootEnv:
         self.shape_renderer = ShapeRenderer(self.ctx)
 
         # UI system
-        self.ui = UIManager(self.ctx, self.text_renderer, self.shape_renderer, self.window_size)
+        self.ui = UIManager(self.ctx, self.text_renderer, self.shape_renderer,
+                            self.window_size, window=self.window)
         
         # Delta time tracking
         self.delta = 0.0
@@ -987,7 +995,7 @@ class RootEnv:
         glfw.terminate()
 
         if self._win_timer_set:
-            ctypes.windll.winmm.timeEndPeriod(1)
+            ctypes.windll.winmm.timeEndPeriod(1) # type: ignore
 
     def print(
         self,
@@ -1172,12 +1180,23 @@ __all__ = [
     # UI system
     'UIManager',
     'UITheme',
+    'MONOKAI_THEME',
+    'DARK_THEME',
+    'LIGHT_THEME',
+    'SOLARIZED_DARK',
+    'SOLARIZED_LIGHT',
+    'NORD_THEME',
+    'DRACULA_THEME',
+    'TOKYO_NIGHT_THEME',
+    'HIGH_CONTRAST',
     'Label',
     'Button',
     'Switch',
     'Checkbox',
     'Slider',
     'RangeSlider',
+    'InputField',
+    'MultiLineInput',
     # Input devices
     'Keyboard',
     'Mouse',

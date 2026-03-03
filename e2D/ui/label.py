@@ -47,16 +47,22 @@ class Label(UIElement):
     def __init__(
         self,
         *segments: str | tuple[str, TextStyle],
-        default_style: TextStyle = DEFAULT_16_TEXT_STYLE,
+        default_style: TextStyle | None = None,
         rotation: float = 0.0,
         line_spacing: float = 1.2,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
-        self.default_style: TextStyle = default_style
+        # None  → derive font/size/color from the active UITheme at build time.
+        # Passing a TextStyle explicitly pins those values regardless of theme.
+        self._explicit_style: bool = default_style is not None
+        self.default_style: TextStyle = default_style if default_style is not None else DEFAULT_16_TEXT_STYLE
         self.rotation: float = rotation
         self.line_spacing: float = line_spacing
 
+        # Keep raw segment args so that theme rebuilds can re-parse them with
+        # the updated default_style.
+        self._raw_segments: tuple = segments
         self._segments: list[tuple[str, TextStyle]] = self._parse(segments)
 
         # GPU state  (populated by _build / _rebuild)
@@ -76,11 +82,13 @@ class Label(UIElement):
 
     def set_text(self, *segments: str | tuple[str, TextStyle]) -> None:
         """Replace all segments and schedule a rebuild."""
+        self._raw_segments = segments
         self._segments = self._parse(segments)
         self._dirty = True
 
     def set_plain_text(self, text: str) -> None:
         """Replace text keeping the current default style."""
+        self._raw_segments = (text,)
         self._segments = [(text, self.default_style)]
         self._dirty = True
 
@@ -102,6 +110,18 @@ class Label(UIElement):
     def _build(self, ctx, text_renderer) -> None:
         self._ctx = ctx
         self._text_renderer = text_renderer
+        # When no explicit style was supplied, derive it from the active theme
+        # so that swapping env.ui.theme updates label colours/fonts too.
+        if not self._explicit_style and self._manager:
+            theme = self._manager.theme
+            if theme:
+                self.default_style = TextStyle(
+                    font=theme.font,
+                    font_size=theme.font_size,
+                    color=theme.text_color,
+                )
+            # Re-parse so plain-string segments pick up the new default_style.
+            self._segments = self._parse(self._raw_segments)
         self._rebuild()
 
     def _rebuild(self) -> None:

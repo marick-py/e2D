@@ -203,6 +203,8 @@ class Button(UIElement):
         )
 
         if self._label is not None:
+            # Flush deferred shapes first so the background renders before the text
+            sr.flush_queue()
             self._label.draw(ctx or self._manager.ctx)
 
     # ---------------------------------------------------------------------------
