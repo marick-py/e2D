@@ -144,6 +144,35 @@ class UIElement:
         """Called when this element loses focus."""
         self._focused = False
 
+    # -- interaction event hooks (override in subclasses) -------------------
+
+    def on_hover_enter(self) -> None:
+        """Called once when the mouse cursor first enters this element."""
+        pass
+
+    def on_hover_exit(self) -> None:
+        """Called once when the mouse cursor leaves this element."""
+        pass
+
+    def on_mouse_press(self, mx: float, my: float) -> None:
+        """Called when mouse LEFT is pressed while over this element."""
+        pass
+
+    def on_mouse_release(self, mx: float, my: float) -> None:
+        """Called when mouse LEFT is released (regardless of current position)
+        if this element was the one pressed."""
+        pass
+
+    def on_mouse_drag(self, mx: float, my: float, dx: float, dy: float) -> None:
+        """Called every frame while mouse LEFT is held and this element was
+        the pressed target.  *dx/dy* are pixel deltas since last frame."""
+        pass
+
+    def on_key_press(self, key: int) -> None:
+        """Called for every key in ``keyboard.just_pressed`` while this element
+        has focus (Tab is consumed by UIManager and not forwarded)."""
+        pass
+
     # -- layout (Godot-style anchors) ----------------------------------------
 
     def layout(self, px: float, py: float, pw: float, ph: float) -> None:

@@ -6,14 +6,13 @@ Heavy imports are guarded by TYPE_CHECKING so they are skipped at runtime
 """
 
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union
+from typing import Union
 
-if TYPE_CHECKING:
-    import numpy.typing as npt
-    import numpy as np
-    import moderngl
-    from glfw import _GLFWwindow
-    from .colors import Color
+import numpy.typing as npt
+import numpy as np
+import moderngl
+from glfw import _GLFWwindow
+from .colors import Color
 
 # ----- colour ---------------------------------------------------------------
 ColorType = Union['Color', 'tuple[float, float, float, float]']

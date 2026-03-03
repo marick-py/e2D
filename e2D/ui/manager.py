@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from ..text import TextRenderer, TextStyle
     from ..input import Keyboard, Mouse
     from ..vectors import Vector2D
+    from ..shapes import ShapeRenderer
 
 
 class UIManager:
@@ -27,17 +28,28 @@ class UIManager:
         self,
         ctx: ContextType,
         text_renderer: TextRenderer,
+        shape_renderer: ShapeRenderer,
         window_size: Vector2D,
         theme: UITheme | None = None,
     ) -> None:
         self.ctx: ContextType = ctx
         self.text_renderer: TextRenderer = text_renderer
+        self.shape_renderer: ShapeRenderer = shape_renderer
         self._window_size: Vector2D = window_size
         self.theme: UITheme = theme or DARK_THEME
 
         self._elements: list[UIElement] = []
         self._focused: Optional[UIElement] = None
         self._hovered: Optional[UIElement] = None
+
+        # Element that received the last mouse-down event (for drag/release)
+        self._pressed_on: Optional[UIElement] = None
+        # Stored each frame so interactive elements (e.g. Slider) can read them
+        self._keyboard = None
+        self._mouse    = None
+        # Previous mouse position for computing drag deltas
+        self._prev_mx: float = 0.0
+        self._prev_my: float = 0.0
 
         self._wants_keyboard: bool = False
         self._wants_mouse: bool = False
@@ -90,6 +102,41 @@ class UIManager:
         lbl = Label(*segments, **kwargs)
         self.add(lbl)
         return lbl
+
+    def button(self, text: str = '', on_click=None, **kwargs):
+        """Create a :class:`Button`, add it, and return it."""
+        from .button import Button
+        btn = Button(text=text, on_click=on_click, **kwargs)
+        self.add(btn)
+        return btn
+
+    def switch(self, value: bool = False, on_change=None, **kwargs):
+        """Create a :class:`Switch` toggle, add it, and return it."""
+        from .toggle import Switch
+        sw = Switch(value=value, on_change=on_change, **kwargs)
+        self.add(sw)
+        return sw
+
+    def checkbox(self, value: bool = False, on_change=None, **kwargs):
+        """Create a :class:`Checkbox`, add it, and return it."""
+        from .toggle import Checkbox
+        cb = Checkbox(value=value, on_change=on_change, **kwargs)
+        self.add(cb)
+        return cb
+
+    def slider(self, start: float = 0.0, end: float = 1.0, **kwargs):
+        """Create a :class:`Slider`, add it, and return it."""
+        from .slider import Slider
+        sl = Slider(start=start, end=end, **kwargs)
+        self.add(sl)
+        return sl
+
+    def range_slider(self, start: float = 0.0, end: float = 1.0, **kwargs):
+        """Create a :class:`RangeSlider`, add it, and return it."""
+        from .slider import RangeSlider
+        rs = RangeSlider(start=start, end=end, **kwargs)
+        self.add(rs)
+        return rs
 
     # -- focus ---------------------------------------------------------------
 
@@ -150,9 +197,10 @@ class UIManager:
 
         Called by :class:`RootEnv` each frame **before** ``env.update()``.
         """
-        import glfw
-        from ..input import KeyState, Keys
+        from ..input import KeyState, Keys, MouseButtons
 
+        self._keyboard = keyboard
+        self._mouse    = mouse
         mx, my = mouse.position.x, mouse.position.y
 
         # -- hover detection (top z_index first) --
@@ -166,15 +214,41 @@ class UIManager:
             if elem.enabled and elem.contains_point(mx, my):
                 new_hovered = elem
                 break
+
+        # Dispatch hover enter / exit
+        if new_hovered is not self._hovered:
+            if self._hovered is not None:
+                self._hovered.on_hover_exit()
+            if new_hovered is not None:
+                new_hovered.on_hover_enter()
         self._hovered = new_hovered
         self._wants_mouse = new_hovered is not None
 
-        # -- click → focus / activate --
-        if mouse.just_pressed:
-            if new_hovered is not None and new_hovered._focusable:
-                self.focus(new_hovered)
-            elif new_hovered is None:
+        # -- mouse LEFT press --
+        if MouseButtons.LEFT in mouse.just_pressed:
+            if new_hovered is not None:
+                self._pressed_on = new_hovered
+                new_hovered.on_mouse_press(mx, my)
+                if new_hovered._focusable:
+                    self.focus(new_hovered)
+            else:
                 self.focus(None)
+
+        # -- mouse LEFT drag (button still held, we have a pressed target) --
+        if MouseButtons.LEFT in mouse.pressed and self._pressed_on is not None:
+            dx = mx - self._prev_mx
+            dy = my - self._prev_my
+            if dx != 0 or dy != 0:
+                self._pressed_on.on_mouse_drag(mx, my, dx, dy)
+
+        # -- mouse LEFT release --
+        if MouseButtons.LEFT in mouse.just_released:
+            if self._pressed_on is not None:
+                self._pressed_on.on_mouse_release(mx, my)
+                self._pressed_on = None
+
+        self._prev_mx = mx
+        self._prev_my = my
 
         # -- tab navigation --
         if keyboard.get_key(Keys.TAB, KeyState.JUST_PRESSED):
@@ -182,6 +256,12 @@ class UIManager:
                 self.focus_prev()
             else:
                 self.focus_next()
+
+        # -- forward other keys to focused element --
+        if self._focused is not None:
+            for key in keyboard.just_pressed:
+                if key != Keys.TAB:
+                    self._focused.on_key_press(key)
 
         # -- mark keyboard consumed when a focusable element has focus --
         keyboard.is_consumed = self._wants_keyboard
@@ -212,6 +292,8 @@ class UIManager:
         elements.sort(key=lambda e: e.z_index)
         for elem in elements:
             elem.draw(self.ctx)
+        # Flush any shape-renderer draw calls queued by UI elements
+        self.shape_renderer.flush_queue()
 
     # -- resize --------------------------------------------------------------
 

@@ -188,7 +188,7 @@ def test_keyboard_key_states():
     kb = Keyboard()
 
     # Simulate PRESS
-    kb._on_key(None, Keys.A, 0, glfw.PRESS, 0)
+    kb._on_key(None, Keys.A, 0, glfw.PRESS, 0)  # type: ignore[arg-type]
     assert Keys.A in kb.pressed, "A should be in pressed after PRESS"
     assert Keys.A in kb.just_pressed, "A should be in just_pressed after PRESS"
     assert Keys.A not in kb.just_released
@@ -205,7 +205,7 @@ def test_keyboard_key_states():
     assert len(kb.just_released) == 0
 
     # Simulate RELEASE
-    kb._on_key(None, Keys.A, 0, glfw.RELEASE, 0)
+    kb._on_key(None, Keys.A, 0, glfw.RELEASE, 0)  # type: ignore[arg-type]
     assert Keys.A not in kb.pressed
     assert Keys.A in kb.just_released
     assert kb.get_key(Keys.A, KeyState.JUST_RELEASED)
@@ -223,7 +223,7 @@ def test_keyboard_char_buffer():
 
     # Simulate typing "Hi!"
     for cp in [ord('H'), ord('i'), ord('!')]:
-        kb._on_char(None, cp)
+        kb._on_char(None, cp)  # type: ignore[arg-type]
 
     assert kb.char_buffer == ['H', 'i', '!'], f"Expected ['H','i','!'], got {kb.char_buffer}"
 
@@ -278,7 +278,7 @@ def test_mouse_movement():
 
     m = Mouse()
 
-    m._on_cursor_pos(None, 100.0, 200.0)
+    m._on_cursor_pos(None, 100.0, 200.0)  # type: ignore[arg-type]
     assert m.position.x == 100.0
     assert m.position.y == 200.0
 
@@ -286,7 +286,7 @@ def test_mouse_movement():
     assert m.delta.x == 100.0, f"Expected delta.x=100.0, got {m.delta.x}"
     assert m.delta.y == 200.0
 
-    m._on_cursor_pos(None, 110.0, 195.0)
+    m._on_cursor_pos(None, 110.0, 195.0)  # type: ignore[arg-type]
     m.update()
     assert m.delta.x == 10.0
     assert m.delta.y == -5.0
@@ -301,7 +301,7 @@ def test_mouse_buttons():
 
     m = Mouse()
 
-    m._on_mouse_button(None, MouseButtons.LEFT, glfw.PRESS, 0)
+    m._on_mouse_button(None, MouseButtons.LEFT, glfw.PRESS, 0)  # type: ignore[arg-type]
     assert MouseButtons.LEFT in m.pressed
     assert MouseButtons.LEFT in m.just_pressed
     assert m.get_button(MouseButtons.LEFT, KeyState.PRESSED)
@@ -311,7 +311,7 @@ def test_mouse_buttons():
     assert MouseButtons.LEFT in m.pressed
     assert MouseButtons.LEFT not in m.just_pressed
 
-    m._on_mouse_button(None, MouseButtons.LEFT, glfw.RELEASE, 0)
+    m._on_mouse_button(None, MouseButtons.LEFT, glfw.RELEASE, 0)  # type: ignore[arg-type]
     assert MouseButtons.LEFT not in m.pressed
     assert m.get_button(MouseButtons.LEFT, KeyState.JUST_RELEASED)
 
@@ -322,7 +322,7 @@ def test_mouse_scroll():
     print("\n=== Mouse Scroll ===")
 
     m = Mouse()
-    m._on_scroll(None, 0.0, 3.0)
+    m._on_scroll(None, 0.0, 3.0)  # type: ignore[arg-type]
     assert m.scroll.y == 3.0
 
     m.update()

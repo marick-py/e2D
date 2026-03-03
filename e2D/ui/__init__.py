@@ -11,6 +11,9 @@ from .base import Pivot, UIElement
 from .theme import UITheme
 from .label import Label
 from .manager import UIManager
+from .button import Button
+from .toggle import Switch, Checkbox
+from .slider import Slider, RangeSlider
 
 __all__ = [
     'Pivot',
@@ -18,4 +21,9 @@ __all__ = [
     'UITheme',
     'Label',
     'UIManager',
+    'Button',
+    'Switch',
+    'Checkbox',
+    'Slider',
+    'RangeSlider',
 ]

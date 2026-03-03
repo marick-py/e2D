@@ -417,7 +417,7 @@ class ShapeRenderer:
             
             void main() {
                 float expand = in_border_width + in_aa * 2.0;
-                vec2 expanded_size = in_size + expand;
+                vec2 expanded_size = in_size * 0.5 + expand;  // half-extents
                 
                 // Apply rotation
                 float cos_a = cos(in_rotation);
@@ -461,7 +461,7 @@ class ShapeRenderer:
             }
             
             void main() {
-                float dist = roundedBoxSDF(v_local_pos, v_size, v_radius);
+                float dist = roundedBoxSDF(v_local_pos, v_size * 0.5, v_radius);
                 
                 if (v_border_width > 0.0) {
                     float outer_dist = abs(dist);

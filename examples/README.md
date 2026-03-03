@@ -43,6 +43,24 @@ This folder contains interactive visual examples demonstrating various features 
   - Number key detection
   - Key state management
 
+### UI System
+
+- **[example_ui.py](example_ui.py)** - UI label and pivot system (Phase 1)
+  - `UIManager` and `Label` with rich multi-segment text
+  - All 9 `Pivot` presets demonstrated live
+  - DARK / LIGHT theme toggling
+  - `wants_keyboard` / `wants_mouse` guards
+
+- **[example_widgets.py](example_widgets.py)** - Interactive widgets (Phase 2)
+  - `Button` with click counter and enable/disable control
+  - `Switch` pill toggle (controls canvas animation)
+  - `Checkbox` (shows/hides a score label)
+  - `Slider` (continuous) — controls circle radius
+  - `Slider` (step=5) — score value 0–100
+  - `RangeSlider` — brightness range mapped to canvas colours
+  - Vertical `Slider` — controls number of circles drawn
+  - T key toggles DARK/LIGHT theme, R resets all widgets
+
 ## Running Examples
 
 Each example is a standalone Python file. Run them directly:
@@ -55,6 +73,8 @@ python example_shapes.py
 python example_text.py
 python example_input.py
 python example_keys.py
+python example_ui.py
+python example_widgets.py
 ```
 
 Or from anywhere:

@@ -26,14 +26,14 @@ from ._types import (
 )
 
 # Import original e2D modules
-from .text import DEFAULT_32_TEXT_STYLE, MONO_32_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
+from .text import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, DEFAULT_32_TEXT_STYLE, MONO_32_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
 from .input import Keyboard, Mouse, KeyState, Keys, MouseButtons
 from .utils import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI, PI_HALF, PI_QUARTER, TAU
 
 # UI system
 from ._pivot import Pivot
-from .ui import UIManager, UITheme, Label
+from .ui import UIManager, UITheme, Label, Button, Switch, Checkbox, Slider, RangeSlider
 
 # Backward-compat alias
 Pivots = Pivot
@@ -548,7 +548,7 @@ class RootEnv:
         self.shape_renderer = ShapeRenderer(self.ctx)
 
         # UI system
-        self.ui = UIManager(self.ctx, self.text_renderer, self.window_size)
+        self.ui = UIManager(self.ctx, self.text_renderer, self.shape_renderer, self.window_size)
         
         # Delta time tracking
         self.delta = 0.0
@@ -1160,6 +1160,8 @@ __all__ = [
     'TextStyle',
     'Pivot',
     'Pivots',
+    'DEFAULT_16_TEXT_STYLE',
+    'MONO_16_TEXT_STYLE',
     'DEFAULT_32_TEXT_STYLE',
     'MONO_32_TEXT_STYLE',
     # Shape rendering
@@ -1171,6 +1173,11 @@ __all__ = [
     'UIManager',
     'UITheme',
     'Label',
+    'Button',
+    'Switch',
+    'Checkbox',
+    'Slider',
+    'RangeSlider',
     # Input devices
     'Keyboard',
     'Mouse',
