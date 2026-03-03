@@ -26,12 +26,11 @@ class TextExample(DefEnv):
         self.root.print(
             "Text Rendering Examples",
             V2(10, 10),
-            scale=2.0,
-            style=DEFAULT_16_TEXT_STYLE
+            style=TextStyle(font_size=28)
         )
         
         # Section 2: Different Pivots
-        self.root.print("Pivot Points:", V2(10, 60), scale=1.2)
+        self.root.print("Pivot Points:", V2(10, 60), style=TextStyle(font_size=18))
         
         # Draw a cross to show pivot position
         pivot_pos = V2(400, 120)
@@ -45,10 +44,10 @@ class TextExample(DefEnv):
         ]
         
         for pivot, name, pos in pivots:
-            self.root.print(name, pos, scale=1.0, pivot=pivot)
+            self.root.print(name, pos, pivot=pivot)
         
         # Section 3: Text Styles
-        self.root.print("Text Styles:", V2(10, 200), scale=1.2)
+        self.root.print("Text Styles:", V2(10, 200), style=TextStyle(font_size=18))
         
         self.root.print(
             "Default Style (Sans-Serif)",
@@ -63,7 +62,7 @@ class TextExample(DefEnv):
         )
         
         # Section 4: Custom Styles
-        self.root.print("Custom Styles:", V2(10, 310), scale=1.2)
+        self.root.print("Custom Styles:", V2(10, 310), style=TextStyle(font_size=18))
         
         custom_style_1 = TextStyle(
             font="arial.ttf",
@@ -96,13 +95,12 @@ class TextExample(DefEnv):
         )
         
         # Section 5: Cached Labels (High Performance)
-        self.root.print("Cached Labels:", V2(10, 440), scale=1.2)
+        self.root.print("Cached Labels:", V2(10, 440), style=TextStyle(font_size=18))
         
         if self.cached_label is None:
             self.cached_label = self.root.print(
                 "This label is cached for maximum performance!",
                 V2(10, 470),
-                scale=1.0,
                 style=MONO_16_TEXT_STYLE,
                 save_cache=True
             )
@@ -112,19 +110,17 @@ class TextExample(DefEnv):
             self.cached_label.draw()
         
         # Section 6: Dynamic Text & Animation
-        self.root.print("Dynamic Text:", V2(500, 200), scale=1.2)
+        self.root.print("Dynamic Text:", V2(500, 200), style=TextStyle(font_size=18))
         
         self.root.print(
             f"Frame: {self.frame}",
-            V2(500, 230),
-            scale=1.0
+            V2(500, 230)
         )
         
         fps = 1.0 / self.root.delta if self.root.delta > 0 else 0
         self.root.print(
             f"FPS: {fps:.1f}",
-            V2(500, 260),
-            scale=1.0
+            V2(500, 260)
         )
         
         # Animated color text
@@ -147,12 +143,12 @@ class TextExample(DefEnv):
         )
         
         # Section 7: Unicode Support
-        self.root.print("Unicode:", V2(500, 360), scale=1.2)
-        self.root.print("Hello World! 你好世界! مرحبا بالعالم!", V2(500, 390), scale=0.8)
-        self.root.print("Emoji: 🎮 🚀 ⭐ 💎", V2(500, 420), scale=1.0)
+        self.root.print("Unicode:", V2(500, 360), style=TextStyle(font_size=18))
+        self.root.print("Hello World! 你好世界! مرحبا بالعالم!", V2(500, 390))
+        self.root.print("Emoji: 🎮 🚀 ⭐ 💎", V2(500, 420))
         
         # Instructions
-        self.root.print("ESC to exit", V2(10, 560), scale=0.9)
+        self.root.print("ESC to exit", V2(10, 560))
 
 def main():
     """Run the text example"""

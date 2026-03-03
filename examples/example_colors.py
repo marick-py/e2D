@@ -30,10 +30,10 @@ class ColorsExample(DefEnv):
         
     def draw(self) -> None:
         # Title
-        self.root.print("Color System Examples", V2(10, 10), scale=1.8)
+        self.root.print("Color System Examples", V2(10, 10), style=TextStyle(font_size=28))
         
         # Section 1: Basic Colors
-        self.root.print("Basic Colors:", V2(10, 50), scale=1.2)
+        self.root.print("Basic Colors:", V2(10, 50), style=TextStyle(font_size=18))
         
         basic_colors = [RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, WHITE, BLACK]
         names = ["RED", "GREEN", "BLUE", "YELLOW", "CYAN", "MAGENTA", "WHITE", "BLACK"]
@@ -41,10 +41,10 @@ class ColorsExample(DefEnv):
         for i, (color, name) in enumerate(zip(basic_colors, names)):
             x = 10 + i * 50
             self.root.draw_circle(V2(x + 20, 90), 15, color=color)
-            self.root.print(name, V2(x, 115), scale=0.6)
+            self.root.print(name, V2(x, 115), style=TextStyle(font_size=13))
         
         # Section 2: Material Design Colors
-        self.root.print("Material Design Colors:", V2(10, 150), scale=1.2)
+        self.root.print("Material Design Colors:", V2(10, 150), style=TextStyle(font_size=18))
         
         md_colors = [
             MD_RED, MD_PINK, MD_PURPLE, MD_DEEP_PURPLE, MD_INDIGO,
@@ -56,7 +56,7 @@ class ColorsExample(DefEnv):
             self.root.draw_circle(V2(x + 15, 190), 12, color=color)
         
         # Section 3: Pastel Colors
-        self.root.print("Pastel Colors:", V2(10, 230), scale=1.2)
+        self.root.print("Pastel Colors:", V2(10, 230), style=TextStyle(font_size=18))
         
         pastel_colors = [
             PASTEL_RED, PASTEL_ORANGE, PASTEL_YELLOW, PASTEL_GREEN,
@@ -68,7 +68,7 @@ class ColorsExample(DefEnv):
             self.root.draw_circle(V2(x + 20, 270), 15, color=color)
         
         # Section 4: Neon Colors
-        self.root.print("Neon Colors:", V2(10, 310), scale=1.2)
+        self.root.print("Neon Colors:", V2(10, 310), style=TextStyle(font_size=18))
         
         neon_colors = [NEON_RED, NEON_GREEN, NEON_BLUE, NEON_PINK]
         
@@ -77,7 +77,7 @@ class ColorsExample(DefEnv):
             self.root.draw_circle(V2(x + 25, 350), 18, color=color)
         
         # Section 5: UI Colors
-        self.root.print("UI Feedback Colors:", V2(10, 400), scale=1.2)
+        self.root.print("UI Feedback Colors:", V2(10, 400), style=TextStyle(font_size=18))
         
         ui_colors = [UI_SUCCESS, UI_WARNING, UI_ERROR, UI_INFO]
         ui_names = ["SUCCESS", "WARNING", "ERROR", "INFO"]
@@ -85,33 +85,33 @@ class ColorsExample(DefEnv):
         for i, (color, name) in enumerate(zip(ui_colors, ui_names)):
             x = 10 + i * 90
             self.root.draw_rect(V2(x, 430), V2(70, 30), color=color, corner_radius=5.0)
-            self.root.print(name, V2(x + 5, 435), scale=0.7)
+            self.root.print(name, V2(x + 5, 435), style=TextStyle(font_size=14))
         
         # Section 6: Color Operations
-        self.root.print("Color Operations:", V2(500, 50), scale=1.2)
+        self.root.print("Color Operations:", V2(500, 50), style=TextStyle(font_size=18))
         
         base_color = Color.red()
         
         # Lightening
-        self.root.print("Lighten:", V2(500, 90), scale=0.9)
+        self.root.print("Lighten:", V2(500, 90))
         for i in range(5):
             lighter = base_color.lighten(i * 0.15)
             self.root.draw_circle(V2(500 + i * 30, 120), 12, color=lighter.to_rgba())
         
         # Darkening
-        self.root.print("Darken:", V2(500, 150), scale=0.9)
+        self.root.print("Darken:", V2(500, 150))
         for i in range(5):
             darker = base_color.darken(i * 0.15)
             self.root.draw_circle(V2(500 + i * 30, 180), 12, color=darker.to_rgba())
         
         # Hue rotation
-        self.root.print("Hue Rotation:", V2(500, 210), scale=0.9)
+        self.root.print("Hue Rotation:", V2(500, 210))
         for i in range(6):
             rotated = base_color.rotate_hue(i * 60)
             self.root.draw_circle(V2(500 + i * 30, 240), 12, color=rotated.to_rgba())
         
         # Section 7: Gradients
-        self.root.print("Gradients:", V2(500, 280), scale=1.2)
+        self.root.print("Gradients:", V2(500, 280), style=TextStyle(font_size=18))
         
         # Two-color gradient
         colors = gradient([RED, BLUE], 20)
@@ -124,7 +124,7 @@ class ColorsExample(DefEnv):
             self.root.draw_rect(V2(500 + i * 15, 350), V2(14, 30), color=color)
         
         # Section 8: Animated Colors
-        self.root.print("Animated:", V2(500, 400), scale=1.2)
+        self.root.print("Animated:", V2(500, 400), style=TextStyle(font_size=18))
         
         import math
         t = self.frame * 0.05
@@ -144,7 +144,7 @@ class ColorsExample(DefEnv):
         self.root.draw_circle(V2(690, 440), 20, color=fading_color.to_rgba())
         
         # Instructions
-        self.root.print("X to exit", V2(10, 560), scale=0.9)
+        self.root.print("X to exit", V2(10, 560))
 
 def main():
     """Run the colors example"""

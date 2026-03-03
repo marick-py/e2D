@@ -320,7 +320,6 @@ class InputFieldsExample(DefEnv):
             self._theme_idx = (self._theme_idx + 1) % len(_THEMES)
             name, theme = _THEMES[self._theme_idx]
             self.root.ui.theme = theme
-            print(f"Theme: {name}")
 
         # ESC — quit
         if kb.get_key(Keys.ESCAPE, KeyState.JUST_PRESSED):

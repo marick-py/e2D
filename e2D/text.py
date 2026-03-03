@@ -16,13 +16,29 @@ Pivots = Pivot
 @dataclass
 class TextStyle:
     font: str = "arial.ttf"
-    font_size: int = 32
+    font_size: int = 16        # *display* size in pixels
     color: ColorType = (1.0, 1.0, 1.0, 1.0)
     bg_color: ColorType = (0.0, 0.0, 0.0, 0.0)  # Transparent by default
     bg_margin: float | tuple[float, float, float, float] | tuple[float, float] | list[float] = 15.0
     bg_border_radius: float | tuple[float, float, float, float] | tuple[float, float] | list[float] = 15.0
     line_spacing: float = 1.2
     letter_spacing: float = 0.0
+
+    @property
+    def _atlas_size(self) -> int:
+        """Resolution at which the glyph atlas is baked.
+
+        Uses 2× oversampling: atlas is baked at 2× the display size, with a
+        minimum of 32 px.  This gives clean downsampled antialiasing without
+        the over-aggressive 4× downscale that caused fine strokes (e.g. the
+        bottom bar of '=') to disappear at small sizes.
+        """
+        return max(self.font_size * 2, 32)
+
+    @property
+    def _display_scale(self) -> float:
+        """Vertex scale factor: shrinks the oversampled glyphs to the desired display size."""
+        return self.font_size / self._atlas_size
 
 DEFAULT_12_TEXT_STYLE = TextStyle(font_size=12)
 DEFAULT_16_TEXT_STYLE = TextStyle(font_size=16)
@@ -291,12 +307,21 @@ class TextRenderer:
         ax, ay = 0, 0   # current position in the atlas
         row_h = 0
 
+        # Track the true max bottom extent of any glyph so that descenders
+        # (g, j, p, q, y …) are never clipped when line_height is used for
+        # quad sizing.  Some fonts report a 'descent' that is too small.
+        max_glyph_bottom = line_height
+
         for char in self.chars:
             bbox = font.getbbox(char)
             if bbox is None:
                 continue
             bl, bt, br, bb = bbox
             advance = font.getlength(char)
+
+            # Track the largest bottom edge (bt + height = bb)
+            if bb > max_glyph_bottom:
+                max_glyph_bottom = bb
 
             # Get the rendered glyph mask
             mask = font.getmask(char)
@@ -336,6 +361,10 @@ class TextRenderer:
             ax += mw + 2
             row_h = max(row_h, mh)
 
+        # Use the true max glyph bottom so descenders are never clipped.
+        # Add 1 px of breathing room for sub-pixel rounding when scaling down.
+        line_height = max_glyph_bottom + 1
+
         # Create GPU texture
         texture = self.ctx.texture(atlas_img.size, 4, atlas_img.tobytes())
         texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
@@ -354,16 +383,17 @@ class TextRenderer:
 
     def get_text_width(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> float:
         """Calculate the width of the text (widest line if multi-line)."""
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style._atlas_size)
         char_data = font_atlas['char_data']
         ls = style.letter_spacing
+        effective_scale = scale * style._display_scale
 
         max_w = 0.0
         for line in text.split('\n'):
             w = 0.0
             for char in line:
                 if char in char_data:
-                    w += (char_data[char]['advance'] + ls) * scale
+                    w += (char_data[char]['advance'] + ls) * effective_scale
             if w > max_w:
                 max_w = w
         return max_w
@@ -371,9 +401,10 @@ class TextRenderer:
     def _get_text_bounds(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> tuple[float, float]:
         """Calculate the bounding box (width, height) of the text,
         with multi-line and letter-spacing support."""
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style._atlas_size)
         char_data = font_atlas['char_data']
-        line_h = font_atlas['line_height'] * scale
+        effective_scale = scale * style._display_scale
+        line_h = font_atlas['line_height'] * effective_scale
         ls = style.letter_spacing
 
         lines = text.split('\n')
@@ -382,7 +413,7 @@ class TextRenderer:
             w = 0.0
             for char in line:
                 if char in char_data:
-                    w += (char_data[char]['advance'] + ls) * scale
+                    w += (char_data[char]['advance'] + ls) * effective_scale
             if w > max_w:
                 max_w = w
 
@@ -514,12 +545,13 @@ class TextRenderer:
 
         pivot = resolve_pivot(pivot)
 
-        # Get font atlas for this style
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        # Get font atlas for this style (baked at _atlas_size for crisp glyphs)
+        font_atlas = self._get_or_create_font_atlas(style.font, style._atlas_size)
         char_data = font_atlas['char_data']
         texture = font_atlas['texture']
+        effective_scale = scale * style._display_scale
             
-        # Get text dimensions for background
+        # Get text dimensions for background (uses effective_scale internally)
         text_width, text_height = self._get_text_bounds(text, scale, style)
         
         # Adjust position based on pivot for background calculation
@@ -544,9 +576,9 @@ class TextRenderer:
             self.ctx.enable(moderngl.BLEND)
             self.bg_vao.render(moderngl.TRIANGLES, vertices=len(bg_vertices)//14)
         
-        # Draw text
+        # Draw text using effective_scale so glyphs render at display size
         vertices = self._generate_vertices(
-            text, pos, scale, style.color, pivot, char_data,
+            text, pos, effective_scale, style.color, pivot, char_data,
             line_height=font_atlas['line_height'],
             line_spacing=style.line_spacing,
             letter_spacing=style.letter_spacing,
@@ -573,19 +605,20 @@ class TextRenderer:
     def create_label(self, text: str, x: float, y: float, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE, pivot: Pivot = Pivot.TOP_LEFT) -> TextLabel:
         if not text:
             # Return empty label with default texture
-            font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+            font_atlas = self._get_or_create_font_atlas(style.font, style._atlas_size)
             return TextLabel(self.ctx, self.prog, font_atlas['texture'], [])
 
         pivot = resolve_pivot(pivot)
+        effective_scale = scale * style._display_scale
 
-        # Get font atlas for this style
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        # Get font atlas baked at high resolution for crisp rendering
+        font_atlas = self._get_or_create_font_atlas(style.font, style._atlas_size)
         char_data = font_atlas['char_data']
         texture = font_atlas['texture']
         
-        # Generate text vertices
+        # Generate text vertices scaled to display size
         vertices = self._generate_vertices(
-            text, (x, y), scale, style.color, pivot, char_data,
+            text, (x, y), effective_scale, style.color, pivot, char_data,
             line_height=font_atlas['line_height'],
             line_spacing=style.line_spacing,
             letter_spacing=style.letter_spacing,

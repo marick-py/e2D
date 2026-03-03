@@ -7,7 +7,8 @@ from e2D import (
     RootEnv, DefEnv, V2, Vector2D, CommonVectors, WindowConfig,
     batch_add_inplace, batch_scale_inplace, batch_normalize_inplace,
     vectors_to_array, create_circle, lerp,
-    WHITE, RED, GREEN, BLUE, YELLOW, CYAN
+    WHITE, RED, GREEN, BLUE, YELLOW, CYAN,
+    TextStyle
 )
 import math
 
@@ -51,10 +52,10 @@ class VectorsExample(DefEnv):
         
     def draw(self):
         # Title
-        self.root.print("Vector Operations Example", V2(10, 10), scale=1.5)
+        self.root.print("Vector Operations Example", V2(10, 10), style=TextStyle(font_size=28))
         
         # Section 1: Basic Vector Visualization
-        self.root.print(f"Particle System ({self.num_particles} particles):", V2(10, 40), scale=1.0)
+        self.root.print(f"Particle System ({self.num_particles} particles):", V2(10, 40))
         
         # Draw particles
         for i, pos in enumerate(self.positions):
@@ -65,7 +66,7 @@ class VectorsExample(DefEnv):
             self.root.draw_circle(pos, 3, color=color)
         
         # Section 2: Vector Operations Visualization
-        self.root.print("Vector Operations:", V2(450, 250), scale=1.2)
+        self.root.print("Vector Operations:", V2(450, 250), style=TextStyle(font_size=18))
         
         # Draw arrow showing a vector
         arrow_end = V2(self.arrow_start.x + self.arrow_vector.x, 
@@ -80,12 +81,12 @@ class VectorsExample(DefEnv):
         angle = math.degrees(math.atan2(self.arrow_vector.y, self.arrow_vector.x))
         
         self.root.print(f"Vector: ({self.arrow_vector.x:.1f}, {self.arrow_vector.y:.1f})", 
-                       V2(450, 290), scale=0.9)
-        self.root.print(f"Length: {length:.1f}", V2(450, 310), scale=0.9)
-        self.root.print(f"Angle: {angle:.1f}°", V2(450, 330), scale=0.9)
+                       V2(450, 290))
+        self.root.print(f"Length: {length:.1f}", V2(450, 310))
+        self.root.print(f"Angle: {angle:.1f}\u00b0", V2(450, 330))
         
         # Section 3: Common Vectors
-        self.root.print("Common Vectors:", V2(450, 370), scale=1.2)
+        self.root.print("Common Vectors:", V2(450, 370), style=TextStyle(font_size=18))
         
         common_vecs = [
             (CommonVectors.ZERO, "ZERO", V2(450, 400)),
@@ -101,15 +102,15 @@ class VectorsExample(DefEnv):
             if vec.length > 0:
                 self.root.draw_line(pos, end, width=2.0, color=CYAN)
             self.root.draw_circle(pos, 3, color=WHITE)
-            self.root.print(name, V2(pos.x - 15, pos.y + 15), scale=0.7)
+            self.root.print(name, V2(pos.x - 15, pos.y + 15), style=TextStyle(font_size=13))
         
         # Section 4: Performance Info
         fps = 1.0 / self.root.delta if self.root.delta > 0 else 0
-        self.root.print(f"FPS: {fps:.1f}", V2(10, 560), scale=1.0)
-        self.root.print(f"Frame: {self.frame}", V2(150, 560), scale=1.0)
+        self.root.print(f"FPS: {fps:.1f}", V2(10, 560))
+        self.root.print(f"Frame: {self.frame}", V2(150, 560))
         
         # Instructions
-        self.root.print("ESC to exit", V2(750, 560), scale=0.9)
+        self.root.print("ESC to exit", V2(750, 560))
 
 def main():
     """Run the vectors example"""

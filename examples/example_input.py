@@ -108,7 +108,7 @@ class InputExample(DefEnv):
             self.root.draw_circle(mouse_pos, 40, color=(1.0, 1.0, 0.0, 0.3))
         
         # Instructions
-        self.root.print("Input Handling Example", V2(10, 10), scale=1.5)
+        self.root.print("Input Handling Example", V2(10, 10), style=TextStyle(font_size=28))
         
         instructions = [
             "",
@@ -133,54 +133,50 @@ class InputExample(DefEnv):
         
         y = 40
         for line in instructions:
-            self.root.print(line, V2(10, y), scale=0.9)
-            y += 20
+            self.root.print(line, V2(10, y))
+            y += 18
         
         # Draw event messages
         event_style = TextStyle(font_size=16, color=YELLOW)
         for msg in self.messages:
-            self.root.print(f"  • {msg}", V2(10, y), scale=0.9, style=event_style)
-            y += 18
+            self.root.print(f"  \u2022 {msg}", V2(10, y), style=event_style)
+            y += 16
         
         # Draw player status
-        self.root.print("Player Status:", V2(10, 500), scale=1.1)
+        self.root.print("Player Status:", V2(10, 500), style=TextStyle(font_size=18))
         self.root.print(
             f"Position: ({self.player_pos.x:.0f}, {self.player_pos.y:.0f})",
-            V2(10, 525),
-            scale=0.9
+            V2(10, 525)
         )
         self.root.print(
             f"Speed: {self.speed:.0f} px/s",
             V2(10, 545),
-            scale=0.9,
             style=TextStyle(font_size=16, color=GREEN if self.speed > 200 else WHITE)
         )
         
         # Draw mouse status
         self.root.print(
             f"Mouse: ({mouse_pos.x:.0f}, {mouse_pos.y:.0f})",
-            V2(10, 570),
-            scale=0.9
+            V2(10, 570)
         )
 
         # ---- Typed text demo (get_chars) ---------------------------------
-        self.root.print("Type anything:", V2(500, 40), scale=1.1, style=TextStyle(font_size=18, color=CYAN))
+        self.root.print("Type anything:", V2(500, 40), style=TextStyle(font_size=18, color=CYAN))
         # Box outline
         self.root.draw_rect(V2(500, 65), V2(380, 32),
                             color=(0.1, 0.1, 0.15, 1.0),
                             border_color=(0.4, 0.8, 1.0, 0.9),
-                            border_width=1.5)
+                            border_width=1.5,
+                            layer=-1)
         display = self.typed_text if self.typed_text else "..."
         self.root.print(
             display,
             V2(508, 73),
-            scale=0.9,
-            style=TextStyle(font_size=16, color=WHITE)
+            style=TextStyle(font_size=16, color=WHITE),
         )
         self.root.print(
             "(BACKSPACE to delete)",
             V2(500, 104),
-            scale=0.8,
             style=TextStyle(font_size=14, color=(0.6, 0.6, 0.6, 1.0))
         )
 

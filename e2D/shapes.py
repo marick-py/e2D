@@ -1136,6 +1136,7 @@ class ShapeRenderer:
                     self._q_rect.flush()
                 elif current_type == 'l':
                     self._q_line.flush()
+                # 't' (text callables) have no batch to flush
                 current_type = typ
 
             if typ == 'c':
@@ -1147,6 +1148,9 @@ class ShapeRenderer:
             elif typ == 'l':
                 self._q_line.instance_data.extend(cmd[2:])
                 self._q_line.instance_count += 1
+            elif typ == 't':
+                # Each 't' entry is a deferred text-draw callable — execute immediately
+                cmd[2]()
 
         # Flush the last active batch
         if current_type == 'c':
@@ -1155,8 +1159,22 @@ class ShapeRenderer:
             self._q_rect.flush()
         elif current_type == 'l':
             self._q_line.flush()
+        # 't' has no batch to flush
 
         self._queue.clear()
+
+    def queue_text_call(self, layer: int, fn) -> None:
+        """Enqueue a deferred text-draw callable at the given layer.
+
+        The callable ``fn`` will be invoked during ``flush_queue()`` in
+        layer-sorted order, interleaved with shape batches so that text
+        respects the same layer hierarchy as circles, rects and lines.
+
+        Args:
+            layer: Render layer (higher = drawn later / on top).
+            fn:    Zero-argument callable that performs the text draw.
+        """
+        self._queue.append((layer, 't', fn))
 
     def create_circle_batch(self, max_shapes: int = 10000) -> InstancedShapeBatch:
         """Create a batch for drawing multiple circles efficiently using GPU instancing.

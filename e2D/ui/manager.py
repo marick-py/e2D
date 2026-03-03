@@ -57,6 +57,8 @@ class UIManager:
         # GLFW window handle (needed for clipboard in InputField / MultiLineInput)
         self._window = window
 
+        self.debug_mode = True  # Set True to draw debug outlines and info
+
     # -- public queries ------------------------------------------------------
 
     @property
@@ -340,6 +342,8 @@ class UIManager:
         elements.sort(key=lambda e: e.z_index)
         for elem in elements:
             elem.draw(self.ctx)
+            if self.debug_mode:
+                elem.draw_debug_outline()
         # Flush any shape-renderer draw calls queued by UI elements
         self.shape_renderer.flush_queue()
 

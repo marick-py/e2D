@@ -84,7 +84,7 @@ class UIElement:
         else:
             self._position = value
         # Position changes are handled by shader uniforms — no rebuild needed.
-
+    
     @property
     def size(self) -> Vector2D:
         return self._size
@@ -230,6 +230,21 @@ class UIElement:
     def draw(self, ctx) -> None:
         """Render this element.  Called by UIManager in z-order."""
         pass
+
+    def draw_debug_outline(self, color=(1.0, 0.0, 1.0, 0.5)) -> None:
+        """Draw a debug outline around this element's screen rect."""
+        if not self.visible or self._manager is None:
+            return
+
+        sr = self._manager.shape_renderer
+        rx, ry, rw, rh = self.get_screen_rect()
+
+        sr.draw_rect(
+            V2(rx, ry), V2(rw, rh),
+            color=color,
+            border_width=1.0,
+            layer=1000,
+        )
 
     def release(self) -> None:
         """Free GPU resources.  Called when removed from UIManager."""

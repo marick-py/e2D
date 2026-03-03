@@ -1002,18 +1002,39 @@ class RootEnv:
         text_or_label: str|TextLabel,
         position: Vector2D,
         scale: float = 1.0,
-        style: TextStyle = MONO_32_TEXT_STYLE,
+        style: TextStyle = MONO_16_TEXT_STYLE,
         pivot: Pivot = Pivot.TOP_LEFT,
-        save_cache: bool = False
+        save_cache: bool = False,
+        layer: int = 1,
     ) -> Optional[TextLabel]:
+        """Draw text or a TextLabel, queued at the given render layer.
 
+        Args:
+            text_or_label: Plain string or a cached TextLabel.
+            position:      World-space position.
+            scale:         Extra scale multiplier (applied on top of style.font_size).
+            style:         TextStyle controlling font, size, colour, etc.
+            pivot:         Alignment anchor for the text block.
+            save_cache:    When True and text_or_label is a str, creates and
+                           returns a reusable TextLabel instead of drawing.
+            layer:         Render layer.  Defaults to 1 so text appears above
+                           layer-0 shapes.  Use the same value as the shapes
+                           you want text on top of / underneath.
+        """
         if isinstance(text_or_label, TextLabel):
-            text_or_label.draw()
+            self.shape_renderer.queue_text_call(layer, text_or_label.draw)
         else:
             if save_cache:
                 return self.text_renderer.create_label(str(text_or_label), position.x, position.y, scale, style, pivot)
             else:
-                self.text_renderer.draw_text(str(text_or_label), (position.x, position.y), scale, style, pivot)
+                tr = self.text_renderer
+                text = str(text_or_label)
+                px, py = position.x, position.y
+                self.shape_renderer.queue_text_call(
+                    layer,
+                    lambda t=text, x=px, y=py, sc=scale, st=style, pv=pivot:
+                        tr.draw_text(t, (x, y), sc, st, pv)
+                )
     
     # ========== Shape Drawing Methods ==========
     

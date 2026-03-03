@@ -875,8 +875,8 @@ class MultiLineInput(UIElement):
         if not self._manager:
             return float(self._text_style.font_size) * 1.3
         tr = self._manager.text_renderer
-        fa = tr._get_or_create_font_atlas(self._text_style.font, self._text_style.font_size)
-        return fa['line_height'] * self._text_style.line_spacing
+        fa = tr._get_or_create_font_atlas(self._text_style.font, self._text_style._atlas_size)
+        return fa['line_height'] * self._text_style._display_scale * self._text_style.line_spacing
 
     def _lines(self) -> list[str]:
         return "".join(self._chars).split("\n")

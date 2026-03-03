@@ -135,8 +135,8 @@ class Label(UIElement):
         prog = tr.prog
 
         # ---- 1. group segments by atlas ------------------------------------
-        # Each atlas key = (font, font_size)
-        # Items: list of (text, style, cursor_x_start)
+        # Key = (font, atlas_size) — multiple display sizes may share one atlas.
+        # Items: list of (text, style, cursor_x_start, cursor_y_start)
         atlas_groups: dict[tuple[str, int], dict] = {}
         cursor_x: float = 0.0
         cursor_y: float = 0.0
@@ -144,13 +144,14 @@ class Label(UIElement):
         max_total_w: float = 0.0
 
         for text, style in self._segments:
-            atlas = tr._get_or_create_font_atlas(style.font, style.font_size)
-            key = (style.font, style.font_size)
+            ds    = style._display_scale               # shrink factor (≤ 1.0)
+            atlas = tr._get_or_create_font_atlas(style.font, style._atlas_size)
+            key   = (style.font, style._atlas_size)
             if key not in atlas_groups:
                 atlas_groups[key] = {'atlas': atlas, 'items': []}
 
             char_data = atlas['char_data']
-            line_h = atlas['line_height']
+            line_h = atlas['line_height'] * ds         # display-space line height
             if line_h > max_line_h:
                 max_line_h = line_h
 
@@ -167,7 +168,7 @@ class Label(UIElement):
                     continue
                 d = char_data.get(ch)
                 if d:
-                    cursor_x += d['advance'] + getattr(style, 'letter_spacing', 0.0)
+                    cursor_x += (d['advance'] + getattr(style, 'letter_spacing', 0.0)) * ds
 
             atlas_groups[key]['items'].append((text, style, seg_start_x, seg_start_y))
 
@@ -183,10 +184,11 @@ class Label(UIElement):
         for key, grp in atlas_groups.items():
             atlas = grp['atlas']
             char_data = atlas['char_data']
-            line_h = atlas['line_height']
             verts: list[float] = []
 
             for text, style, sx, sy in grp['items']:
+                ds     = style._display_scale
+                line_h = atlas['line_height'] * ds     # display-space line height
                 cx, cy = sx, sy
                 color = style.color
                 ls = getattr(style, 'letter_spacing', 0.0)
@@ -200,13 +202,13 @@ class Label(UIElement):
                     if d is None:
                         continue
                     if d['w'] == 0:
-                        cx += d['advance'] + ls
+                        cx += (d['advance'] + ls) * ds
                         continue
 
-                    w = d['w']
-                    h = d['h']
-                    gx = cx + d['offset_x']
-                    gy = cy + d['offset_y']
+                    w  = d['w']  * ds
+                    h  = d['h']  * ds
+                    gx = cx + d['offset_x'] * ds
+                    gy = cy + d['offset_y'] * ds
                     u0, v0, du, dv = d['uv']
 
                     # tri 1: TL TR BL
@@ -218,7 +220,7 @@ class Label(UIElement):
                     verts.extend([gx,     gy + h, u0,      v0 + dv, *color])
                     verts.extend([gx + w, gy + h, u0 + du, v0 + dv, *color])
 
-                    cx += d['advance'] + ls
+                    cx += (d['advance'] + ls) * ds
 
             if not verts:
                 continue

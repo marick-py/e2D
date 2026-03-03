@@ -6,7 +6,8 @@ Shows circles, rectangles, lines, polylines, cached shapes, and instanced batchi
 from e2D import (
     RootEnv, DefEnv, V2, WindowConfig,
     ShapeRenderer, ShapeLabel, InstancedShapeBatch,
-    WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, TRANSPARENT
+    WHITE, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA, TRANSPARENT,
+    TextStyle
 )
 
 class ShapesExample(DefEnv):
@@ -28,7 +29,7 @@ class ShapesExample(DefEnv):
         
     def draw(self):
         # Section 1: Basic Shapes
-        self.root.print("Basic Shapes:", V2(10, 10), scale=1.2)
+        self.root.print("Basic Shapes:", V2(10, 10), style=TextStyle(font_size=18))
         
         # Circle with border
         self.root.draw_circle(
@@ -56,7 +57,7 @@ class ShapesExample(DefEnv):
         )
         
         # Section 2: Lines
-        self.root.print("Lines & Polylines:", V2(10, 180), scale=1.2)
+        self.root.print("Lines & Polylines:", V2(10, 180), style=TextStyle(font_size=18))
         
         # Simple line
         self.root.draw_line(
@@ -76,7 +77,7 @@ class ShapesExample(DefEnv):
         self.root.draw_lines(points, width=3.0, color=CYAN)
         
         # Section 3: Cached Shapes (Performance Optimization)
-        self.root.print("Cached Shapes (High Performance):", V2(10, 400), scale=1.2)
+        self.root.print("Cached Shapes (High Performance):", V2(10, 400), style=TextStyle(font_size=18))
         
         # Create cached shapes once
         if self.cached_circle is None:
@@ -99,7 +100,7 @@ class ShapesExample(DefEnv):
         self.cached_rect.draw()
         
         # Section 4: Instanced Batching (Draw THOUSANDS of shapes)
-        self.root.print("Instanced Batching (100 circles):", V2(450, 10), scale=1.2)
+        self.root.print("Instanced Batching (100 circles):", V2(450, 10), style=TextStyle(font_size=18))
         
         if self.circle_batch is None:
             self.circle_batch = self.root.create_circle_batch(max_shapes=100)
@@ -120,7 +121,7 @@ class ShapesExample(DefEnv):
         self.circle_batch.flush()
         
         # Animation example
-        self.root.print("Animated:", V2(450, 280), scale=1.2)
+        self.root.print("Animated:", V2(450, 280), style=TextStyle(font_size=18))
         
         import math
         t = self.frame * 0.05
@@ -134,7 +135,7 @@ class ShapesExample(DefEnv):
             )
         
         # Instructions
-        self.root.print("ESC to exit", V2(10, 560), scale=0.9)
+        self.root.print("ESC to exit", V2(10, 560))
 
 def main():
     """Run the shapes example"""
