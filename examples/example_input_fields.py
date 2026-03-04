@@ -16,7 +16,6 @@ Controls:
   Ctrl+A           — select all text in the focused field
   T                — cycle theme
   F3               — toggle debug outlines
-  ESC              — quit
 """
 
 import sys as _sys, os as _os
@@ -113,7 +112,7 @@ class InputFieldsExample(DefEnv):
         # Title + hints
         _add(ui.label("Phase 3 — Input Fields", default_style=sty(22, WHITE)))
         _add(ui.label(
-            "Tab = next field   |   T = theme   |   F3 = debug   |   ESC = quit",
+            "Tab = next field   |   T = theme   |   F3 = debug",
             default_style=sty(11, _LGRAY),
         ))
 
@@ -281,7 +280,7 @@ class InputFieldsExample(DefEnv):
     def _on_notes(self, value: str) -> None:
         n = (value.count("\n") + 1) if value else 0
         self._lbl_notes.set_text(
-            ("Notes:    ", style(13, _LGRAY)),
+            ("Notes: 6   ", style(13, _LGRAY)),
             (f"{n} line(s)" if value else "—", style(13, GREEN if value else YELLOW)),
         )
 
@@ -289,7 +288,7 @@ class InputFieldsExample(DefEnv):
     # Lifecycle
     # -----------------------------------------------------------------------
 
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         kb = self.root.keyboard
 
         # T — cycle through all themes

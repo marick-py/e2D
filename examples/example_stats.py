@@ -14,7 +14,6 @@ Controls:
   F2            — toggle stats panel  (always works)
   +  /  -       — stress: increase / decrease shape count  (scene 2)
   U  /  D       — physics: faster / slower UPS             (scene 3)
-  ESC / X       — quit
 """
 
 from __future__ import annotations
@@ -137,7 +136,7 @@ class StatsDemo(DefEnv):
             self._ball_y = WIN_H - r; self._ball_vy *= -1
         self._phys_ticks += 1
 
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         self.t += self.root.delta
         keys = self.root.keyboard
 
@@ -213,8 +212,8 @@ class StatsDemo(DefEnv):
 
         t = self.t
         for x, y, r, c in self._shapes[:self._shape_count]:
-            ox = math.sin(t * 0.4 + x * 0.01) * 6
-            oy = math.cos(t * 0.4 + y * 0.01) * 6
+            ox = math.sin(t * 0.4 + x * 0.01) * 14
+            oy = math.cos(t * 0.4 + y * 0.01) * 14
             self.root.draw_circle(V2(x + ox, y + oy), r, color=c)
 
         self.root.print(

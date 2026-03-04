@@ -1,9 +1,10 @@
 from typing import Optional
-from PIL import Image, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 from attr import dataclass
 import numpy as np
+import sys
 import moderngl
-from ._types import ColorType, VAOType, ContextType, ProgramType, BufferType, TextureType
+from ._types import ColorType, VAOType, ContextType, ProgramType, BufferType, TextureType, FloatVec2
 from .colors import normalize_color
 from .palette import WHITE, BLACK
 from .ui.base import Pivot, resolve_pivot
@@ -11,6 +12,31 @@ from .utils import find_system_font
 
 # Backward-compat alias — new code should use ``Pivot`` directly.
 Pivots = Pivot
+
+# ---------------------------------------------------------------------------
+#   Emoji / Unicode helpers
+# ---------------------------------------------------------------------------
+
+_EMOJI_FONTS: list[str] = (
+    ["seguiemj.ttf"] if sys.platform == "win32"
+    else ["Apple Color Emoji"] if sys.platform == "darwin"
+    else ["NotoColorEmoji.ttf", "NotoColorEmoji-Regular.ttf"]
+)
+
+def _is_emoji(ch: str) -> bool:
+    """Return *True* if *ch* falls in a known emoji / symbol Unicode range."""
+    cp = ord(ch)
+    return (
+        0x1F000 <= cp <= 0x1FAFF
+        or 0x2600 <= cp <= 0x27BF
+        or 0x2300 <= cp <= 0x23FF
+        or 0x2B00 <= cp <= 0x2BFF
+        or 0xFE00 <= cp <= 0xFE0F
+        or cp == 0x200D
+        or cp == 0x20E3
+        or 0xE0020 <= cp <= 0xE007F
+        or 0x1F1E0 <= cp <= 0x1F1FF
+    )
 
 @dataclass
 class TextStyle:
@@ -110,10 +136,13 @@ class TextRenderer:
         self.ctx = ctx
         
         # Cache for font atlases: (font_path, font_size) -> {font, char_data, texture}
-        self.font_cache = {}
+        self.font_cache: dict[tuple[str, int], dict] = {}
         
-        # Character set to render
-        self.chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+        # Base ASCII character set
+        self._base_chars: str = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+        
+        # Emoji font cache
+        self._emoji_font_cache: dict[int, ImageFont.FreeTypeFont | None] = {}
         
         # Background shader for rounded rectangles
         self.bg_prog = self.ctx.program(
@@ -237,8 +266,12 @@ class TextRenderer:
             out vec4 f_color;
             
             void main() {
-                float alpha = texture(tex, v_uv).a;
-                f_color = vec4(v_color.rgb, v_color.a * alpha);
+                vec4 texel = texture(tex, v_uv);
+                float hi = max(max(texel.r, texel.g), texel.b);
+                float lo = min(min(texel.r, texel.g), texel.b);
+                float is_color = step(0.05, hi - lo);
+                vec3 rgb = mix(v_color.rgb, texel.rgb, is_color);
+                f_color = vec4(rgb, v_color.a * texel.a);
             }
             """
         )
@@ -259,20 +292,79 @@ class TextRenderer:
             (self.vbo, '2f 2f 4f', 'in_pos', 'in_uv', 'in_color')
         ])
 
-    def _get_or_create_font_atlas(self, font_path: str, font_size: int) -> dict:
-        """Get or create a cached font atlas for the given font and size.
+    def _get_emoji_font(self, font_size: int) -> ImageFont.FreeTypeFont | None:
+        cached = self._emoji_font_cache.get(font_size)
+        if cached is not None:
+            return cached
+        if font_size in self._emoji_font_cache:
+            return None
+        for name in _EMOJI_FONTS:
+            try:
+                font = ImageFont.truetype(find_system_font(name), font_size)
+                self._emoji_font_cache[font_size] = font
+                return font
+            except (IOError, OSError):
+                continue
+        self._emoji_font_cache[font_size] = None  # type: ignore[assignment]
+        return None
 
-        Each character entry now stores ``offset_x``, ``offset_y`` (from
-        ``font.getbbox``) and ``advance`` (horizontal advance width) so that
-        descenders (g j p q y …) and special characters are positioned
-        correctly on the baseline.
-        """
+    @staticmethod
+    def _render_glyph(char: str, font: ImageFont.FreeTypeFont,
+                      embedded_color: bool = False) -> Image.Image | None:
+        bbox = font.getbbox(char)
+        if bbox is None:
+            return None
+        bl, bt, br, bb = bbox
+        gw, gh = int(br - bl), int(bb - bt)
+        if gw <= 0 or gh <= 0:
+            return None
+        img = Image.new('RGBA', (gw, gh), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        try:
+            if embedded_color:
+                draw.text((-bl, -bt), char, font=font,  # type: ignore[arg-type]
+                          fill=(255, 255, 255, 255), embedded_color=True)
+            else:
+                draw.text((-bl, -bt), char, font=font, fill=(255, 255, 255, 255))
+        except Exception:
+            draw.text((-bl, -bt), char, font=font, fill=(255, 255, 255, 255))
+        return img
+
+    @staticmethod
+    def _grow_atlas(atlas_w: int, atlas_h: int,
+                    atlas_img: Image.Image) -> tuple[int, int, Image.Image]:
+        new_w = min(atlas_w * 2, 4096)
+        new_h = min(atlas_h * 2, 4096)
+        if new_w == atlas_w and new_h == atlas_h:
+            return atlas_w, atlas_h, atlas_img
+        new_img = Image.new('RGBA', (new_w, new_h), (0, 0, 0, 0))
+        new_img.paste(atlas_img, (0, 0))
+        return new_w, new_h, new_img
+
+    def _get_or_create_font_atlas(self, font_path: str, font_size: int,
+                                   text: str = "") -> dict:
+        """Get or create a cached font atlas, dynamically expanding for *text*."""
         cache_key = (font_path, font_size)
 
-        if cache_key in self.font_cache:
-            return self.font_cache[cache_key]
+        needed: set[str] = set()
+        for ch in text:
+            if ch not in '\n\r\t':
+                needed.add(ch)
 
-        # Load font
+        if cache_key in self.font_cache:
+            atlas = self.font_cache[cache_key]
+            missing = needed - set(atlas['char_data'].keys())
+            if not missing:
+                return atlas
+            self._expand_atlas(atlas, missing, font_size)
+            return atlas
+
+        all_chars: set[str] = set(self._base_chars) | needed
+        return self._build_atlas(font_path, font_size, all_chars)
+
+    def _build_atlas(self, font_path: str, font_size: int,
+                     chars: set[str]) -> dict:
+        cache_key = (font_path, font_size)
         try:
             font = ImageFont.truetype(find_system_font(font_path), font_size)
         except IOError:
@@ -280,29 +372,25 @@ class TextRenderer:
             font = ImageFont.load_default()
 
         ascent, descent = font.getmetrics()  # type: ignore[union-attr]
-        line_height = ascent + descent
+        line_height: int = ascent + descent
+        emoji_font = self._get_emoji_font(font_size)
 
-        # Generate atlas
-        char_data: dict = {}
         atlas_w, atlas_h = 1024, 1024
         atlas_img = Image.new('RGBA', (atlas_w, atlas_h), (0, 0, 0, 0))
+        char_data: dict[str, dict] = {}
+        ax, ay, row_h = 0, 0, 0
 
-        ax, ay = 0, 0   # current position in the atlas
-        row_h = 0
-
-        for char in self.chars:
-            bbox = font.getbbox(char)
+        for char in sorted(chars):
+            is_emoji_char = _is_emoji(char)
+            use_font = (emoji_font or font) if is_emoji_char else font
+            bbox = use_font.getbbox(char)
             if bbox is None:
                 continue
             bl, bt, br, bb = bbox
-            advance = font.getlength(char)
-
-            # Get the rendered glyph mask
-            mask = font.getmask(char)
-            mw, mh = mask.size
+            advance = use_font.getlength(char)
+            mw, mh = br - bl, bb - bt
 
             if mw <= 0 or mh <= 0:
-                # Zero-width character (e.g. space)
                 char_data[char] = {
                     'x': 0, 'y': 0, 'w': 0, 'h': 0,
                     'offset_x': 0, 'offset_y': 0,
@@ -311,49 +399,130 @@ class TextRenderer:
                 }
                 continue
 
-            # Wrap to next row if needed
             if ax + mw >= atlas_w:
                 ax = 0
                 ay += row_h + 2
                 row_h = 0
+            if ay + mh >= atlas_h:
+                atlas_w, atlas_h, atlas_img = self._grow_atlas(atlas_w, atlas_h, atlas_img)
 
-            # Create white glyph + alpha mask and paste
-            char_img = Image.new('RGBA', (mw, mh), (255, 255, 255, 255))
-            mask_img = Image.new('L', (mw, mh))
-            mask_img.im.paste(mask, (0, 0, mw, mh))
-            atlas_img.paste(char_img, (ax, ay), mask_img)
+            glyph_img = self._render_glyph(char, use_font,  # type: ignore[arg-type]
+                                           embedded_color=is_emoji_char and emoji_font is not None)
+            if glyph_img is None:
+                continue
+            mw, mh = glyph_img.size
+            if ax + mw >= atlas_w:
+                ax = 0
+                ay += row_h + 2
+                row_h = 0
+            if ay + mh >= atlas_h:
+                atlas_w, atlas_h, atlas_img = self._grow_atlas(atlas_w, atlas_h, atlas_img)
 
+            atlas_img.paste(glyph_img, (ax, ay))
             char_data[char] = {
-                'x': ax, 'y': ay,
-                'w': mw, 'h': mh,
-                'offset_x': bl,       # horizontal bearing
-                'offset_y': bt,       # vertical offset from pen origin
-                'advance': advance,   # horizontal advance to next char
-                'uv': (ax / atlas_w, ay / atlas_h, mw / atlas_w, mh / atlas_h),
+                'x': ax, 'y': ay, 'w': mw, 'h': mh,
+                'offset_x': bl, 'offset_y': bt,
+                'advance': advance,
+                'uv': (0.0, 0.0, 0.0, 0.0),  # computed below
             }
-
             ax += mw + 2
             row_h = max(row_h, mh)
 
-        # Create GPU texture
+        # Compute UVs with the final atlas dimensions (safe after any growth)
+        for data in char_data.values():
+            x, y, w, h = data['x'], data['y'], data['w'], data['h']
+            if w > 0 and h > 0:
+                data['uv'] = (x / atlas_w, y / atlas_h,
+                              w / atlas_w, h / atlas_h)
+
         texture = self.ctx.texture(atlas_img.size, 4, atlas_img.tobytes())
         texture.filter = (moderngl.LINEAR, moderngl.LINEAR)
 
-        # Cache the atlas together with font metrics
-        font_atlas = {
-            'font': font,
-            'char_data': char_data,
-            'texture': texture,
-            'ascent': ascent,
-            'descent': descent,
-            'line_height': line_height,
+        font_atlas: dict = {
+            'font': font, 'char_data': char_data, 'texture': texture,
+            'ascent': ascent, 'descent': descent, 'line_height': line_height,
+            '_atlas_img': atlas_img, '_atlas_w': atlas_w, '_atlas_h': atlas_h,
+            '_cursor_x': ax, '_cursor_y': ay, '_row_h': row_h,
         }
         self.font_cache[cache_key] = font_atlas
         return font_atlas
 
+    def _expand_atlas(self, atlas: dict, new_chars: set[str],
+                      font_size: int) -> None:
+        font = atlas['font']
+        char_data = atlas['char_data']
+        atlas_img = atlas['_atlas_img']
+        ax, ay, row_h = atlas['_cursor_x'], atlas['_cursor_y'], atlas['_row_h']
+        atlas_w, atlas_h = atlas['_atlas_w'], atlas['_atlas_h']
+        emoji_font = (self._get_emoji_font(font_size)
+                      if any(_is_emoji(c) for c in new_chars) else None)
+        resized = False
+
+        for char in sorted(new_chars):
+            if char in char_data:
+                continue
+            is_emoji_char = _is_emoji(char)
+            use_font = (emoji_font or font) if is_emoji_char else font
+            bbox = use_font.getbbox(char)
+            if bbox is None:
+                continue
+            bl, bt, br, bb = bbox
+            advance = use_font.getlength(char)
+            mw, mh = br - bl, bb - bt
+            if mw <= 0 or mh <= 0:
+                char_data[char] = {
+                    'x': 0, 'y': 0, 'w': 0, 'h': 0,
+                    'offset_x': 0, 'offset_y': 0,
+                    'advance': advance,
+                    'uv': (0.0, 0.0, 0.0, 0.0),
+                }
+                continue
+            if ax + mw >= atlas_w:
+                ax = 0; ay += row_h + 2; row_h = 0
+            if ay + mh >= atlas_h:
+                atlas_w, atlas_h, atlas_img = self._grow_atlas(atlas_w, atlas_h, atlas_img)
+                resized = True
+            glyph_img = self._render_glyph(char, use_font,  # type: ignore[arg-type]
+                                           embedded_color=is_emoji_char and emoji_font is not None)
+            if glyph_img is None:
+                continue
+            mw, mh = glyph_img.size
+            if ax + mw >= atlas_w:
+                ax = 0; ay += row_h + 2; row_h = 0
+            if ay + mh >= atlas_h:
+                atlas_w, atlas_h, atlas_img = self._grow_atlas(atlas_w, atlas_h, atlas_img)
+                resized = True
+            atlas_img.paste(glyph_img, (ax, ay))
+            char_data[char] = {
+                'x': ax, 'y': ay, 'w': mw, 'h': mh,
+                'offset_x': bl, 'offset_y': bt,
+                'advance': advance,
+                'uv': (ax / atlas_w, ay / atlas_h, mw / atlas_w, mh / atlas_h),
+            }
+            ax += mw + 2
+            row_h = max(row_h, mh)
+
+        # If the atlas grew during expansion, recalculate ALL UVs
+        if resized:
+            for data in char_data.values():
+                x, y, w, h = data['x'], data['y'], data['w'], data['h']
+                if w > 0 and h > 0:
+                    data['uv'] = (x / atlas_w, y / atlas_h,
+                                  w / atlas_w, h / atlas_h)
+
+        atlas['_cursor_x'] = ax; atlas['_cursor_y'] = ay; atlas['_row_h'] = row_h
+        atlas['_atlas_w'] = atlas_w; atlas['_atlas_h'] = atlas_h; atlas['_atlas_img'] = atlas_img
+        if resized:
+            atlas['texture'].release()
+            tex = self.ctx.texture((atlas_w, atlas_h), 4, atlas_img.tobytes())
+            tex.filter = (moderngl.LINEAR, moderngl.LINEAR)
+            atlas['texture'] = tex
+        else:
+            atlas['texture'].write(atlas_img.tobytes())
+
     def get_text_width(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> float:
         """Calculate the width of the text (widest line if multi-line)."""
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size, text=text)
         char_data = font_atlas['char_data']
         ls = style.letter_spacing
 
@@ -367,10 +536,10 @@ class TextRenderer:
                 max_w = w
         return max_w
     
-    def _get_text_bounds(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> tuple[float, float]:
+    def _get_text_bounds(self, text: str, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE) -> FloatVec2:
         """Calculate the bounding box (width, height) of the text,
         with multi-line and letter-spacing support."""
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size, text=text)
         char_data = font_atlas['char_data']
         line_h = font_atlas['line_height'] * scale
         ls = style.letter_spacing
@@ -439,7 +608,7 @@ class TextRenderer:
         
         return vertices
 
-    def _generate_vertices(self, text: str, pos: tuple[float, float], scale: float = 1.0,
+    def _generate_vertices(self, text: str, pos: FloatVec2, scale: float = 1.0,
             color: ColorType = WHITE, pivot: Pivot = Pivot.TOP_LEFT, char_data: dict = {},
             line_height: float = 0.0, line_spacing: float = 1.0,
             letter_spacing: float = 0.0) -> list[float]:
@@ -507,14 +676,14 @@ class TextRenderer:
 
         return vertices
 
-    def draw_text(self, text: str, pos: tuple[float, float], scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE, pivot: Pivot = Pivot.TOP_LEFT) -> None:
+    def draw_text(self, text: str, pos: FloatVec2, scale: float = 1.0, style: TextStyle = DEFAULT_16_TEXT_STYLE, pivot: Pivot = Pivot.TOP_LEFT) -> None:
         if not text:
             return
 
         pivot = resolve_pivot(pivot)
 
         # Get font atlas for this style
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size, text=text)
         char_data = font_atlas['char_data']
         texture = font_atlas['texture']
             
@@ -578,7 +747,7 @@ class TextRenderer:
         pivot = resolve_pivot(pivot)
 
         # Get font atlas for this style
-        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size)
+        font_atlas = self._get_or_create_font_atlas(style.font, style.font_size, text=text)
         char_data = font_atlas['char_data']
         texture = font_atlas['texture']
         

@@ -3,7 +3,7 @@ import struct as _struct
 import moderngl
 import numpy as np
 from .utils import get_pattr, get_pattr_value, set_pattr_value
-from ._types import VAOType, ColorType, ContextType, ProgramType, BufferType
+from ._types import VAOType, ColorType, ContextType, ProgramType, BufferType, FloatVec2
 from .colors import normalize_color
 from .palette import WHITE, BLACK, TRANSPARENT
 from .vectors import Vector2D
@@ -1213,8 +1213,8 @@ class ShapeRenderer:
 
     def _exec_gradient_draw(
         self,
-        pos:          tuple[float, float],
-        size:         tuple[float, float],
+        pos:          FloatVec2,
+        size:         FloatVec2,
         gradient:     'GradientType',
         rotation:     float,
         corner_r:     float,
@@ -1280,8 +1280,8 @@ class ShapeRenderer:
 
     def _exec_point_gradient_draw(
         self,
-        pos:          tuple[float, float],
-        size:         tuple[float, float],
+        pos:          FloatVec2,
+        size:         FloatVec2,
         gradient:     'PointGradient',
         rotation:     float,
         corner_r:     float,
@@ -1335,7 +1335,7 @@ class ShapeRenderer:
     
     # ========== LINES ==========
     
-    def _generate_line_segment_vertices(self, start: tuple[float, float], end: tuple[float, float],
+    def _generate_line_segment_vertices(self, start: FloatVec2, end: FloatVec2,
                                         width: float, color: ColorType,
                                         antialias: float = 1.0) -> list[float]:
         """Generate vertices for a line segment as a quad."""
@@ -1374,7 +1374,7 @@ class ShapeRenderer:
         
         return vertices
     
-    def draw_line(self, start: tuple[float, float], end: tuple[float, float],
+    def draw_line(self, start: FloatVec2, end: FloatVec2,
                  width: float = 1.0,
                  color: ColorType = (1.0, 1.0, 1.0, 1.0),
                  antialiasing: float = 1.0,
@@ -1398,7 +1398,7 @@ class ShapeRenderer:
             color[0], color[1], color[2], color[3],
         ))
     
-    def draw_lines(self, points: np.ndarray | Sequence[tuple[float, float]],
+    def draw_lines(self, points: np.ndarray | Sequence[FloatVec2],
                   width: float = 1.0,
                   color: ColorType | np.ndarray = (1.0, 1.0, 1.0, 1.0),
                   antialiasing: float = 1.0,

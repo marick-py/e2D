@@ -60,6 +60,7 @@ from dataclasses import dataclass, field
 from typing import Union
 
 from .colors import Color
+from ._types import FloatVec2
 
 
 # ---------------------------------------------------------------------------
@@ -97,7 +98,7 @@ class RadialGradient:
     """
 
     stops: list[tuple[Color, float]]
-    center: tuple[float, float] = (0.5, 0.5)
+    center: FloatVec2 = (0.5, 0.5)
     radius: float = 1.0
 
 

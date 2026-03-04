@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from .manager import UIManager
 
 from ..vectors import Vector2D, V2
+from .._types import FloatVec2
 from .._pivot import Pivot, resolve_pivot, _PIVOTS_ENUM_MAP
 
 # Absolute path of the e2D package directory.  Used to locate the first
@@ -78,11 +79,11 @@ class UIElement:
 
     def __init__(
         self,
-        position: Vector2D | tuple[float, float] = (0.0, 0.0),
-        size: Vector2D | tuple[float, float] = (0.0, 0.0),
+        position: Vector2D | FloatVec2 = (0.0, 0.0),
+        size: Vector2D | FloatVec2 = (0.0, 0.0),
         pivot: Pivot = Pivot.TOP_LEFT,
-        anchor_min: tuple[float, float] = (0.0, 0.0),
-        anchor_max: tuple[float, float] = (0.0, 0.0),
+        anchor_min: FloatVec2 = (0.0, 0.0),
+        anchor_max: FloatVec2 = (0.0, 0.0),
         margin: float | tuple[float, ...] = 0.0,
         padding: float | tuple[float, ...] = 0.0,
         z_index: int = 0,
@@ -106,8 +107,8 @@ class UIElement:
             if not isinstance(size, Vector2D) else size
         )
         self.pivot: Pivot = pivot
-        self.anchor_min: tuple[float, float] = anchor_min
-        self.anchor_max: tuple[float, float] = anchor_max
+        self.anchor_min: FloatVec2 = anchor_min
+        self.anchor_max: FloatVec2 = anchor_max
         self.margin: tuple[float, float, float, float] = _norm4(margin)
         self.padding: tuple[float, float, float, float] = _norm4(padding)
         self.z_index: int = z_index
@@ -168,7 +169,7 @@ class UIElement:
         return self._position
 
     @position.setter
-    def position(self, value: Vector2D | tuple[float, float]) -> None:
+    def position(self, value: Vector2D | FloatVec2) -> None:
         if isinstance(value, (tuple, list)):
             self._position.set(float(value[0]), float(value[1]))
         else:
@@ -180,7 +181,7 @@ class UIElement:
         return self._size
 
     @size.setter
-    def size(self, value: Vector2D | tuple[float, float]) -> None:
+    def size(self, value: Vector2D | FloatVec2) -> None:
         if isinstance(value, (tuple, list)):
             self._size.set(float(value[0]), float(value[1]))
         else:

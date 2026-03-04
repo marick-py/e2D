@@ -11,7 +11,6 @@ Controls:
   1–4 / click sidebar    — switch panel
   T                      — cycle theme
   F3                     — debug outlines
-  ESC / X                — quit
 """
 
 from __future__ import annotations
@@ -473,7 +472,7 @@ class GradientDemo(DefEnv):
             self._blur_container.visible = True
 
     # ── lifecycle ──────────────────────────────────────────────────────────
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         self.t += self.root.delta
         keys = self.root.keyboard
 

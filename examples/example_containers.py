@@ -15,7 +15,6 @@ Controls:
   1–7 / click sidebar buttons  — switch panel
   T                            — cycle theme
   F3                           — toggle debug outlines
-  ESC                          — quit
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)
 import glfw
 
 from e2D import (
-    RootEnv, DefEnv, V2, UIManager, WindowConfig,
+    Button, RootEnv, DefEnv, V2, UIManager, WindowConfig,
     Keys, KeyState, TextStyle,
     WHITE, YELLOW, CYAN, GREEN,
 )
@@ -118,7 +117,7 @@ class ContainersExample(DefEnv):
 
         # ── build the UI ────────────────────────────────────────────────
         self._panels: list[FreeContainer] = []
-        self._nav_btns: list = []
+        self._nav_btns: list[Button] = []
         self._cur_panel = 0
 
         self._build_top_bar(ui)
@@ -155,7 +154,7 @@ class ContainersExample(DefEnv):
             default_style=sty(20, WHITE),
         )
         hints = ui.label(
-            "  1–7 = panel   T = theme   F3 = debug   ESC = quit",
+            "  1–7 = panel   T = theme   F3 = debug",
             position=V2(0, 0),
             default_style=sty(12, _GREY),
         )
@@ -244,15 +243,9 @@ class ContainersExample(DefEnv):
     def _build_panel_vbox(self, ui) -> FreeContainer:
         p = self._make_panel(ui)
 
-        ui.label("VBox  — vertical stack with different align modes",
-                 position=V2(PANEL_X + 14, PANEL_Y + 10),
-                 default_style=sty(16, CYAN)).visible = False  # owned by panel
-        # Actually use the panel-child mechanism properly
         title = ui.label("", default_style=sty(16, CYAN))
         title.set_plain_text("VBox — vertical stack with different align modes")
         p.add_child(title)
-        title._position  # FreeContainer sets from (0,0), let's reposition...
-        # Re-set child offset to (14, 10)
         p._child_offsets[id(title)] = (14.0, 10.0)
         p._compute_layout()
 
@@ -450,7 +443,7 @@ class ContainersExample(DefEnv):
 
     # ── Panel 3: ScrollContainer ─────────────────────────────────────────
 
-    def _build_panel_scroll(self, ui) -> FreeContainer:
+    def _build_panel_scroll(self, ui: UIManager) -> FreeContainer:
         p = self._make_panel(ui)
 
         title = ui.label("", default_style=sty(16, CYAN))
@@ -535,7 +528,7 @@ class ContainersExample(DefEnv):
 
     # ── Panel 4: SizeMode ────────────────────────────────────────────────
 
-    def _build_panel_sizemode(self, ui) -> FreeContainer:
+    def _build_panel_sizemode(self, ui: UIManager) -> FreeContainer:
         p = self._make_panel(ui)
 
         title = ui.label("", default_style=sty(16, CYAN))
@@ -783,16 +776,14 @@ class ContainersExample(DefEnv):
 
     # ── Panel 6: Widgets inside containers ───────────────────────────────
 
-    def _build_panel_widgets(self, ui) -> FreeContainer:
+    def _build_panel_widgets(self, ui: UIManager) -> FreeContainer:
         p = self._make_panel(ui)
 
-        title = ui.label("", default_style=sty(16, CYAN))
-        title.set_plain_text("Widgets inside containers — all Phase 2/3 widgets in VBoxes")
+        title = ui.label("Widgets inside containers — all Phase 2/3 widgets in VBoxes", default_style=sty(16, CYAN))
         p.add_child(title)
         p._child_offsets[id(title)] = (14.0, 10.0)
 
-        info = ui.label("", default_style=sty(12, _GREY))
-        info.set_plain_text("All interactions (click, drag, scroll, focus/tab) work normally inside containers.")
+        info = ui.label("All interactions (click, drag, scroll, focus/tab) work normally inside containers.", default_style=sty(12, _GREY))
         p.add_child(info)
         p._child_offsets[id(info)] = (14.0, 32.0)
 
@@ -810,29 +801,23 @@ class ContainersExample(DefEnv):
             corner_radius=6.0,
             padding=10,
         )
-        lbl_title0 = ui.label("", default_style=sty(13, YELLOW))
-        lbl_title0.set_plain_text("Buttons · Switch · Checkbox")
+        lbl_title0 = ui.label("Buttons · Switch · Checkbox", default_style=sty(13, YELLOW))
         vb0.add_child(lbl_title0)
         self._click_count = 0
-        self._click_lbl = ui.label("", default_style=sty(12, YELLOW))
-        self._click_lbl.set_plain_text("Clicks: 0")
-        btn_normal = ui.button("Normal Button", size=V2(col_w - 24, 34),
-                               on_click=self._on_btn_click)
-        btn_disabled = ui.button("Disabled Button", size=V2(col_w - 24, 34))
-        btn_disabled.enabled = False
+        self._click_lbl = ui.label("Clicks: 0", default_style=sty(12, YELLOW))
+        btn_normal = ui.button("Normal Button", size=V2(col_w - 24, 34), on_click=self._on_btn_click)
+        btn_disabled = ui.button("Disabled Button", size=V2(col_w - 24, 34), enabled=False)
         vb0.add_child(btn_normal)
         vb0.add_child(self._click_lbl)
         vb0.add_child(btn_disabled)
 
-        sw_lbl = ui.label("", default_style=sty(12, _GREY))
-        sw_lbl.set_plain_text("Switch (toggle):")
+        sw_lbl = ui.label("Switch (toggle):", default_style=sty(12, _GREY))
         vb0.add_child(sw_lbl)
         self._widget_switch = ui.switch(value=True, size=V2(50, 26),
                                          max_width=50)
         vb0.add_child(self._widget_switch)
 
-        cb_lbl = ui.label("", default_style=sty(12, _GREY))
-        cb_lbl.set_plain_text("Checkbox (check):")
+        cb_lbl = ui.label("Checkbox (check):", default_style=sty(12, _GREY))
         vb0.add_child(cb_lbl)
         self._widget_checkbox = ui.checkbox(value=False, size=V2(22, 22),
                                              max_width=22, max_height=22)
@@ -852,12 +837,10 @@ class ContainersExample(DefEnv):
             corner_radius=6.0,
             padding=10,
         )
-        lbl_title1 = ui.label("", default_style=sty(13, YELLOW))
-        lbl_title1.set_plain_text("Sliders · RangeSlider")
+        lbl_title1 = ui.label("Sliders · RangeSlider", default_style=sty(13, YELLOW))
         vb1.add_child(lbl_title1)
 
-        sl_lbl = ui.label("", default_style=sty(12, _GREY))
-        sl_lbl.set_plain_text("Horizontal slider (0–100):")
+        sl_lbl = ui.label("Horizontal slider (0–100):", default_style=sty(12, _GREY))
         vb1.add_child(sl_lbl)
         self._widget_slider = ui.slider(
             0, 100, step=1, value=50,
@@ -866,12 +849,10 @@ class ContainersExample(DefEnv):
         )
         vb1.add_child(self._widget_slider)
 
-        self._widget_slider_val = ui.label("", default_style=sty(12, YELLOW))
-        self._widget_slider_val.set_plain_text("50")
+        self._widget_slider_val = ui.label("50", default_style=sty(12, YELLOW))
         vb1.add_child(self._widget_slider_val)
 
-        rl_lbl = ui.label("", default_style=sty(12, _GREY))
-        rl_lbl.set_plain_text("Range slider (0–255):")
+        rl_lbl = ui.label("Range slider (0–255):", default_style=sty(12, _GREY))
         vb1.add_child(rl_lbl)
         self._widget_range = ui.range_slider(
             0, 255, step=1,
@@ -881,12 +862,10 @@ class ContainersExample(DefEnv):
         )
         vb1.add_child(self._widget_range)
 
-        self._widget_range_val = ui.label("", default_style=sty(12, YELLOW))
-        self._widget_range_val.set_plain_text("[60, 200]")
+        self._widget_range_val = ui.label("[60, 200]", default_style=sty(12, YELLOW))
         vb1.add_child(self._widget_range_val)
 
-        vert_lbl = ui.label("", default_style=sty(12, _GREY))
-        vert_lbl.set_plain_text("Vertical slider (1–10):")
+        vert_lbl = ui.label("Vertical slider (1–10):", default_style=sty(12, _GREY))
         vb1.add_child(vert_lbl)
         self._widget_vslider = ui.slider(
             1, 10, step=1, value=5,
@@ -909,12 +888,10 @@ class ContainersExample(DefEnv):
             corner_radius=6.0,
             padding=10,
         )
-        lbl_title2 = ui.label("", default_style=sty(13, YELLOW))
-        lbl_title2.set_plain_text("InputField · MultiLineInput")
+        lbl_title2 = ui.label("InputField · MultiLineInput", default_style=sty(13, YELLOW))
         vb2.add_child(lbl_title2)
 
-        fld_lbl = ui.label("", default_style=sty(12, _GREY))
-        fld_lbl.set_plain_text("Single-line (Enter to submit):")
+        fld_lbl = ui.label("Single-line (Enter to submit):", default_style=sty(12, _GREY))
         vb2.add_child(fld_lbl)
         fld = ui.input_field(
             placeholder="Type here…",
@@ -951,13 +928,13 @@ class ContainersExample(DefEnv):
         self._click_lbl.set_plain_text(f"Clicks: {self._click_count}")
 
     def _on_widget_slider(self, v: float) -> None:
-        self._widget_slider_val.set_plain_text(str(int(v)))  # type: ignore[union-attr]
+        self._widget_slider_val.set_plain_text(str(int(v)))
 
     def _on_widget_range(self, lo: float, hi: float) -> None:
-        self._widget_range_val.set_plain_text(f"[{int(lo)}, {int(hi)}]")  # type: ignore[union-attr]
+        self._widget_range_val.set_plain_text(f"[{int(lo)}, {int(hi)}]")
 
     def _on_widget_field(self, v: str) -> None:
-        self._widget_field_val.set_plain_text(v or "(empty)")  # type: ignore[union-attr]
+        self._widget_field_val.set_plain_text(v or "(empty)")
 
     # ── panel switching ───────────────────────────────────────────────────
 
@@ -965,16 +942,10 @@ class ContainersExample(DefEnv):
         self._cur_panel = idx
         for i, panel in enumerate(self._panels):
             panel.visible = (i == idx)
-        # Highlight active nav button
-        theme = self.root.ui.theme
-        for i, btn in enumerate(self._nav_btns):
-            btn._ov_color_normal = (theme.primary if i == idx
-                                    else None)
-            btn._build(self.root.ui.ctx, self.root.ui.text_renderer)
 
     # ── lifecycle ─────────────────────────────────────────────────────────
 
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         # Detect window resize and update fixed-width sidebar height
         ws = self.root.ui._window_size
         new_size = (int(ws.x), int(ws.y))

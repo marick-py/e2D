@@ -28,7 +28,7 @@ class VectorsExample(DefEnv):
         self.arrow_start = V2(100, 100)
         self.arrow_vector = V2(100, 50)
         
-    def update(self):
+    def update(self, dt: float) -> None:
         self.frame += 1
         
         # Update particle system using batch operations (VERY FAST!)
@@ -50,7 +50,7 @@ class VectorsExample(DefEnv):
         t = self.frame * 0.03
         self.arrow_vector.set(math.cos(t) * 100, math.sin(t) * 100)
         
-    def draw(self):
+    def draw(self) -> None:
         # Title
         self.root.print("Vector Operations Example", V2(10, 10), style=TextStyle(font_size=28))
         
@@ -109,8 +109,7 @@ class VectorsExample(DefEnv):
         self.root.print(f"FPS: {fps:.1f}", V2(10, 560))
         self.root.print(f"Frame: {self.frame}", V2(150, 560))
         
-        # Instructions
-        self.root.print("ESC to exit", V2(750, 560))
+
 
 def main():
     """Run the vectors example"""

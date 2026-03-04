@@ -22,7 +22,7 @@ import ctypes
 # Import type definitions
 from ._types import (
     ComputeShaderType, ProgramAttrType, UniformType, ColorType, Number,
-    ContextType, ProgramType, BufferType, WindowType, pArray
+    ContextType, ProgramType, BufferType, WindowType, pArray, FloatVec2
 )
 
 # Import original e2D modules
@@ -98,7 +98,7 @@ class DefEnv:
 
     def draw(self) -> None: ...
 
-    def update(self) -> None: ...
+    def update(self, dt: float) -> None: ...
 
     def fixed_update(self, dt: float) -> None: ...
 
@@ -115,11 +115,11 @@ class Camera2D:
 
         cam = Camera2D(env.window_size)
 
-        def update(self):
+        def update(self, dt: float) -> None:
             if env.keyboard.get_key(Keys.W): cam.pan(0, -5)
             if env.keyboard.get_key(Keys.S): cam.pan(0,  5)
 
-        def draw(self):
+        def draw(self) -> None:
             screen = cam.world_to_screen(player.pos)
             env.draw_circle(screen, cam.world_to_screen_scale(player.radius))
 
@@ -129,8 +129,8 @@ class Camera2D:
 
     def __init__(
         self,
-        window_size: "Vector2D | tuple[float, float]",
-        position: "Vector2D | tuple[float, float]" = (0.0, 0.0),
+        window_size: "Vector2D | FloatVec2",
+        position: "Vector2D | FloatVec2" = (0.0, 0.0),
         zoom: float = 1.0,
     ) -> None:
         self.window_size: Vector2D = (
@@ -149,7 +149,7 @@ class Camera2D:
     # Coordinate transforms
     # ------------------------------------------------------------------
 
-    def world_to_screen(self, point: "Vector2D | tuple[float, float]") -> Vector2D:
+    def world_to_screen(self, point: "Vector2D | FloatVec2") -> Vector2D:
         """Convert a world-space point to screen-pixel coordinates."""
         cx = self.window_size[0] * 0.5
         cy = self.window_size[1] * 0.5
@@ -157,7 +157,7 @@ class Camera2D:
         sy = (point[1] - self.position[1]) * self.zoom + cy
         return V2(sx, sy)
 
-    def screen_to_world(self, point: "Vector2D | tuple[float, float]") -> Vector2D:
+    def screen_to_world(self, point: "Vector2D | FloatVec2") -> Vector2D:
         """Convert a screen-pixel point to world-space coordinates."""
         cx = self.window_size[0] * 0.5
         cy = self.window_size[1] * 0.5
@@ -185,7 +185,7 @@ class Camera2D:
     def zoom_at(
         self,
         factor: float,
-        screen_point: "Vector2D | tuple[float, float]",
+        screen_point: "Vector2D | FloatVec2",
     ) -> None:
         """Zoom by *factor* keeping *screen_point* fixed over its world position.
 
@@ -593,7 +593,7 @@ class RootEnv:
         self._ups_display: float = 0.0
     
     @property
-    def window_size_f(self) -> tuple[float, float]:
+    def window_size_f(self) -> FloatVec2:
         """Get window size as floats for shader uniforms."""
         return (float(self.window_size[0]), float(self.window_size[1]))
     
@@ -896,7 +896,7 @@ class RootEnv:
         buffer.write(data, offset=offset)
     
     def __update__(self) -> None:
-        self.env.update()
+        self.env.update(self.delta)
 
     def __fixed_update__(self) -> None:
         self._ups_counter += 1

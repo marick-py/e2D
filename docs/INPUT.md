@@ -21,7 +21,7 @@ e2D provides comprehensive input handling for keyboard and mouse through the `Ke
 from e2D import RootEnv, Keys, KeyState
 
 class MyEnv(DefEnv):
-    def update(self):
+    def update(self, dt: float) -> None:
         # Access keyboard through root
         if self.root.keyboard.get_key(Keys.SPACE):
             print("Space is pressed!")

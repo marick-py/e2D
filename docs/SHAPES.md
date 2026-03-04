@@ -142,7 +142,7 @@ class MyEnv(DefEnv):
             corner_radius=10.0
         )
     
-    def draw(self):
+    def draw(self) -> None:
         # Draw many times efficiently
         self.player.draw()
         self.button.draw()
@@ -152,7 +152,7 @@ class MyEnv(DefEnv):
 
 ```python
 # ❌ Slower - rebuilds geometry every frame
-def draw(self):
+def draw(self) -> None:
     for i in range(100):
         root.draw_circle(V2(i*10, 100), 20, color=RED)
 
@@ -163,7 +163,7 @@ def __init__(self, root):
         for i in range(100)
     ]
 
-def draw(self):
+def draw(self) -> None:
     for circle in self.circles:
         circle.draw()
 ```
@@ -182,7 +182,7 @@ class ParticleSystem(DefEnv):
         # Create batch (once)
         self.batch = root.create_circle_batch(max_shapes=10000)
     
-    def draw(self):
+    def draw(self) -> None:
         # Clear previous frame
         self.batch.clear()
         
@@ -201,7 +201,7 @@ class ParticleSystem(DefEnv):
 ### Rectangle Batching
 
 ```python
-def draw(self):
+def draw(self) -> None:
     batch = root.create_rect_batch(max_shapes=1000)
     
     batch.clear()
@@ -300,7 +300,7 @@ def __init__(self, root):
         color=GREEN
     )
 
-def draw(self):
+def draw(self) -> None:
     self.path.draw()
 ```
 
@@ -310,14 +310,14 @@ def draw(self):
 
 ```python
 # ❌ Slow - rebuilds every frame
-def draw(self):
+def draw(self) -> None:
     root.draw_circle(V2(100, 100), 50, color=RED)
 
 # ✅ Fast - cached geometry
 def __init__(self, root):
     self.shape = root.create_circle(V2(100, 100), 50, color=RED)
 
-def draw(self):
+def draw(self) -> None:
     self.shape.draw()
 ```
 
@@ -325,12 +325,12 @@ def draw(self):
 
 ```python
 # ❌ Slow - individual draw calls
-def draw(self):
+def draw(self) -> None:
     for particle in self.particles:
         root.draw_circle(particle.pos, 5, color=WHITE)
 
 # ✅ Fast - single instanced draw call
-def draw(self):
+def draw(self) -> None:
     batch.clear()
     for particle in self.particles:
         batch.add_circle(particle.pos, 5, color=WHITE)
@@ -389,7 +389,7 @@ class Button:
         )
         self.label = root.print(text, pos, save_cache=True)
     
-    def draw(self):
+    def draw(self) -> None:
         self.shape.draw()
         self.label.draw()
 ```
@@ -409,7 +409,7 @@ class ParticleEffect:
         for p in self.particles:
             p.position.iadd(p.velocity * dt)
     
-    def draw(self):
+    def draw(self) -> None:
         self.batch.clear()
         for p in self.particles:
             self.batch.add_circle(p.position, 3.0, color=p.color)

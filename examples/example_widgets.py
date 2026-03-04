@@ -17,7 +17,6 @@ Controls:
   T     — cycle theme
   R     — reset all widgets to defaults
   F3    — toggle debug outlines
-  ESC   — quit
 """
 
 import math
@@ -92,7 +91,7 @@ class WidgetsExample(DefEnv):
         lbl_title = ui.label("Phase 2 Widgets Demo", default_style=sty(22, WHITE))
         left.add_child(lbl_title)
         lbl_hints = ui.label(
-            "T = theme   R = reset   F3 = debug   ESC = quit",
+            "T = theme   R = reset   F3 = debug",
             default_style=sty(11, _GREY),
         )
         left.add_child(lbl_hints)
@@ -288,7 +287,7 @@ class WidgetsExample(DefEnv):
     # Lifecycle
     # ------------------------------------------------------------------
 
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         kb = self.root.keyboard
 
         if kb.get_key(Keys.T, KeyState.JUST_PRESSED):
@@ -304,7 +303,7 @@ class WidgetsExample(DefEnv):
             glfw.set_window_should_close(self.root.window, True)
 
         if self._animated:
-            self._angle += self.root.delta * 1.2
+            self._angle += dt * 1.2
 
     def _reset(self) -> None:
         """Reset all widgets to their default values."""

@@ -8,6 +8,8 @@ import it without creating a circular dependency.
 from __future__ import annotations
 from typing import ClassVar, TYPE_CHECKING
 
+from ._types import FloatVec2
+
 if TYPE_CHECKING:
     from .vectors import Vector2D
 
@@ -60,7 +62,7 @@ class Pivot:
 
     # -- helpers -------------------------------------------------------------
 
-    def offset(self, width: float, height: float) -> tuple[float, float]:
+    def offset(self, width: float, height: float) -> FloatVec2:
         """Return ``(-width * x, -height * y)`` — the translation needed so
         that the pivot coincides with the element's position."""
         return (-width * self.x, -height * self.y)

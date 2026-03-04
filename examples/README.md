@@ -136,13 +136,13 @@ class MyApp(DefEnv):
     def __init__(self, root: RootEnv):
         self.root = root
     
-    def update(self):
+    def update(self, dt: float) -> None:
         # Your game logic here
         if self.root.keyboard.get_key(Keys.ESCAPE, KeyState.JUST_PRESSED):
             import glfw
             glfw.set_window_should_close(self.root.window, True)
     
-    def draw(self):
+    def draw(self) -> None:
         # Your rendering here
         self.root.draw_circle(V2(400, 300), 50, color=(1, 0, 0, 1))
 

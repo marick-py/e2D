@@ -36,6 +36,7 @@ from ..colors import Color
 from .._pivot import Pivot
 from ..text import DEFAULT_16_TEXT_STYLE, TextStyle
 from ..vectors import V2
+from .._types import FloatVec2
 
 if TYPE_CHECKING:
     from .._types import ContextType
@@ -226,7 +227,7 @@ class Slider(UIElement):
             tx  = rx + rw * 0.5 - rw * 0.25
             return (tx, ry + pad, rw * 0.5, rh - pad * 2)
 
-    def _thumb_center(self, frac: float) -> tuple[float, float]:
+    def _thumb_center(self, frac: float) -> FloatVec2:
         rx, ry, rw, rh = self.get_screen_rect()
         if self.orientation == 'horizontal':
             pad = rh * 0.5
@@ -627,7 +628,7 @@ class RangeSlider(UIElement):
             tx  = rx + rw * 0.5 - rw * 0.25
             return (tx, ry + pad, rw * 0.5, rh - pad * 2)
 
-    def _thumb_pos(self, frac: float) -> tuple[float, float]:
+    def _thumb_pos(self, frac: float) -> FloatVec2:
         rx, ry, rw, rh = self.get_screen_rect()
         if self.orientation == 'horizontal':
             pad = rh * 0.5

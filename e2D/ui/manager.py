@@ -4,9 +4,17 @@ z-ordered drawing, and input dispatch.
 """
 
 from __future__ import annotations
+
 import moderngl
 import numpy as np
 from typing import Optional, TYPE_CHECKING
+
+from .button import Button
+from .toggle import Checkbox, Switch
+from .slider import RangeSlider, Slider
+
+from .containers import FreeContainer, HBox, ScrollContainer, VBox, Grid
+from .input_field import InputField, MultiLineInput
 
 from .base import Pivot, UIElement
 from .theme import UITheme, MONOKAI_THEME
@@ -510,86 +518,75 @@ class UIManager:
         self.add(lbl)
         return lbl
 
-    def button(self, text: str = '', on_click=None, **kwargs):
+    def button(self, text: str = '', on_click=None, **kwargs) -> Button:
         """Create a :class:`Button`, add it, and return it."""
-        from .button import Button
         btn = Button(text=text, on_click=on_click, **kwargs)
         self.add(btn)
         return btn
 
-    def switch(self, value: bool = False, on_change=None, **kwargs):
+    def switch(self, value: bool = False, on_change=None, **kwargs) -> Switch:
         """Create a :class:`Switch` toggle, add it, and return it."""
-        from .toggle import Switch
         sw = Switch(value=value, on_change=on_change, **kwargs)
         self.add(sw)
         return sw
 
-    def checkbox(self, value: bool = False, on_change=None, **kwargs):
+    def checkbox(self, value: bool = False, on_change=None, **kwargs) -> Checkbox:
         """Create a :class:`Checkbox`, add it, and return it."""
-        from .toggle import Checkbox
         cb = Checkbox(value=value, on_change=on_change, **kwargs)
         self.add(cb)
         return cb
 
-    def slider(self, start: float = 0.0, end: float = 1.0, **kwargs):
+    def slider(self, start: float = 0.0, end: float = 1.0, **kwargs) -> Slider:
         """Create a :class:`Slider`, add it, and return it."""
-        from .slider import Slider
         sl = Slider(start=start, end=end, **kwargs)
         self.add(sl)
         return sl
 
-    def range_slider(self, start: float = 0.0, end: float = 1.0, **kwargs):
+    def range_slider(self, start: float = 0.0, end: float = 1.0, **kwargs) -> RangeSlider:
         """Create a :class:`RangeSlider`, add it, and return it."""
-        from .slider import RangeSlider
         rs = RangeSlider(start=start, end=end, **kwargs)
         self.add(rs)
         return rs
 
-    def input_field(self, placeholder: str = '', value: str = '', **kwargs):
+    def input_field(self, placeholder: str = '', value: str = '', **kwargs) -> InputField:
         """Create an :class:`InputField`, add it, and return it."""
-        from .input_field import InputField
         f = InputField(placeholder=placeholder, value=value, **kwargs)
         self.add(f)
         return f
 
-    def multi_line_input(self, placeholder: str = '', value: str = '', **kwargs):
+    def multi_line_input(self, placeholder: str = '', value: str = '', **kwargs) -> MultiLineInput:
         """Create a :class:`MultiLineInput`, add it, and return it."""
-        from .input_field import MultiLineInput
         m = MultiLineInput(placeholder=placeholder, value=value, **kwargs)
         self.add(m)
         return m
 
-    def vbox(self, spacing: float = 0.0, align: str = 'left', **kwargs):
+    def vbox(self, spacing: float = 0.0, align: str = 'left', **kwargs) -> VBox:
         """Create a :class:`VBox` container, add it, and return it."""
         from .containers import VBox
         c = VBox(spacing=spacing, align=align, **kwargs)
         self.add(c)
         return c
 
-    def hbox(self, spacing: float = 0.0, align: str = 'top', **kwargs):
+    def hbox(self, spacing: float = 0.0, align: str = 'top', **kwargs) -> HBox:
         """Create an :class:`HBox` container, add it, and return it."""
-        from .containers import HBox
         c = HBox(spacing=spacing, align=align, **kwargs)
         self.add(c)
         return c
 
-    def grid(self, columns: int = 1, **kwargs):
+    def grid(self, columns: int = 1, **kwargs) -> Grid:
         """Create a :class:`Grid` container, add it, and return it."""
-        from .containers import Grid
         c = Grid(columns=columns, **kwargs)
         self.add(c)
         return c
 
-    def free_container(self, **kwargs):
+    def free_container(self, **kwargs) -> FreeContainer:
         """Create a :class:`FreeContainer`, add it, and return it."""
-        from .containers import FreeContainer
         c = FreeContainer(**kwargs)
         self.add(c)
         return c
 
-    def scroll_container(self, **kwargs):
+    def scroll_container(self, **kwargs) -> ScrollContainer:
         """Create a :class:`ScrollContainer`, add it, and return it."""
-        from .containers import ScrollContainer
         c = ScrollContainer(**kwargs)
         self.add(c)
         return c

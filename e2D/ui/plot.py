@@ -39,7 +39,7 @@ import numpy as np
 
 from .base import UIElement, MouseMode
 from ..vectors import Vector2D, V2
-from .._types import ColorType, ContextType
+from .._types import ColorType, ContextType, FloatVec2
 from ..colors import Color, normalize_color
 from ..gradient import LinearGradient, RadialGradient, PointGradient, GradientType
 
@@ -417,7 +417,7 @@ class UIStream(UIElement):
         size: Vector2D | tuple     = (300.0, 100.0),
         *,
         capacity: int   = 300,
-        y_range: Optional[tuple[float, float]] = None,
+        y_range: Optional[FloatVec2] = None,
         y_pad:   float  = 1.15,
         gradient: Optional[GradientType] = None,
         bg_color: ColorType = (0.02, 0.04, 0.02, 0.95),

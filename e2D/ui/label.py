@@ -145,7 +145,7 @@ class Label(UIElement):
 
         for text, style in self._segments:
             ds    = style._display_scale               # shrink factor (≤ 1.0)
-            atlas = tr._get_or_create_font_atlas(style.font, style._atlas_size)
+            atlas = tr._get_or_create_font_atlas(style.font, style._atlas_size, text=text)
             key   = (style.font, style._atlas_size)
             if key not in atlas_groups:
                 atlas_groups[key] = {'atlas': atlas, 'items': []}

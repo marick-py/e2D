@@ -29,6 +29,7 @@ from ..colors import Color
 from .._pivot import Pivot
 from ..text import DEFAULT_16_TEXT_STYLE, TextStyle
 from ..vectors import V2
+from .._types import FloatVec2
 
 if TYPE_CHECKING:
     from .._types import ContextType
@@ -57,17 +58,17 @@ class Button(UIElement):
     def __init__(
         self,
         text: str = "Button",
-        on_click: Callable[[], None] | None = None,
+        on_click: Optional[Callable[[], None]] = None,
         *,
-        text_style:     TextStyle | None = None,
-        color_normal:   Color | None = None,
-        color_hover:    Color | None = None,
-        color_pressed:  Color | None = None,
-        color_disabled: Color | None = None,
-        color_focused:  Color | None = None,
-        border_color:   Color | None = None,
-        border_width:   float | None = None,
-        corner_radius:  float | None = None,
+        text_style:     Optional[TextStyle] = None,
+        color_normal:   Optional[Color] = None,
+        color_hover:    Optional[Color] = None,
+        color_pressed:  Optional[Color] = None,
+        color_disabled: Optional[Color] = None,
+        color_focused:  Optional[Color] = None,
+        border_color:   Optional[Color] = None,
+        border_width:   Optional[float] = None,
+        corner_radius:  Optional[float] = None,
         animated: bool = True,
         **kwargs,
     ) -> None:
@@ -75,7 +76,7 @@ class Button(UIElement):
         self._focusable = True
 
         self._text: str = text
-        self._on_click: Callable[[], None] | None = on_click
+        self._on_click: Optional[Callable[[], None]] = on_click
         self.animated: bool = animated
 
         # Style overrides (resolved against theme in _build)
@@ -115,6 +116,9 @@ class Button(UIElement):
         # Internal text label — created in _build
         self._label: Optional[Label] = None
 
+        self.ctx : ContextType | None = None
+        self.text_renderer : TextRenderer | None = None
+
     # ---------------------------------------------------------------------------
     # Default per-axis padding when none is specified by the caller.
     # These values are applied to compute natural_size() only; they do not
@@ -127,7 +131,10 @@ class Button(UIElement):
     # Build (called once after UIManager.add())
     # ---------------------------------------------------------------------------
 
-    def _build(self, ctx: ContextType, text_renderer: TextRenderer) -> None:  # type: ignore[override]
+    def _build(self, ctx: ContextType, text_renderer: TextRenderer) -> None:
+        self.ctx = ctx
+        self.text_renderer = text_renderer
+
         theme = self._manager.theme if self._manager else None
 
         def _ov(override, default):
@@ -170,6 +177,19 @@ class Button(UIElement):
             self._size.set(self._natural_w, self._natural_h)
 
         self._dirty = False
+    
+    def _rebuild(self) -> None:
+        """Force a full rebuild of the button's internal label and natural size.
+
+        This is called automatically when the :attr:`text` property changes, but
+        can be invoked manually if the caller modifies the label's text style
+        or other properties that affect text dimensions.
+        """
+        if self._label is not None and self.ctx is not None and self.text_renderer is not None:
+            self._label._build(self.ctx, self.text_renderer)
+            self._update_natural_size()
+            if self._auto_sized:
+                self._size.set(self._natural_w, self._natural_h)
 
     # ---------------------------------------------------------------------------
     # Natural size — text dimensions + padding
@@ -187,7 +207,7 @@ class Button(UIElement):
         self._natural_w = max(self._label._text_width  + ph, 20.0)
         self._natural_h = max(self._label._text_height + pv, 20.0)
 
-    def natural_size(self) -> tuple[float, float]:
+    def natural_size(self) -> FloatVec2:
         """Return the preferred (content-fitted) size as ``(width, height)``.
 
         The returned values are computed from the label's measured text

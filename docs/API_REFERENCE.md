@@ -20,11 +20,11 @@ class MyApp(DefEnv):
     def __init__(self):
         self.batch = rootEnv.create_circle_batch(max_shapes=1000)
     
-    def update(self):
+    def update(self, dt: float) -> None:
         if rootEnv.keyboard.get_key(Keys.SPACE, KeyState.JUST_PRESSED):
             print("Space!")
     
-    def draw(self):
+    def draw(self) -> None:
         rootEnv.draw_circle((100, 100), 50, color=(1,0,0,1))
         fps = 1.0 / rootEnv.delta if rootEnv.delta > 0 else 0
         rootEnv.print(f"FPS: {fps:.0f}", (10, 10), scale=0.5)
@@ -92,11 +92,11 @@ class MyApp(DefEnv):
         """Called once at start"""
         pass
     
-    def update(self):
+    def update(self, dt: float) -> None:
         """Called every frame before draw"""
         pass
     
-    def draw(self):
+    def draw(self) -> None:
         """Called every frame for rendering"""
         pass
     

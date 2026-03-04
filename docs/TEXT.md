@@ -159,7 +159,7 @@ class MyEnv(DefEnv):
             save_cache=True  # Returns TextLabel object
         )
     
-    def draw(self):
+    def draw(self) -> None:
         # Draw many times efficiently
         self.title.draw()
 ```
@@ -168,7 +168,7 @@ class MyEnv(DefEnv):
 
 ```python
 # ❌ Slower - regenerates texture atlas every frame
-def draw(self):
+def draw(self) -> None:
     for i in range(100):
         root.print(f"Score: {self.score}", V2(10, 10))
 
@@ -176,7 +176,7 @@ def draw(self):
 def __init__(self, root):
     self.score_label = None
 
-def draw(self):
+def draw(self) -> None:
     if self.score_changed:
         self.score_label = root.print(
             f"Score: {self.score}",
@@ -276,14 +276,14 @@ root.print(text, V2(x, 100))
 
 ```python
 # ❌ Slow - rebuilds every frame
-def draw(self):
+def draw(self) -> None:
     root.print("Static Text", V2(10, 10))
 
 # ✅ Fast - cached label
 def __init__(self, root):
     self.label = root.print("Static Text", V2(10, 10), save_cache=True)
 
-def draw(self):
+def draw(self) -> None:
     self.label.draw()
 ```
 
@@ -307,7 +307,7 @@ class ScoreDisplay:
             )
             self.last_score = new_score
     
-    def draw(self):
+    def draw(self) -> None:
         if self.label:
             self.label.draw()
 ```
@@ -331,7 +331,7 @@ style_large = TextStyle(font_size=24)
 
 ```python
 # ❌ Very slow
-def draw(self):
+def draw(self) -> None:
     for i in range(1000):
         root.print(f"Item {i}", V2(10, i*20))
 
@@ -342,7 +342,7 @@ def __init__(self, root):
         for i in range(1000)
     ]
 
-def draw(self):
+def draw(self) -> None:
     for label in self.labels:
         label.draw()
 ```
@@ -441,7 +441,7 @@ class TitleScreen:
             save_cache=True
         )
     
-    def draw(self):
+    def draw(self) -> None:
         self.title.draw()
         self.subtitle.draw()
 ```
@@ -461,7 +461,7 @@ class DebugConsole:
         if len(self.messages) > self.max_lines:
             self.messages.pop(0)
     
-    def draw(self):
+    def draw(self) -> None:
         y = 10
         for msg in self.messages:
             root.print(msg, V2(10, y), scale=0.8, style=self.style)

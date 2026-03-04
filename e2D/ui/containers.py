@@ -53,6 +53,7 @@ from .label import Label
 from ..colors import Color
 from .._pivot import Pivot
 from ..vectors import V2
+from .._types import FloatVec2
 
 if TYPE_CHECKING:
     from .._types import ContextType
@@ -171,14 +172,14 @@ class UIContainer(UIElement):
         # Stores the *original* (sx, sy) fraction for PERCENT-mode children.
         # Without this, after the first layout pass the fraction is overwritten
         # with pixel values and the next pass multiplies again — exponential growth.
-        self._percent_sizes: dict[int, tuple[float, float]] = {}
+        self._percent_sizes: dict[int, FloatVec2] = {}
 
         # Stores the *original* (x, y) position of each child as a relative
         # offset from the container origin.  Used by the default
         # _compute_layout to translate children from local → screen coords.
         # Concrete subclasses (VBox, HBox, Grid) override _compute_layout and
         # compute absolute positions themselves, so the offsets are unused.
-        self._child_offsets: dict[int, tuple[float, float]] = {}
+        self._child_offsets: dict[int, FloatVec2] = {}
 
         # Resolved drawing values (written in _build)
         self._bg_color    = Color(0.0, 0.0, 0.0, 0.0)
@@ -386,7 +387,7 @@ class UIContainer(UIElement):
         child: UIElement,
         avail_w: float,
         avail_h: float,
-    ) -> tuple[float, float]:
+    ) -> FloatVec2:
         """Resolve *child*'s pixel dimensions given available space.
 
         Respects :attr:`size_mode` (``PERCENT`` multiplies against available
@@ -404,7 +405,7 @@ class UIContainer(UIElement):
 
     # -- natural content size (override in layout containers) -------------
 
-    def natural_size(self) -> tuple[float, float]:
+    def natural_size(self) -> FloatVec2:
         """Return the *natural* (unwrapped) content size in pixels.
 
         Used by parent containers when this container has
@@ -481,7 +482,7 @@ class VBox(UIContainer):
                 content_h + self.padding[0] + self.padding[2],
             )
 
-    def natural_size(self) -> tuple[float, float]:
+    def natural_size(self) -> FloatVec2:
         """Return total stacked height (width unchanged)."""
         p = self.padding
         total_h = p[0] + p[2]
@@ -570,7 +571,7 @@ class HBox(UIContainer):
                 content_w + self.padding[1] + self.padding[3],
             )
 
-    def natural_size(self) -> tuple[float, float]:
+    def natural_size(self) -> FloatVec2:
         """Return total stacked width (height unchanged)."""
         p = self.padding
         total_w = p[1] + p[3]
@@ -611,14 +612,14 @@ class Grid(UIContainer):
     def __init__(
         self,
         columns:      int                              = 1,
-        cell_spacing: tuple[float, float]              = (0.0, 0.0),
-        cell_size:    tuple[float, float] | None       = None,
+        cell_spacing: FloatVec2                          = (0.0, 0.0),
+        cell_size:    FloatVec2 | None                   = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.columns:      int                         = max(1, columns)
-        self.cell_spacing: tuple[float, float]         = cell_spacing
-        self.cell_size:    tuple[float, float] | None  = cell_size
+        self.cell_spacing: FloatVec2                   = cell_spacing
+        self.cell_size:    FloatVec2 | None            = cell_size
 
     def _compute_layout(self) -> None:
         if not self._children:
@@ -693,7 +694,7 @@ class FreeContainer(UIContainer):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
         # Maps id(child) → (rel_x, rel_y) — the offset saved at add_child time.
-        self._child_offsets: dict[int, tuple[float, float]] = {}
+        self._child_offsets: dict[int, FloatVec2] = {}
 
     # -- child management -------------------------------------------------
 

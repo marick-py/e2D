@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 import os
 from .utils import set_uniform_block_binding
-from ._types import ColorType, ComputeShaderType, Number, VAOType, ContextType, ProgramType, BufferType, ArrayLike
+from ._types import ColorType, ComputeShaderType, Number, VAOType, ContextType, ProgramType, BufferType, ArrayLike, FloatVec2
 from .vectors import Vector2D
 from .colors import normalize_color
 from .palette import GRAY10, GRAY50, WHITE, RED, CYAN
@@ -179,8 +179,8 @@ class StreamSettings:
 class Plot2D:
     """A specific rectangular area on the screen for plotting."""
     ctx: ContextType
-    top_left: tuple[float, float] | Vector2D
-    bottom_right: tuple[float, float] | Vector2D
+    top_left: FloatVec2 | Vector2D
+    bottom_right: FloatVec2 | Vector2D
     settings: PlotSettings
     width: Number
     height: Number
@@ -190,9 +190,9 @@ class Plot2D:
     grid_quad: BufferType
     grid_vao: VAOType
     is_dragging: bool
-    last_mouse_pos: tuple[float, float]
+    last_mouse_pos: FloatVec2
     
-    def __init__(self, rootEnv: RootEnv, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D, settings: Optional[PlotSettings] = None) -> None:
+    def __init__(self, rootEnv: RootEnv, top_left: FloatVec2 | Vector2D, bottom_right: FloatVec2 | Vector2D, settings: Optional[PlotSettings] = None) -> None:
         self.rootEnv = rootEnv
         self.ctx = rootEnv.ctx
         self.top_left = top_left
@@ -224,7 +224,7 @@ class Plot2D:
         self.grid_quad = self.ctx.buffer(np.array([-1,-1, 1,-1, -1,1, 1,1], dtype='f4'))
         self.grid_vao = self.ctx.simple_vertex_array(self.grid_prog, self.grid_quad, "in_vert")
 
-    def set_rect(self, top_left: tuple[float, float] | Vector2D, bottom_right: tuple[float, float] | Vector2D) -> None:
+    def set_rect(self, top_left: FloatVec2 | Vector2D, bottom_right: FloatVec2 | Vector2D) -> None:
         self.top_left = top_left
         self.bottom_right = bottom_right
         self.width = bottom_right[0] - top_left[0]
@@ -441,7 +441,7 @@ class GpuStream:
                 self.prog['round_points'] = self.settings.round_points
             self.vao.render(moderngl.POINTS, vertices=self.size)
 
-    def shift_points(self, offset: tuple[float, float] | Vector2D) -> None:
+    def shift_points(self, offset: FloatVec2 | Vector2D) -> None:
         """Shifts all existing points by the given offset using a Compute Shader."""
         if not hasattr(self, 'shift_prog'):
             self.shift_prog = ShaderManager.create_compute(
@@ -504,7 +504,7 @@ class ComputeCurve:
             pass
         self.vao = ctx.simple_vertex_array(self.render_prog, self.vbo, "in_pos")
 
-    def update(self):
+    def update(self, dt: float) -> None:
         self.vbo.bind_to_storage_buffer(binding=2)
         self.compute_prog['t0'] = self.t_range[0]
         self.compute_prog['t1'] = self.t_range[1]
@@ -514,7 +514,7 @@ class ComputeCurve:
         num_groups = (self.count + group_size - 1) // group_size
         self.compute_prog.run(num_groups)
 
-    def draw(self):
+    def draw(self) -> None:
         self.render_prog['color'] = self.settings.color
         self.ctx.line_width = self.settings.width
         self.vao.render(moderngl.LINE_STRIP)
@@ -577,7 +577,7 @@ class ImplicitPlot:
             pass
         self.vao = ctx.simple_vertex_array(self.prog, self.quad, "in_vert")
 
-    def draw(self):
+    def draw(self) -> None:
         self.prog['color'] = self.settings.color
         self.prog['thickness'] = self.settings.thickness
         self.vao.render(moderngl.TRIANGLE_STRIP)

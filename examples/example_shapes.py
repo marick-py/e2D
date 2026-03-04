@@ -24,10 +24,10 @@ class ShapesExample(DefEnv):
         # Instanced batches (draw thousands of shapes efficiently)
         self.circle_batch = None
         
-    def update(self):
+    def update(self, dt: float) -> None:
         self.frame += 1
         
-    def draw(self):
+    def draw(self) -> None:
         # Section 1: Basic Shapes
         self.root.print("Basic Shapes:", V2(10, 10), style=TextStyle(font_size=18))
         
@@ -134,8 +134,7 @@ class ShapesExample(DefEnv):
                 color=(math.sin(t + i) * 0.5 + 0.5, 0.5, math.cos(t + i) * 0.5 + 0.5, 1.0)
             )
         
-        # Instructions
-        self.root.print("ESC to exit", V2(10, 560))
+
 
 def main():
     """Run the shapes example"""

@@ -66,15 +66,11 @@ class MyApp(DefEnv):
 
     # ── Per-frame callbacks ─────────────────────────────────────────────────
 
-    def update(self) -> None:
+    def update(self, dt: float) -> None:
         """Called every frame (before :meth:`draw`).  ``self.dt`` = delta-time (s)."""
         # Push latest FPS to the live graph (if enabled):
         # self._fps_series.push_value(1.0 / self.dt if self.dt > 0 else 0.0)
-
-        # Quit on ESC
-        if self.keys.get(Keys.ESCAPE) == KeyState.PRESSED:
-            self.root.close()
-
+        ...
     def draw(self) -> None:
         """Called every frame after :meth:`update`.  Use shape_renderer here."""
         # self.shape_renderer.draw_circle(V2(960, 540), 80, WHITE)

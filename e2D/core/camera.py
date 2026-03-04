@@ -6,6 +6,7 @@ from __future__ import annotations
 import numpy as np
 
 from ..vectors import Vector2D, V2
+from .._types import FloatVec2
 
 
 class Camera2D:
@@ -19,11 +20,11 @@ class Camera2D:
 
         cam = Camera2D(env.window_size)
 
-        def update(self):
+        def update(self, dt: float) -> None:
             if env.keyboard.get_key(Keys.W): cam.pan(0, -5)
             if env.keyboard.get_key(Keys.S): cam.pan(0,  5)
 
-        def draw(self):
+        def draw(self) -> None:
             screen = cam.world_to_screen(player.pos)
             env.draw_circle(screen, cam.world_to_screen_scale(player.radius))
 
@@ -33,8 +34,8 @@ class Camera2D:
 
     def __init__(
         self,
-        window_size: Vector2D | tuple[float, float],
-        position: Vector2D | tuple[float, float] = (0.0, 0.0),
+        window_size: Vector2D | FloatVec2,
+        position: Vector2D | FloatVec2 = (0.0, 0.0),
         zoom: float = 1.0,
     ) -> None:
         self.window_size: Vector2D = (
@@ -51,14 +52,14 @@ class Camera2D:
 
     # -- coordinate transforms -----------------------------------------------
 
-    def world_to_screen(self, point: Vector2D | tuple[float, float]) -> Vector2D:
+    def world_to_screen(self, point: Vector2D | FloatVec2) -> Vector2D:
         cx = self.window_size[0] * 0.5
         cy = self.window_size[1] * 0.5
         sx = (point[0] - self.position[0]) * self.zoom + cx
         sy = (point[1] - self.position[1]) * self.zoom + cy
         return V2(sx, sy)
 
-    def screen_to_world(self, point: Vector2D | tuple[float, float]) -> Vector2D:
+    def screen_to_world(self, point: Vector2D | FloatVec2) -> Vector2D:
         cx = self.window_size[0] * 0.5
         cy = self.window_size[1] * 0.5
         wx = (point[0] - cx) / self.zoom + self.position[0]
@@ -80,7 +81,7 @@ class Camera2D:
     def zoom_at(
         self,
         factor: float,
-        screen_point: Vector2D | tuple[float, float],
+        screen_point: Vector2D | FloatVec2,
     ) -> None:
         world_anchor = self.screen_to_world(screen_point)
         self.zoom *= factor
