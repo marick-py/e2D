@@ -354,8 +354,7 @@ class UIElement:
     def update(self, dt: float) -> None:
         """Per-frame logic.  Called by UIManager every frame."""
         for child in self._children:
-            if child.enabled:
-                child.update(dt)
+            child.update(dt)
 
     def draw(self, ctx) -> None:
         """Render this element.  Called by UIManager in z-order."""

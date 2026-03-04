@@ -811,6 +811,28 @@ class ContainersExample(DefEnv):
         vb0.add_child(self._click_lbl)
         vb0.add_child(btn_disabled)
 
+        # Toggle buttons
+        tog_lbl = ui.label("Toggle buttons:", default_style=sty(12, _GREY))
+        vb0.add_child(tog_lbl)
+
+        self._toggle_status = ui.label("OFF", default_style=sty(12, YELLOW))
+        btn_toggle = ui.button(
+            "Toggle Me",
+            toggleable=True,
+            on_toggle=self._on_btn_toggle,
+            size=V2(col_w - 24, 34),
+        )
+        btn_toggle_on = ui.button(
+            "Initially ON",
+            toggleable=True,
+            toggled=True,
+            size=V2(col_w - 24, 34),
+            color_toggled=Color(0.15, 0.50, 0.25),
+        )
+        vb0.add_child(btn_toggle)
+        vb0.add_child(self._toggle_status)
+        vb0.add_child(btn_toggle_on)
+
         sw_lbl = ui.label("Switch (toggle):", default_style=sty(12, _GREY))
         vb0.add_child(sw_lbl)
         self._widget_switch = ui.switch(value=True, size=V2(50, 26),
@@ -926,6 +948,9 @@ class ContainersExample(DefEnv):
     def _on_btn_click(self) -> None:
         self._click_count += 1
         self._click_lbl.set_plain_text(f"Clicks: {self._click_count}")
+
+    def _on_btn_toggle(self, state: bool) -> None:
+        self._toggle_status.set_plain_text("ON" if state else "OFF")
 
     def _on_widget_slider(self, v: float) -> None:
         self._widget_slider_val.set_plain_text(str(int(v)))

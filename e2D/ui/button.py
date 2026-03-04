@@ -43,12 +43,16 @@ class Button(UIElement):
 
     * ``text``           — label string (default ``"Button"``)
     * ``on_click``       — ``callable()`` invoked on activation (click or Space/Enter)
+    * ``toggleable``     — when ``True`` the button acts as a toggle (checkbox-style)
+    * ``toggled``        — initial toggle state (only meaningful when ``toggleable=True``)
+    * ``on_toggle``      — ``callable(bool)`` invoked when the toggle state changes
     * ``text_style``     — :class:`TextStyle` override; defaults are taken from the active theme
     * ``color_normal``   — :class:`Color` for the idle state background
     * ``color_hover``    — background when the cursor is over the button
     * ``color_pressed``  — background while held down
     * ``color_disabled`` — background when ``enabled=False``
     * ``color_focused``  — background when focused via Tab
+    * ``color_toggled``  — background when toggled on (defaults to a tinted ``color_normal``)
     * ``border_color``   — stroke colour drawn around the button
     * ``border_width``   — stroke width in pixels (``None`` → theme default)
     * ``corner_radius``  — rounded-corner radius in pixels (``None`` → theme default)
@@ -60,12 +64,16 @@ class Button(UIElement):
         text: str = "Button",
         on_click: Optional[Callable[[], None]] = None,
         *,
+        toggleable: bool = False,
+        toggled: bool = False,
+        on_toggle: Optional[Callable[[bool], None]] = None,
         text_style:     Optional[TextStyle] = None,
         color_normal:   Optional[Color] = None,
         color_hover:    Optional[Color] = None,
         color_pressed:  Optional[Color] = None,
         color_disabled: Optional[Color] = None,
         color_focused:  Optional[Color] = None,
+        color_toggled:  Optional[Color] = None,
         border_color:   Optional[Color] = None,
         border_width:   Optional[float] = None,
         corner_radius:  Optional[float] = None,
@@ -79,6 +87,11 @@ class Button(UIElement):
         self._on_click: Optional[Callable[[], None]] = on_click
         self.animated: bool = animated
 
+        # Toggle support
+        self._toggleable: bool = toggleable
+        self._toggled: bool = toggled if toggleable else False
+        self._on_toggle: Optional[Callable[[bool], None]] = on_toggle
+
         # Style overrides (resolved against theme in _build)
         self._ov_text_style     = text_style
         self._ov_color_normal   = color_normal
@@ -86,6 +99,7 @@ class Button(UIElement):
         self._ov_color_pressed  = color_pressed
         self._ov_color_disabled = color_disabled
         self._ov_color_focused  = color_focused
+        self._ov_color_toggled  = color_toggled
         self._ov_border_color   = border_color
         self._ov_border_width   = border_width
         self._ov_corner_radius  = corner_radius
@@ -96,8 +110,11 @@ class Button(UIElement):
         self._c_pressed  = Color(0.12, 0.12, 0.12)
         self._c_disabled = Color(0.10, 0.10, 0.10, 0.6)
         self._c_focused  = Color(0.18, 0.18, 0.30)
+        self._c_toggled  = Color(0.20, 0.35, 0.55)
         self._border_c   = Color(0.35, 0.35, 0.35)
         self._border_w   = 1.0
+        self._border_focused_c = Color(0.40, 0.85, 0.93, 0.90)
+        self._border_focused_w = 2.0
         self._corner_r   = 6.0
 
         # Current displayed colour (lerped toward target each frame)
@@ -146,8 +163,21 @@ class Button(UIElement):
             self._c_pressed  = _ov(self._ov_color_pressed,  theme.bg_pressed)
             self._c_disabled = _ov(self._ov_color_disabled, theme.bg_disabled)
             self._c_focused  = _ov(self._ov_color_focused,  theme.bg_focused)
+            # Toggled colour: user override → theme accent (if available) → tinted normal
+            _default_toggled = getattr(theme, 'bg_toggled', None)
+            if _default_toggled is None:
+                _n = self._c_normal
+                _default_toggled = Color(
+                    min(_n.r + 0.08, 1.0),
+                    min(_n.g + 0.18, 1.0),
+                    min(_n.b + 0.35, 1.0),
+                    _n.a,
+                )
+            self._c_toggled  = _ov(self._ov_color_toggled,  _default_toggled)
             self._border_c   = _ov(self._ov_border_color,   theme.border_color)
             self._border_w   = _ov(self._ov_border_width,   theme.border_width)
+            self._border_focused_c = theme.border_color_focused
+            self._border_focused_w = theme.border_width_focused
             self._corner_r   = _ov(self._ov_corner_radius,  theme.corner_radius)
             txt_style = self._ov_text_style or TextStyle(
                 font=theme.font,
@@ -226,10 +256,13 @@ class Button(UIElement):
             return self._c_disabled
         if self._is_pressed:
             return self._c_pressed
-        if self._focused:
-            return self._c_focused
+        # Focus does NOT change bg — indicated via border only
         if self._is_hovered:
+            if self._toggleable and self._toggled:
+                return self._c_toggled.lerp(self._c_hover, 0.2)
             return self._c_hover
+        if self._toggleable and self._toggled:
+            return self._c_toggled
         return self._c_normal
 
     # ---------------------------------------------------------------------------
@@ -260,20 +293,66 @@ class Button(UIElement):
         rx, ry, rw, rh = self.get_screen_rect()
         alpha = self.opacity
         c  = self._cur_color
-        bc = self._border_c
+
+        # Focus is shown via border only — use focused border when focused
+        if self._focused and self.enabled:
+            bc = self._border_focused_c
+            bw = self._border_focused_w
+        else:
+            bc = self._border_c
+            bw = self._border_w
 
         sr.draw_rect(
             V2(rx, ry), V2(rw, rh),
             color=(c.r, c.g, c.b, c.a * alpha),
             corner_radius=self._corner_r,
             border_color=(bc.r, bc.g, bc.b, bc.a * alpha),
-            border_width=self._border_w,
+            border_width=bw,
         )
 
         if self._label is not None:
             # Flush deferred shapes first so the background renders before the text
             sr.flush_queue()
             self._label.draw(ctx or self._manager.ctx)
+
+    # ---------------------------------------------------------------------------
+    # Text property
+    # ---------------------------------------------------------------------------
+
+    # ---------------------------------------------------------------------------
+    # Toggle properties
+    # ---------------------------------------------------------------------------
+
+    @property
+    def toggleable(self) -> bool:
+        """Whether this button behaves as a toggle."""
+        return self._toggleable
+
+    @toggleable.setter
+    def toggleable(self, value: bool) -> None:
+        self._toggleable = value
+        if not value:
+            self._toggled = False
+
+    @property
+    def toggled(self) -> bool:
+        """Current toggle state (``True`` = on, ``False`` = off).
+
+        Setting this property directly does **not** fire ``on_toggle``;
+        use :meth:`set_toggled` if you need the callback.
+        """
+        return self._toggled
+
+    @toggled.setter
+    def toggled(self, value: bool) -> None:
+        self._toggled = value
+
+    def set_toggled(self, value: bool) -> None:
+        """Programmatically set the toggle state and fire ``on_toggle``."""
+        if self._toggled != value:
+            self._toggled = value
+            if self._on_toggle:
+                self._on_toggle(self._toggled)
 
     # ---------------------------------------------------------------------------
     # Text property
@@ -313,14 +392,24 @@ class Button(UIElement):
     def on_mouse_release(self, mx: float, my: float) -> None:
         was_pressed = self._is_pressed
         self._is_pressed = False
-        if was_pressed and self.enabled and self.contains_point(mx, my) and self._on_click:
-            self._on_click()
+        if was_pressed and self.enabled and self.contains_point(mx, my):
+            if self._toggleable:
+                self._toggled = not self._toggled
+                if self._on_toggle:
+                    self._on_toggle(self._toggled)
+            if self._on_click:
+                self._on_click()
 
     def on_key_press(self, key: int) -> None:
         import glfw
         if key in (glfw.KEY_SPACE, glfw.KEY_ENTER, glfw.KEY_KP_ENTER):
-            if self.enabled and self._on_click:
-                self._on_click()
+            if self.enabled:
+                if self._toggleable:
+                    self._toggled = not self._toggled
+                    if self._on_toggle:
+                        self._on_toggle(self._toggled)
+                if self._on_click:
+                    self._on_click()
 
     # ---------------------------------------------------------------------------
     # Debug info
@@ -333,12 +422,15 @@ class Button(UIElement):
             "pressed"  if self._is_pressed else
             "hovered"  if self._is_hovered else
             "focused"  if self._focused    else
+            "toggled"  if (self._toggleable and self._toggled) else
             "normal"
         )
         rows += [
             ("text",  f'"{self._text}"'),
             ("state", state),
         ]
+        if self._toggleable:
+            rows.append(("toggled", str(self._toggled)))
         return rows
 
     # ---------------------------------------------------------------------------

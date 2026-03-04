@@ -71,6 +71,8 @@ class UITheme:
     # -- borders / corners ---------------------------------------------------
     border_color:  Color = field(default_factory=lambda: Color(0.992, 0.592, 0.122, 0.55))  # neon-orange border
     border_width:  float = 1.0
+    border_color_focused: Color = field(default_factory=lambda: Color(0.400, 0.851, 0.933, 0.90))  # bright cyan on focus
+    border_width_focused: float = 2.0
     corner_radius: float = 5.0
 
     # -- spacing defaults ----------------------------------------------------
@@ -123,6 +125,8 @@ class UITheme:
             font_size=self.font_size,
             border_color=self.border_color.copy(),
             border_width=self.border_width,
+            border_color_focused=self.border_color_focused.copy(),
+            border_width_focused=self.border_width_focused,
             corner_radius=self.corner_radius,
             element_spacing=self.element_spacing,
             default_padding=self.default_padding,
@@ -168,6 +172,8 @@ DARK_THEME = UITheme(
     text_color_placeholder = Color(0.45, 0.45, 0.45, 1.0),
     border_color  = Color(0.30, 0.30, 0.30, 1.0),
     border_width  = 1.0,
+    border_color_focused = Color(0.733, 0.337, 1.000, 0.90),
+    border_width_focused = 2.0,
     corner_radius = 6.0,
     animation_speed = 8.0,
 )
@@ -191,6 +197,8 @@ LIGHT_THEME = UITheme(
     text_color_placeholder = Color(0.600, 0.600, 0.600, 1.0),
     border_color  = Color(0.750, 0.750, 0.750, 1.0),
     border_width  = 1.0,
+    border_color_focused = Color(0.384, 0.000, 0.933, 0.85),
+    border_width_focused = 2.0,
     corner_radius = 6.0,
     animation_speed = 8.0,
 )
@@ -216,6 +224,8 @@ SOLARIZED_DARK = UITheme(
     text_color_placeholder = Color(0.345, 0.431, 0.459, 0.80),
     border_color  = Color(0.059, 0.255, 0.306, 1.0),
     border_width  = 1.0,
+    border_color_focused = Color(0.149, 0.545, 0.824, 0.90),
+    border_width_focused = 2.0,
     corner_radius = 4.0,
     animation_speed = 7.0,
 )
@@ -241,6 +251,8 @@ SOLARIZED_LIGHT = UITheme(
     text_color_placeholder = Color(0.576, 0.631, 0.631, 0.80),
     border_color  = Color(0.827, 0.800, 0.722, 1.0),
     border_width  = 1.0,
+    border_color_focused = Color(0.149, 0.545, 0.824, 0.85),
+    border_width_focused = 2.0,
     corner_radius = 4.0,
     animation_speed = 7.0,
 )
@@ -264,6 +276,8 @@ NORD_THEME = UITheme(
     text_color_placeholder = Color(0.561, 0.616, 0.698, 0.75),
     border_color  = Color(0.298, 0.337, 0.416, 1.0),           # nord3
     border_width  = 1.0,
+    border_color_focused = Color(0.533, 0.753, 0.816, 0.90),
+    border_width_focused = 2.0,
     corner_radius = 6.0,
     animation_speed = 8.0,
 )
@@ -287,6 +301,8 @@ DRACULA_THEME = UITheme(
     text_color_placeholder = Color(0.424, 0.443, 0.553, 0.85),
     border_color  = Color(1.000, 0.475, 0.776, 0.45),          # pink border
     border_width  = 1.0,
+    border_color_focused = Color(0.741, 0.576, 0.976, 0.90),
+    border_width_focused = 2.0,
     corner_radius = 7.0,
     animation_speed = 9.0,
 )
@@ -310,6 +326,8 @@ TOKYO_NIGHT_THEME = UITheme(
     text_color_placeholder = Color(0.341, 0.382, 0.553, 0.80),
     border_color  = Color(0.169, 0.188, 0.278, 1.0),
     border_width  = 1.0,
+    border_color_focused = Color(0.478, 0.635, 0.969, 0.90),
+    border_width_focused = 2.0,
     corner_radius = 8.0,
     animation_speed = 9.0,
 )
@@ -333,6 +351,8 @@ HIGH_CONTRAST = UITheme(
     text_color_placeholder = Color(0.600, 0.600, 0.600, 1.0),
     border_color  = Color(1.000, 1.000, 1.000, 1.0),
     border_width  = 2.0,
+    border_color_focused = Color(1.000, 1.000, 0.000, 1.0),
+    border_width_focused = 3.0,
     corner_radius = 0.0,   # sharp corners for maximum clarity
     animation_speed = 99.0,  # instant — no lerp delay
 )

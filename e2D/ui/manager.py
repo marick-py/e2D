@@ -882,7 +882,7 @@ class UIManager:
 
     def update(self, dt: float) -> None:
         for elem in self._elements:
-            if elem.enabled and elem._parent is None:
+            if elem._parent is None:
                 elem.update(dt)
 
     def draw(self) -> None:
