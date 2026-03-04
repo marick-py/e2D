@@ -83,6 +83,23 @@ class UITheme:
     animate_focus:   bool  = True
     animation_speed: float = 9.0
 
+    # -- scrollbars -------------------------------------------------------------
+    scrollbar_color: Color = field(default_factory=lambda: Color(0.20, 0.20, 0.25, 0.60))
+    scrollbar_thumb: Color = field(default_factory=lambda: Color(0.50, 0.50, 0.60, 0.85))
+
+    # -- plots / streams -----------------------------------------------------
+    # Background colour / gradient behind plot frames and UIStream widgets.
+    # Set plot_bg_gradient to a LinearGradient / RadialGradient to override
+    # the flat plot_bg_color.
+    plot_bg_color:    Color = field(default_factory=lambda: Color(0.04, 0.05, 0.04, 0.96))
+    plot_bg_gradient: object = None   # LinearGradient | RadialGradient | None
+    plot_grid_color:  Color = field(default_factory=lambda: Color(0.20, 0.22, 0.18, 0.70))
+    plot_axis_color:  Color = field(default_factory=lambda: Color(0.55, 0.58, 0.45, 0.90))
+    plot_line_color:  Color = field(default_factory=lambda: Color(0.15, 0.95, 0.50, 1.0))   # Monokai green
+    plot_line_width:  float = 1.5
+    plot_border_color:Color = field(default_factory=lambda: Color(0.10, 0.42, 0.18, 0.55))
+    plot_border_width:float = 1.0
+
     # -- misc ----------------------------------------------------------------
     cursor_blink_rate: float = 0.53
     scroll_speed:      float = 40.0
@@ -113,8 +130,18 @@ class UITheme:
             animate_hover=self.animate_hover,
             animate_focus=self.animate_focus,
             animation_speed=self.animation_speed,
+            scrollbar_color=self.scrollbar_color.copy(),
+            scrollbar_thumb=self.scrollbar_thumb.copy(),
             cursor_blink_rate=self.cursor_blink_rate,
             scroll_speed=self.scroll_speed,
+            plot_bg_color=self.plot_bg_color.copy(),
+            plot_bg_gradient=self.plot_bg_gradient,
+            plot_grid_color=self.plot_grid_color.copy(),
+            plot_axis_color=self.plot_axis_color.copy(),
+            plot_line_color=self.plot_line_color.copy(),
+            plot_line_width=self.plot_line_width,
+            plot_border_color=self.plot_border_color.copy(),
+            plot_border_width=self.plot_border_width,
         )
 
 # ---------------------------------------------------------------------------

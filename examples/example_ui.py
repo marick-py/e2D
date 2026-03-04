@@ -1,19 +1,24 @@
 """
-Example demonstrating the e2D UI system.
+example_ui.py — Phase 1 UI system demo.
 
 Shows:
   - UIManager  (root.ui)
   - Label      (plain text and rich multi-segment text)
   - Pivot      (nine preset anchor positions)
-  - UITheme    (DARK_THEME  vs  LIGHT_THEME)
+  - UITheme    (9 built-in themes)
   - wants_keyboard / wants_mouse  (UI focus guards for game input)
 
+For Phase 4 containers (VBox, HBox, Grid, ScrollContainer, FreeContainer)
+see  example_containers.py.
+
 Controls:
-  T            - toggle DARK / LIGHT theme
+  T            - cycle through 9 themes
   P            - cycle through all 9 Pivot presets on the demo label
   ESC          - quit
 """
 
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import glfw
 
 from e2D import (
@@ -190,7 +195,7 @@ class UIExample(DefEnv):
 def main() -> None:
     config = WindowConfig(
         size=V2(900, 600),
-        title="e2D UI Example",
+        title="e2D Phase 1 — Labels & Pivots",
         target_fps=60,
         vsync=False,
     )

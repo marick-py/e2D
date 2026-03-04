@@ -43,10 +43,11 @@ This folder contains interactive visual examples demonstrating various features 
 - **[example_ui.py](example_ui.py)** - UI label and pivot system (Phase 1)
   - `UIManager` and `Label` with rich multi-segment text
   - All 9 `Pivot` presets demonstrated live
-  - DARK / LIGHT theme toggling
+  - 9 theme cycling (T key)
   - `wants_keyboard` / `wants_mouse` guards
+  - See `example_containers.py` for Phase 4 layout containers
 
-- **[example_widgets.py](example_widgets.py)** - Interactive widgets (Phase 2)
+- **[example_widgets.py](example_widgets.py)** - Interactive widgets (Phase 2, updated for Phase 4)
   - `Button` with click counter and enable/disable control
   - `Switch` pill toggle (controls canvas animation)
   - `Checkbox` (shows/hides a score label)
@@ -54,7 +55,8 @@ This folder contains interactive visual examples demonstrating various features 
   - `Slider` (step=5) — score value 0–100
   - `RangeSlider` — brightness range mapped to canvas colours
   - Vertical `Slider` — controls number of circles drawn
-  - T key toggles DARK/LIGHT theme, R resets all widgets
+  - Left panel lays out using **VBox / HBox** containers (Phase 4)
+  - T key cycles through all themes, R resets all widgets
 
 - **[example_input_fields.py](example_input_fields.py)** - Text-entry widgets (Phase 3)
   - `InputField` plain text with keyboard, mouse selection, clipboard
@@ -63,6 +65,21 @@ This folder contains interactive visual examples demonstrating various features 
   - `MultiLineInput` — fixed height with vertical scrollbar (default mode)
   - `MultiLineInput` — auto-expand height as content grows (opt-in)
   - Tab cycles focus; Ctrl+Enter submits multi-line; Ctrl+C/X/V clipboard
+  - Left panel widgets live inside a **VBox** container (Phase 4)
+
+- **[example_containers.py](example_containers.py)** - Layout containers (Phase 4)  ← **NEW**
+  - `VBox` — vertical stack with `align` modes: left / center / right / stretch
+  - `HBox` — horizontal stack with `align` modes: top / center / bottom / stretch
+  - `Grid` — rows × columns cell layout with configurable gaps
+  - `ScrollContainer` — wraps one child and scrolls it; scroll bubbles from children
+  - `SizeMode` — FIXED (pixels) / PERCENT (fraction of parent) / AUTO (fit content)
+  - `FreeContainer` — relative positioning and Godot-style anchor presets
+  - All Phase 2/3 widgets (buttons, sliders, inputs) inside VBox containers
+  - 7-panel demo, sidebar navigation, theme cycling, F3 debug outlines
+
+> **Note:** `example_widgets.py` and `example_input_fields.py` have been updated
+> to lay out their left panels using **Phase 4 VBox / HBox** containers instead of
+> manual absolute positioning.
 
 ## Running Examples
 
@@ -78,6 +95,7 @@ python example_input.py
 python example_ui.py
 python example_widgets.py
 python example_input_fields.py
+python example_containers.py   # Phase 4 — containers & layout demo
 ```
 
 Or from anywhere:

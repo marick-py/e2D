@@ -242,17 +242,20 @@ class Plot2D:
         last_viewport = self.ctx.viewport
         self.ctx.viewport = self.viewport
         self.ctx.scissor = self.viewport
-        # self.ctx.clear(*normalize_color(self.settings.bg_color).to_array())
-        
+
         self.view.buffer.bind_to_uniform_block(0)
-        
-        if self.settings.show_grid or self.settings.show_axis:
-            self.grid_prog['grid_color'] = self.settings.grid_color
-            self.grid_prog['axis_color'] = self.settings.axis_color
-            self.grid_prog['spacing'] = self.settings.grid_spacing
-            self.grid_prog['show_grid'] = self.settings.show_grid
-            self.grid_prog['show_axis'] = self.settings.show_axis
-            self.grid_vao.render(moderngl.TRIANGLE_STRIP)
+
+        # Always render the background/grid quad.
+        # bg_color drives the fill for empty pixels; setting show_grid/show_axis
+        # to False simply prevents grid-line / axis-line output from the shader.
+        bg = normalize_color(self.settings.bg_color)
+        self.grid_prog['bg_color'] = (bg.r, bg.g, bg.b, bg.a)
+        self.grid_prog['grid_color'] = self.settings.grid_color
+        self.grid_prog['axis_color'] = self.settings.axis_color
+        self.grid_prog['spacing'] = self.settings.grid_spacing
+        self.grid_prog['show_grid'] = self.settings.show_grid
+        self.grid_prog['show_axis'] = self.settings.show_axis
+        self.grid_vao.render(moderngl.TRIANGLE_STRIP)
         
         draw_callback()
         self.ctx.scissor = None

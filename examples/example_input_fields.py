@@ -1,12 +1,12 @@
 """
-example_input_fields.py — Phase 3 input widgets demo.
+example_input_fields.py — Phase 3 input widgets demo  (updated for Phase 4 containers).
 
-Demonstrates every Phase 3 text-entry widget:
+Demonstrates every Phase 3 text-entry widget inside Phase 4 VBox containers:
   - InputField       (plain, password, validated)
   - MultiLineInput   (fixed-height + scrollbar  &  auto-expand)
 
-Left panel:   all input widgets
-Right panel:  live "Submitted Values" display + clipboard cheatsheet
+Left panel:   input widgets inside a VBox container
+Right panel:  live “Submitted Values” display + clipboard cheatsheet (VBox)
 
 Controls:
   Tab / Shift+Tab  — cycle input focus between fields
@@ -14,10 +14,13 @@ Controls:
   Ctrl+Enter       — submit the focused MultiLineInput
   Ctrl+C / X / V   — copy / cut / paste (via GLFW clipboard)
   Ctrl+A           — select all text in the focused field
-  T                — toggle DARK / LIGHT theme
+  T                — cycle theme
+  F3               — toggle debug outlines
   ESC              — quit
 """
 
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import glfw
 
 from e2D import (
@@ -26,6 +29,7 @@ from e2D import (
     WHITE, GREEN, YELLOW, CYAN,
 )
 from e2D.colors import Color
+from e2D.ui import VBox, SizeMode
 from e2D.ui.theme import (
     MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
     SOLARIZED_DARK, SOLARIZED_LIGHT,
@@ -50,14 +54,17 @@ _THEMES = [
 # Helpers
 # ---------------------------------------------------------------------------
 
-def style(size: int, color=None) -> TextStyle:
+def sty(size: int, color=None) -> TextStyle:
     c = color if color is not None else WHITE
     return TextStyle(font_size=size, color=c)
 
+# Keep legacy alias for callbacks
+style = sty
 
-SEP_X  = 470        # x-coordinate of the vertical separator line
-F_X    = 20         # left margin for labels and fields
-F_W    = 430        # width of every InputField / MultiLineInput
+WIN_W  = 900
+WIN_H  = 730
+SEP_X  = 460      # x-coordinate of the vertical separator line
+F_W    = 430      # width of every InputField / MultiLineInput
 
 _LGRAY = Color(0.45, 0.45, 0.45)   # light grey — section-hint text
 _DGRAY = Color(0.30, 0.30, 0.30)   # darker grey — small annotation text
@@ -72,93 +79,84 @@ class InputFieldsExample(DefEnv):
 
     def __init__(self, root: RootEnv) -> None:
         self.root  = root
-        self._theme_idx = 0   # start on Monokai
+        self._theme_idx = 0
         root.ui.theme = _THEMES[0][1]
 
         ui = root.ui
 
-        # -------------------------------------------------------------------
-        # Title + key hints
-        # -------------------------------------------------------------------
-        ui.label(
-            "Phase 3 — Input Fields",
-            position=V2(F_X, 12),
-            default_style=style(24, WHITE),
-        )
-        ui.label(
-            "Tab = next field   |   T = next theme   |   ESC = quit",
-            position=V2(F_X, 43),
-            default_style=style(13, _LGRAY),
+        # ── Left panel VBox ──────────────────────────────────────────────────
+        left = ui.vbox(
+            spacing=4,
+            position=V2(0, 0),
+            size=V2(SEP_X, WIN_H),
+            bg_color=Color(0.07, 0.07, 0.11, 1.0),
+            border_color=Color(0.20, 0.20, 0.35, 1.0),
+            border_width=1.0,
+            padding=12,
         )
 
-        # -------------------------------------------------------------------
-        # Section 1: plain InputField
-        # -------------------------------------------------------------------
-        ui.label(
-            "INPUTFIELD — plain text  (Enter to submit)",
-            position=V2(F_X, 72),
-            default_style=style(11, _DGRAY),
-        )
-        ui.label("Name:", position=V2(F_X, 90), default_style=style(14, WHITE))
-        self._field_name = ui.input_field(
+        def _add(widget):
+            left.add_child(widget)
+            return widget
+
+        def _sec(text: str):
+            lb = ui.label("", default_style=sty(10, _DGRAY))
+            lb.set_plain_text(text)
+            left.add_child(lb)
+
+        def _lbl(text: str, color=None):
+            lb = ui.label("", default_style=sty(14, color or WHITE))
+            lb.set_plain_text(text)
+            left.add_child(lb)
+            return lb
+
+        # Title + hints
+        _add(ui.label("Phase 3 — Input Fields", default_style=sty(22, WHITE)))
+        _add(ui.label(
+            "Tab = next field   |   T = theme   |   F3 = debug   |   ESC = quit",
+            default_style=sty(11, _LGRAY),
+        ))
+
+        # ── Section 1: plain InputField ──────────────────────────────────────
+        _sec("INPUTFIELD — plain text  (Enter to submit)")
+        _lbl("Name:")
+        self._field_name = _add(ui.input_field(
             placeholder="Enter your name…",
             on_submit=self._on_name,
-            position=V2(F_X, 110),
             size=V2(F_W, 32),
             tab_index=0,
-        )
+        ))
 
-        # -------------------------------------------------------------------
-        # Section 2: password InputField
-        # -------------------------------------------------------------------
-        ui.label(
-            "INPUTFIELD — password  (Enter to submit)",
-            position=V2(F_X, 158),
-            default_style=style(11, _DGRAY),
-        )
-        ui.label("Password:", position=V2(F_X, 176), default_style=style(14, WHITE))
-        self._field_password = ui.input_field(
+        # ── Section 2: password InputField ──────────────────────────────────
+        _sec("INPUTFIELD — password  (Enter to submit)")
+        _lbl("Password:")
+        self._field_password = _add(ui.input_field(
             placeholder="Enter password…",
             password=True,
             on_submit=self._on_password,
-            position=V2(F_X, 196),
             size=V2(F_W, 32),
             tab_index=1,
-        )
+        ))
 
-        # -------------------------------------------------------------------
-        # Section 3: validated InputField  (port number 1–65535)
-        # -------------------------------------------------------------------
-        ui.label(
-            "INPUTFIELD — validated  (port 1–65535, red border = invalid)",
-            position=V2(F_X, 244),
-            default_style=style(11, _DGRAY),
-        )
-        ui.label("Port:", position=V2(F_X, 262), default_style=style(14, WHITE))
-        self._field_port = ui.input_field(
+        # ── Section 3: validated InputField (port 1–65535) ──────────────────
+        _sec("INPUTFIELD — validated  (port 1–65535, red border = invalid)")
+        _lbl("Port:")
+        self._field_port = _add(ui.input_field(
             placeholder="8080",
             validate=self._validate_port,
             on_submit=self._on_port,
-            position=V2(F_X, 282),
             size=V2(F_W, 32),
             tab_index=2,
-        )
-        ui.label(
-            "↑  border turns red when the value is not a valid port number",
-            position=V2(F_X, 322),
-            default_style=style(11, _DGRAY),
-        )
+        ))
+        _add(ui.label(
+            "↑  border turns red when value is not a valid port number",
+            default_style=sty(11, _DGRAY),
+        ))
 
-        # -------------------------------------------------------------------
-        # Section 4: MultiLineInput — scrollable notes field
-        # -------------------------------------------------------------------
-        ui.label(
-            "MULTILINE — scrollable  (Ctrl+Enter = submit,  Tab = indent)",
-            position=V2(F_X, 347),
-            default_style=style(11, _DGRAY),
-        )
-        ui.label("Notes:", position=V2(F_X, 365), default_style=style(14, WHITE))
-        self._field_notes = ui.multi_line_input(
+        # ── Section 4: MultiLineInput — scrollable ───────────────────────────
+        _sec("MULTILINE — scrollable  (Ctrl+Enter = submit,  Tab = indent)")
+        _lbl("Notes:")
+        self._field_notes = _add(ui.multi_line_input(
             placeholder=(
                 "Type here…\n"
                 "Press Enter for a new line.\n"
@@ -168,21 +166,14 @@ class InputFieldsExample(DefEnv):
             on_submit=self._on_notes,
             auto_expand=False,
             show_scrollbar=True,
-            position=V2(F_X, 385),
             size=V2(F_W, 100),
             tab_index=3,
-        )
+        ))
 
-        # -------------------------------------------------------------------
-        # Section 5: MultiLineInput — auto-expand (grows to fit content)
-        # -------------------------------------------------------------------
-        ui.label(
-            "MULTILINE — auto-expand  (min 44px, max 160px, Ctrl+Enter = submit)",
-            position=V2(F_X, 502),
-            default_style=style(11, _DGRAY),
-        )
-        ui.label("Description:", position=V2(F_X, 520), default_style=style(14, WHITE))
-        self._field_desc = ui.multi_line_input(
+        # ── Section 5: MultiLineInput — auto-expand ──────────────────────────
+        _sec("MULTILINE — auto-expand  (min 44px, max 160px, Ctrl+Enter = submit)")
+        _lbl("Description:")
+        self._field_desc = _add(ui.multi_line_input(
             placeholder=(
                 "This field grows to fit content.\n"
                 "Min height = 44 px, max height = 160 px.\n"
@@ -192,65 +183,52 @@ class InputFieldsExample(DefEnv):
             auto_expand=True,
             min_height=44.0,
             max_height=160.0,
-            position=V2(F_X, 540),
             size=V2(F_W, 44),
             tab_index=4,
+        ))
+
+        # ── Right panel VBox ─────────────────────────────────────────────────
+        right = ui.vbox(
+            spacing=6,
+            position=V2(SEP_X, 0),
+            size=V2(WIN_W - SEP_X, WIN_H),
+            bg_color=Color(0.05, 0.05, 0.09, 1.0),
+            border_color=Color(0.20, 0.20, 0.35, 1.0),
+            border_width=1.0,
+            padding=14,
         )
 
-        # -------------------------------------------------------------------
-        # Right panel — submitted values display
-        # -------------------------------------------------------------------
-        rp = SEP_X + 20     # right panel left margin
+        def _radd(widget):
+            right.add_child(widget)
+            return widget
 
-        ui.label(
-            "Submitted Values",
-            position=V2(rp, 12),
-            default_style=style(18, CYAN),
-        )
+        _radd(ui.label("Submitted Values", default_style=sty(18, CYAN)))
 
-        self._lbl_name = ui.label(
-            ("Name:     ", style(13, _LGRAY)),
-            ("—", style(13, YELLOW)),
-            position=V2(rp, 52),
-            default_style=style(13, WHITE),
-        )
-        self._lbl_password = ui.label(
-            ("Password: ", style(13, _LGRAY)),
-            ("—", style(13, YELLOW)),
-            position=V2(rp, 76),
-            default_style=style(13, WHITE),
-        )
-        self._lbl_port = ui.label(
-            ("Port:     ", style(13, _LGRAY)),
-            ("—", style(13, YELLOW)),
-            position=V2(rp, 100),
-            default_style=style(13, WHITE),
-        )
-        self._lbl_notes = ui.label(
-            ("Notes:    ", style(13, _LGRAY)),
-            ("—", style(13, YELLOW)),
-            position=V2(rp, 124),
-            default_style=style(13, WHITE),
-        )
+        self._lbl_name = _radd(ui.label(
+            ("Name:     ", sty(13, _LGRAY)),
+            ("—", sty(13, YELLOW)),
+            default_style=sty(13, WHITE),
+        ))
+        self._lbl_password = _radd(ui.label(
+            ("Password: ", sty(13, _LGRAY)),
+            ("—", sty(13, YELLOW)),
+            default_style=sty(13, WHITE),
+        ))
+        self._lbl_port = _radd(ui.label(
+            ("Port:     ", sty(13, _LGRAY)),
+            ("—", sty(13, YELLOW)),
+            default_style=sty(13, WHITE),
+        ))
+        self._lbl_notes = _radd(ui.label(
+            ("Notes:    ", sty(13, _LGRAY)),
+            ("—", sty(13, YELLOW)),
+            default_style=sty(13, WHITE),
+        ))
 
-        # Live preview of the currently-focused field's text
-        ui.label(
-            "Current field value (live):",
-            position=V2(rp, 165),
-            default_style=style(13, _LGRAY),
-        )
-        self._lbl_live = ui.label(
-            "",
-            position=V2(rp, 185),
-            default_style=style(13, WHITE),
-        )
+        _radd(ui.label("Current field value (live):", default_style=sty(12, _LGRAY)))
+        self._lbl_live = _radd(ui.label("", default_style=sty(13, WHITE)))
 
-        # Clipboard / shortcut cheatsheet
-        ui.label(
-            "Shortcuts:",
-            position=V2(rp, 240),
-            default_style=style(13, _LGRAY),
-        )
+        _radd(ui.label("Shortcuts:", default_style=sty(13, _LGRAY)))
         hints = [
             "  Ctrl+C   — copy selection",
             "  Ctrl+X   — cut selection",
@@ -260,12 +238,11 @@ class InputFieldsExample(DefEnv):
             "  Home/End — jump to line start/end",
             "  Shift+←/→ — extend selection",
         ]
-        for i, hint in enumerate(hints):
-            ui.label(
-                hint,
-                position=V2(rp, 262 + i * 22),
-                default_style=style(12, _LGRAY),
-            )
+        for hint in hints:
+            lb = ui.label("", default_style=sty(12, _LGRAY))
+            lb.set_plain_text(hint)
+            right.add_child(lb)
+
 
     # -----------------------------------------------------------------------
     # Validation
@@ -346,22 +323,8 @@ class InputFieldsExample(DefEnv):
             self._lbl_live.set_plain_text("")
 
     def draw(self) -> None:
-        root = self.root
-        w, h = root.window_size.x, root.window_size.y
-        theme = root.ui.theme
-        bg = theme.bg_window
-        sep_c = theme.border_color
-
-        # Left panel background (slightly lighter/darker than window bg)
-        root.draw_rect(V2(0, 0), V2(SEP_X, h),
-                       color=(bg.r + 0.01, bg.g + 0.01, bg.b + 0.01, 1.0))
-        # Right panel background
-        root.draw_rect(V2(SEP_X, 0), V2(w - SEP_X, h),
-                       color=(max(0.0, bg.r - 0.01), max(0.0, bg.g - 0.01),
-                              max(0.0, bg.b - 0.01), 1.0))
-        # Separator line
-        root.draw_line(V2(SEP_X, 0), V2(SEP_X, h),
-                       color=(sep_c.r, sep_c.g, sep_c.b, sep_c.a), width=1.0)
+        # VBox containers cover the full window with their own bg_color.
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -370,8 +333,8 @@ class InputFieldsExample(DefEnv):
 
 def main() -> None:
     config = WindowConfig(
-        size=V2(900, 730),
-        title="e2D Phase 3 — Input Fields",
+        size=V2(WIN_W, WIN_H),
+        title="e2D Phase 3 — Input Fields (Phase 4 layout)",
         target_fps=60,
         vsync=False,
     )

@@ -106,8 +106,22 @@ class Button(UIElement):
         self._is_hovered: bool = False
         self._is_pressed: bool = False
 
+        # Natural-size tracking — computed in _build from text + padding.
+        # When _auto_sized is True the button resizes itself whenever text changes.
+        self._auto_sized: bool = False
+        self._natural_w: float = 0.0
+        self._natural_h: float = 0.0
+
         # Internal text label — created in _build
         self._label: Optional[Label] = None
+
+    # ---------------------------------------------------------------------------
+    # Default per-axis padding when none is specified by the caller.
+    # These values are applied to compute natural_size() only; they do not
+    # override self.padding if the caller set it explicitly.
+    # ---------------------------------------------------------------------------
+    _DEFAULT_PAD_H: float = 16.0   # left + right each side (x2 total)
+    _DEFAULT_PAD_V: float = 8.0    # top + bottom each side (x2 total)
 
     # ---------------------------------------------------------------------------
     # Build (called once after UIManager.add())
@@ -140,14 +154,48 @@ class Button(UIElement):
 
         self._cur_color = self._c_normal
 
-        # Default size if caller didn't supply one
-        if self._size.x == 0 or self._size.y == 0:
-            self._size.set(120.0, 36.0)
-
         # Create internal label — pivot=CENTER keeps it centred in the button
         self._label = Label(self._text, default_style=txt_style, pivot=Pivot.CENTER)
         self._label._build(ctx, text_renderer)
+
+        # Compute natural (content-fitted) size from freshly built label
+        self._update_natural_size()
+
+        # On first build: if no explicit size was given (both axes zero),
+        # enable auto-sizing and set size to fit the content + padding.
+        # On subsequent builds (theme changes): only update if auto-sized.
+        if self._size.x == 0 and self._size.y == 0:
+            self._auto_sized = True
+        if self._auto_sized:
+            self._size.set(self._natural_w, self._natural_h)
+
         self._dirty = False
+
+    # ---------------------------------------------------------------------------
+    # Natural size — text dimensions + padding
+    # ---------------------------------------------------------------------------
+
+    def _update_natural_size(self) -> None:
+        """Recompute ``_natural_w``/``_natural_h`` from the built label."""
+        if self._label is None:
+            return
+        p = self.padding   # (top, right, bottom, left)
+        # Effective horizontal / vertical padding — fall back to class defaults
+        # when the caller left padding at zero so the button isn't text-tight.
+        ph = p[3] + p[1] if (p[3] + p[1]) > 0.0 else self._DEFAULT_PAD_H * 2
+        pv = p[0] + p[2] if (p[0] + p[2]) > 0.0 else self._DEFAULT_PAD_V * 2
+        self._natural_w = max(self._label._text_width  + ph, 20.0)
+        self._natural_h = max(self._label._text_height + pv, 20.0)
+
+    def natural_size(self) -> tuple[float, float]:
+        """Return the preferred (content-fitted) size as ``(width, height)``.
+
+        The returned values are computed from the label's measured text
+        dimensions plus the element's ``padding`` (or a built-in default of
+        ``±16 px`` horizontal and ``±8 px`` vertical when padding is zero).
+        The result is recomputed automatically whenever :attr:`text` changes.
+        """
+        return (self._natural_w, self._natural_h)
 
     # ---------------------------------------------------------------------------
     # Helpers
@@ -220,6 +268,12 @@ class Button(UIElement):
         self._text = value
         if self._label is not None:
             self._label.set_plain_text(value)
+            # Force immediate re-measurement so natural_size() is up-to-date.
+            self._label._rebuild()
+            self._update_natural_size()
+            # When the button was auto-sized it tracks text width automatically.
+            if self._auto_sized:
+                self._size.set(self._natural_w, self._natural_h)
 
     # ---------------------------------------------------------------------------
     # Event hooks (called by UIManager)
@@ -247,6 +301,25 @@ class Button(UIElement):
         if key in (glfw.KEY_SPACE, glfw.KEY_ENTER, glfw.KEY_KP_ENTER):
             if self.enabled and self._on_click:
                 self._on_click()
+
+    # ---------------------------------------------------------------------------
+    # Debug info
+    # ---------------------------------------------------------------------------
+
+    def _debug_info(self) -> list[tuple[str, str]]:
+        rows = super()._debug_info()
+        state = (
+            "disabled" if not self.enabled else
+            "pressed"  if self._is_pressed else
+            "hovered"  if self._is_hovered else
+            "focused"  if self._focused    else
+            "normal"
+        )
+        rows += [
+            ("text",  f'"{self._text}"'),
+            ("state", state),
+        ]
+        return rows
 
     # ---------------------------------------------------------------------------
     # Cleanup

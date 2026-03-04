@@ -1,7 +1,7 @@
 """
-example_widgets.py — Phase 2 UI widgets demo.
+example_widgets.py — Phase 2 UI widgets demo  (updated for Phase 4 containers).
 
-Demonstrates every Phase 2 widget:
+Demonstrates every Phase 2 widget inside a Phase 4 VBox / HBox layout:
   - Button       (click to increment counter; enable/disable all others)
   - Switch       (pill toggle — toggles circle animation on the canvas)
   - Checkbox     (square checkbox — toggles whether score label is shown)
@@ -10,16 +10,19 @@ Demonstrates every Phase 2 widget:
   - RangeSlider  (horizontal — defines a brightness range [lo, hi])
   - Slider       (vertical — controls number of drawn circles)
 
-Left panel:  all widgets
+Left panel:  widgets laid out inside VBox / HBox containers (Phase 4)
 Right panel: live value readout + a simple canvas visualisation
 
 Controls:
-  T     — toggle DARK / LIGHT theme
+  T     — cycle theme
   R     — reset all widgets to defaults
+  F3    — toggle debug outlines
   ESC   — quit
 """
 
 import math
+import sys as _sys, os as _os
+_sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
 import glfw
 
 from e2D import (
@@ -28,6 +31,7 @@ from e2D import (
     WHITE, BLACK, RED, GREEN, BLUE, YELLOW, CYAN, MAGENTA,
 )
 from e2D.colors import Color
+from e2D.ui import VBox, HBox, SizeMode
 from e2D.ui.theme import (
     MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
     SOLARIZED_DARK, SOLARIZED_LIGHT,
@@ -49,227 +53,182 @@ _THEMES = [
 ]
 
 
-def style(size: int, color=None) -> TextStyle:
-    c = color or WHITE
-    return TextStyle(font_size=size, color=c)
+def sty(size: int, color=None) -> TextStyle:
+    return TextStyle(font_size=size, color=color or WHITE)
 
 
-SEP_X    = 420      # vertical separator between widget panel and canvas
-LABEL_X  = 30       # left edge of widget labels
-WIDGET_X = 210      # left edge of all widgets
-W_W      = 190      # default horizontal slider / range slider width
+WIN_W  = 900
+WIN_H  = 600
+SEP_X  = 420   # left panel / canvas boundary
+LBL_W  = 100   # width of the row label
+CTRL_W = 190   # slider / range-slider width
+
+_GREY  = Color(0.5, 0.5, 0.5)
+_LGREY = Color(0.4, 0.4, 0.4)
 
 
 class WidgetsExample(DefEnv):
     def __init__(self, root: RootEnv) -> None:
-        self.root   = root
+        self.root       = root
         self._theme_idx = 0
-        root.ui.theme = _THEMES[0][1]
+        root.ui.theme   = _THEMES[0][1]
 
         ui = root.ui
+        h  = WIN_H
 
-        # ---------------------------------------------------------------
-        # Title + key hints
-        # ---------------------------------------------------------------
-        ui.label(
-            "Phase 2 Widgets Demo",
-            position=V2(10, 10),
-            default_style=style(24, WHITE),
+        # ── Left panel VBox ──────────────────────────────────────────────────
+        #  Covers the whole left side; children lay out top-to-bottom.
+        left = ui.vbox(
+            spacing=4,
+            position=V2(0, 0),
+            size=V2(SEP_X, h),
+            bg_color=Color(0.07, 0.07, 0.11, 1.0),
+            border_color=Color(0.20, 0.20, 0.35, 1.0),
+            border_width=1.0,
+            padding=10,
         )
-        ui.label(
-            "T = next theme   |   R = reset   |   ESC = quit",
-            position=V2(10, 42),
-            default_style=style(13, Color(0.6, 0.6, 0.6)),
+
+        # ── Title ────────────────────────────────────────────────────────────
+        lbl_title = ui.label("Phase 2 Widgets Demo", default_style=sty(22, WHITE))
+        left.add_child(lbl_title)
+        lbl_hints = ui.label(
+            "T = theme   R = reset   F3 = debug   ESC = quit",
+            default_style=sty(11, _GREY),
         )
+        left.add_child(lbl_hints)
 
-        # ---------------------------------------------------------------
-        # Section: Button
-        # ---------------------------------------------------------------
-        ui.label("BUTTON", position=V2(LABEL_X, 78),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
+        self._click_count = 0
+        self._all_enabled = True
 
-        self._click_count   = 0
-        self._all_enabled   = True
+        # ── helper: section header ─────────────────────────────────────────
+        def _sec(text: str) -> None:
+            lb = ui.label("", default_style=sty(10, _LGREY))
+            lb.set_plain_text(text)
+            left.add_child(lb)
 
+        def _row(label_text: str, widget, value_lbl=None) -> None:
+            """HBox row: [label | widget | optional value readout]."""
+            row = HBox(
+                spacing=6, align='center',
+                size=V2(SEP_X - 24, 34),
+                bg_color=Color(0, 0, 0, 0),
+                padding=0,
+            )
+            if label_text:
+                lb = ui.label("", default_style=sty(13, WHITE))
+                lb.set_plain_text(label_text)
+                lb.size      = V2(LBL_W, 28)
+                lb.size_mode = SizeMode.FIXED
+                row.add_child(lb)
+            row.add_child(widget)
+            if value_lbl is not None:
+                row.add_child(value_lbl)
+            left.add_child(row)
+
+        # ── Button section ───────────────────────────────────────────────────
+        _sec("BUTTON")
         self._btn_increment = ui.button(
             "Increment Counter",
             on_click=self._on_increment,
-            position=V2(WIDGET_X, 95),
-            size=V2(150, 32),
+            size=V2(152, 32),
         )
         self._btn_toggle_enabled = ui.button(
             "Disable Widgets",
             on_click=self._on_toggle_enabled,
-            position=V2(WIDGET_X + 158, 95),
-            size=V2(145, 32),
+            size=V2(148, 32),
         )
-        self._lbl_count = ui.label(
-            "Clicks: 0",
-            position=V2(LABEL_X, 107),
-            default_style=style(14, CYAN),
-        )
+        btn_row = HBox(spacing=6, align='center',
+                       size=V2(SEP_X - 24, 36),
+                       bg_color=Color(0, 0, 0, 0),
+                       padding=0)
+        btn_row.add_child(self._btn_increment)
+        btn_row.add_child(self._btn_toggle_enabled)
+        left.add_child(btn_row)
 
-        # ---------------------------------------------------------------
-        # Section: Switch
-        # ---------------------------------------------------------------
-        ui.label("SWITCH — animation on canvas circles",
-                 position=V2(LABEL_X, 142),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Animated:",
-                 position=V2(LABEL_X, 163),
-                 default_style=style(14, WHITE))
-        self._switch = ui.switch(
-            value=True,
-            on_change=self._on_switch,
-            position=V2(WIDGET_X, 160),
-        )
-        self._lbl_switch = ui.label(
-            "ON",
-            position=V2(WIDGET_X + 62, 163),
-            default_style=style(14, GREEN),
-        )
+        self._lbl_count = ui.label("", default_style=sty(14, CYAN))
+        self._lbl_count.set_plain_text("Clicks: 0")
+        left.add_child(self._lbl_count)
 
-        # ---------------------------------------------------------------
-        # Section: Checkbox
-        # ---------------------------------------------------------------
-        ui.label("CHECKBOX — show score label",
-                 position=V2(LABEL_X, 204),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Show score:",
-                 position=V2(LABEL_X, 225),
-                 default_style=style(14, WHITE))
-        self._checkbox = ui.checkbox(
-            value=True,
-            on_change=self._on_checkbox,
-            position=V2(WIDGET_X, 223),
-        )
-        self._lbl_check = ui.label(
-            "visible",
-            position=V2(WIDGET_X + 32, 225),
-            default_style=style(14, GREEN),
-        )
+        # ── Switch section ───────────────────────────────────────────────────
+        _sec("SWITCH — toggles canvas animation")
+        self._lbl_switch = ui.label("", default_style=sty(13, GREEN))
+        self._lbl_switch.set_plain_text("ON")
+        self._switch = ui.switch(value=True, on_change=self._on_switch)
+        _row("Animated:", self._switch, self._lbl_switch)
 
-        # ---------------------------------------------------------------
-        # Section: Horizontal Slider (continuous) — circle radius
-        # ---------------------------------------------------------------
-        ui.label("SLIDER (continuous) — circle radius",
-                 position=V2(LABEL_X, 260),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Radius:",
-                 position=V2(LABEL_X, 281),
-                 default_style=style(14, WHITE))
+        # ── Checkbox section ─────────────────────────────────────────────────
+        _sec("CHECKBOX — show/hide score label")
+        self._lbl_check = ui.label("", default_style=sty(13, GREEN))
+        self._lbl_check.set_plain_text("visible")
+        self._checkbox = ui.checkbox(value=True, on_change=self._on_checkbox)
+        _row("Show score:", self._checkbox, self._lbl_check)
+
+        # ── Horizontal Slider (continuous) ───────────────────────────────────
+        _sec("SLIDER (continuous) — circle radius  10..120")
+        self._lbl_radius = ui.label("", default_style=sty(13, YELLOW))
+        self._lbl_radius.set_plain_text("60")
         self._slider_radius = ui.slider(
             10, 120, value=60,
             on_change=self._on_radius,
-            position=V2(WIDGET_X, 278),
-            size=V2(W_W, 20),
+            size=V2(CTRL_W, 20),
         )
-        self._lbl_radius = ui.label(
-            "60",
-            position=V2(WIDGET_X + W_W + 8, 281),
-            default_style=style(14, YELLOW),
-        )
+        _row("Radius:", self._slider_radius, self._lbl_radius)
 
-        # ---------------------------------------------------------------
-        # Section: Horizontal Slider (step=5) — score
-        # ---------------------------------------------------------------
-        ui.label("SLIDER (step=5) — score 0..100",
-                 position=V2(LABEL_X, 313),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Score:",
-                 position=V2(LABEL_X, 334),
-                 default_style=style(14, WHITE))
+        # ── Horizontal Slider (step=5) ───────────────────────────────────────
+        _sec("SLIDER (step=5) — score  0..100")
+        self._lbl_score_val = ui.label("", default_style=sty(13, YELLOW))
+        self._lbl_score_val.set_plain_text("50")
         self._slider_score = ui.slider(
             0, 100, step=5, value=50,
             on_change=self._on_score,
-            position=V2(WIDGET_X, 331),
-            size=V2(W_W, 20),
+            size=V2(CTRL_W, 20),
         )
-        self._lbl_score_val = ui.label(
-            "50",
-            position=V2(WIDGET_X + W_W + 8, 334),
-            default_style=style(14, YELLOW),
-        )
-        self._score = 50
+        _row("Score:", self._slider_score, self._lbl_score_val)
+        self._score      = 50
         self._show_score = True
 
-        # ---------------------------------------------------------------
-        # Section: RangeSlider — brightness range
-        # ---------------------------------------------------------------
-        ui.label("RANGE SLIDER — brightness range",
-                 position=V2(LABEL_X, 366),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Brightness:",
-                 position=V2(LABEL_X, 387),
-                 default_style=style(14, WHITE))
+        # ── RangeSlider ──────────────────────────────────────────────────────
+        _sec("RANGE SLIDER — brightness range  0..255")
+        self._lbl_range = ui.label("", default_style=sty(13, YELLOW))
+        self._lbl_range.set_plain_text("[64, 192]")
         self._range_slider = ui.range_slider(
             0, 255, step=1,
             low_value=64, high_value=192,
             on_change=self._on_range,
-            position=V2(WIDGET_X, 384),
-            size=V2(W_W, 20),
+            size=V2(CTRL_W, 20),
         )
-        self._lbl_range = ui.label(
-            "[64, 192]",
-            position=V2(WIDGET_X + W_W + 8, 387),
-            default_style=style(14, YELLOW),
-        )
+        _row("Brightness:", self._range_slider, self._lbl_range)
         self._brightness_lo = 64
         self._brightness_hi = 192
 
-        # ---------------------------------------------------------------
-        # Section: Vertical Slider — number of circles
-        # ---------------------------------------------------------------
-        ui.label("VERT. SLIDER — circle count",
-                 position=V2(LABEL_X, 418),
-                 default_style=style(11, Color(0.5, 0.5, 0.5)))
-        ui.label("Count:",
-                 position=V2(LABEL_X, 439),
-                 default_style=style(14, WHITE))
+        # ── Vertical Slider ──────────────────────────────────────────────────
+        _sec("VERT. SLIDER — circle count  1..12  (↑↓ when focused)")
+        self._lbl_count_val = ui.label("", default_style=sty(13, YELLOW))
+        self._lbl_count_val.set_plain_text("6")
         self._slider_count = ui.slider(
             1, 12, step=1, value=6,
             orientation='vertical',
             on_change=self._on_count,
-            position=V2(WIDGET_X, 435),
-            size=V2(20, 120),
+            size=V2(20, 90),
         )
-        self._lbl_count_val = ui.label(
-            "6",
-            position=V2(WIDGET_X + 28, 439),
-            default_style=style(14, YELLOW),
-        )
+        _row("Count:", self._slider_count, self._lbl_count_val)
         self._circle_count = 6
 
-        # ---------------------------------------------------------------
-        # Separator label
-        # ---------------------------------------------------------------
-        ui.label(
-            "↑↓ drag or use arrow keys when focused",
-            position=V2(WIDGET_X + 28, 508),
-            default_style=style(11, Color(0.4, 0.4, 0.4)),
-        )
-
-        # ---------------------------------------------------------------
-        # Canvas labels (right panel)
-        # ---------------------------------------------------------------
-        self._canvas_x = SEP_X + 10
-        self._canvas_w = root.window_size.x - SEP_X - 10
-        self._canvas_cx = SEP_X + self._canvas_w / 2
-        self._canvas_cy = root.window_size.y / 2
+        # ── Canvas labels (right panel, absolute positions) ──────────────────
+        self._canvas_cx = SEP_X + (WIN_W - SEP_X) / 2
+        self._canvas_cy = WIN_H / 2
 
         ui.label(
             "Live Canvas",
             position=V2(self._canvas_cx, 14),
             pivot=Pivot.TOP_MIDDLE,
-            default_style=style(14, Color(0.45, 0.45, 0.45)),
+            default_style=sty(14, _GREY),
         )
-
-        # Score display (bottom of canvas)
         self._score_label = ui.label(
             "Score: 50",
-            position=V2(self._canvas_cx, root.window_size.y - 14),
+            position=V2(self._canvas_cx, WIN_H - 14),
             pivot=Pivot.BOTTOM_MIDDLE,
-            default_style=style(20, YELLOW),
+            default_style=sty(20, YELLOW),
         )
 
         # Animation state
@@ -301,14 +260,14 @@ class WidgetsExample(DefEnv):
 
     def _on_switch(self, v: bool) -> None:
         self._animated = v
-        color = GREEN if v else Color(0.5, 0.5, 0.5)
-        self._lbl_switch.set_text(("ON" if v else "OFF", style(14, color)))
+        color = GREEN if v else _GREY
+        self._lbl_switch.set_text(("ON" if v else "OFF", sty(13, color)))
 
     def _on_checkbox(self, v: bool) -> None:
         self._show_score = v
-        color = GREEN if v else Color(0.5, 0.5, 0.5)
+        color = GREEN if v else _GREY
         text  = "visible" if v else "hidden"
-        self._lbl_check.set_text((text, style(14, color)))
+        self._lbl_check.set_text((text, sty(13, color)))
         self._score_label.visible = v
 
     def _on_radius(self, v: float) -> None:
@@ -360,59 +319,49 @@ class WidgetsExample(DefEnv):
         self._slider_count.value     = 6
 
     def draw(self) -> None:
-        root = self.root
-        w, h = root.window_size.x, root.window_size.y
+        root  = self.root
         theme = root.ui.theme
-        bg = theme.bg_window
+        bg    = theme.bg_window
         sep_c = theme.border_color
 
-        # Panel background (left)
-        root.draw_rect(V2(0, 0), V2(SEP_X, h),
-                       color=(bg.r + 0.01, bg.g + 0.01, bg.b + 0.01, 1.0))
-        # Panel background (right / canvas)
-        root.draw_rect(V2(SEP_X, 0), V2(w - SEP_X, h),
-                       color=(max(0.0, bg.r - 0.01), max(0.0, bg.g - 0.01),
-                              max(0.0, bg.b - 0.01), 1.0))
-        # Separator line
-        root.draw_line(V2(SEP_X, 0), V2(SEP_X, h),
+        # Canvas background (right side)
+        root.draw_rect(
+            V2(SEP_X, 0), V2(WIN_W - SEP_X, WIN_H),
+            color=(max(0.0, bg.r - 0.01),
+                   max(0.0, bg.g - 0.01),
+                   max(0.0, bg.b - 0.01), 1.0),
+        )
+        root.draw_line(V2(SEP_X, 0), V2(SEP_X, WIN_H),
                        color=(sep_c.r, sep_c.g, sep_c.b, sep_c.a), width=1.0)
 
-        # ---- Canvas: circles drawn in a ring ---------------------------
+        # ── Canvas: circles drawn in a ring ─────────────────────────────
         cx   = self._canvas_cx
         cy   = self._canvas_cy
         n    = int(self._circle_count)
         r    = self._radius_val
-        ring = max(10.0, min(self._canvas_w, h) * 0.3)
+        cw   = WIN_W - SEP_X
+        ring = max(10.0, min(cw, WIN_H) * 0.3)
 
-        # Brightness range → colour tint
         lo_t = self._brightness_lo / 255.0
         hi_t = self._brightness_hi / 255.0
 
         for i in range(n):
             frac   = i / max(1, n)
-            alpha  = frac           # 0 → 1 across the ring
-            bright = lo_t + (hi_t - lo_t) * frac  # mapped to brightness range
+            bright = lo_t + (hi_t - lo_t) * frac
+            base_a = math.tau * frac + (self._angle if self._animated else 0)
 
-            base_angle = math.tau * frac
-            if self._animated:
-                base_angle += self._angle
+            px = cx + math.cos(base_a) * ring
+            py = cy + math.sin(base_a) * ring
 
-            px = cx + math.cos(base_angle) * ring
-            py = cy + math.sin(base_angle) * ring
-
-            # Cycle hue across ring
             hue = math.tau * frac
             cr  = 0.5 + 0.5 * math.cos(hue)
             cg  = 0.5 + 0.5 * math.cos(hue + 2.094)
             cb  = 0.5 + 0.5 * math.cos(hue + 4.189)
 
-            root.draw_circle(
-                V2(px, py), r,
-                color=(cr * bright, cg * bright, cb * bright, 0.85),
-                layer=1,
-            )
+            root.draw_circle(V2(px, py), r,
+                             color=(cr * bright, cg * bright, cb * bright, 0.85),
+                             layer=1)
 
-        # Centre dot
         root.draw_circle(V2(cx, cy), 5, color=(0.6, 0.6, 0.6, 0.8))
 
 
@@ -422,8 +371,8 @@ class WidgetsExample(DefEnv):
 
 def main() -> None:
     config = WindowConfig(
-        size=V2(900, 580),
-        title="e2D Phase 2 Widgets",
+        size=V2(WIN_W, WIN_H),
+        title="e2D Phase 2 Widgets (Phase 4 layout)",
         target_fps=60,
         vsync=False,
     )

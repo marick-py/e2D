@@ -219,6 +219,15 @@ class Switch(UIElement):
         if key == glfw.KEY_SPACE and self.enabled:
             self.toggle()
 
+    # -----------------------------------------------------------------------
+    # Debug info
+    # -----------------------------------------------------------------------
+
+    def _debug_info(self) -> list[tuple[str, str]]:
+        rows = super()._debug_info()
+        rows += [("value", "ON" if self._value else "OFF")]
+        return rows
+
 
 # ---------------------------------------------------------------------------
 # Checkbox — square with animated checkmark
@@ -393,8 +402,8 @@ class Checkbox(UIElement):
             end2   = (rx + rw - pad,  ry + rh * 0.28)
 
             stroke_w = max(1.5, rw * 0.10)
-            sr.draw_line(start1, end1, width=stroke_w, color=mark_c)
-            sr.draw_line(start2, end2, width=stroke_w, color=mark_c)
+            sr.draw_line(start1, end1, width=stroke_w, color=mark_c, layer=1)
+            sr.draw_line(start2, end2, width=stroke_w, color=mark_c, layer=1)
 
     # ---------------------------------------------------------------------------
     # Event hooks

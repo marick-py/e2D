@@ -7,7 +7,7 @@ theming, focus management, and a flexible anchor/layout system.
 Phase 1: Pivot, UIElement, UITheme, Label, UIManager
 """
 
-from .base import Pivot, UIElement
+from .base import Pivot, UIElement, MouseMode
 from .theme import (
     UITheme,
     MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
@@ -21,6 +21,12 @@ from .button import Button
 from .toggle import Switch, Checkbox
 from .slider import Slider, RangeSlider
 from .input_field import InputField, MultiLineInput
+from .containers import (
+    UIContainer, VBox, HBox, Grid, FreeContainer, ScrollContainer,
+    SizeMode, Anchor,
+)
+from ..gradient import LinearGradient, RadialGradient, PointGradient, GradientType
+from .plot import UIPlot, UIStream
 
 __all__ = [
     'Pivot',
@@ -44,4 +50,22 @@ __all__ = [
     'RangeSlider',
     'InputField',
     'MultiLineInput',
+    # Phase 4 — containers
+    'UIContainer',
+    'VBox',
+    'HBox',
+    'Grid',
+    'FreeContainer',
+    'ScrollContainer',
+    'SizeMode',
+    'Anchor',
+    'MouseMode',
+    # Phase 5 — gradients
+    'LinearGradient',
+    'RadialGradient',
+    'PointGradient',
+    'GradientType',
+    # Phase 7 — UI plot elements
+    'UIPlot',
+    'UIStream',
 ]

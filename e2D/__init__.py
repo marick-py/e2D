@@ -36,11 +36,15 @@ from ._pivot import Pivot
 from .ui import (
     UIManager, UITheme, Label, Button, Switch, Checkbox,
     Slider, RangeSlider, InputField, MultiLineInput,
+    UIContainer, VBox, HBox, Grid, FreeContainer, ScrollContainer,
+    SizeMode, Anchor,
     MONOKAI_THEME, DARK_THEME, LIGHT_THEME,
     SOLARIZED_DARK, SOLARIZED_LIGHT,
     NORD_THEME, DRACULA_THEME,
     TOKYO_NIGHT_THEME, HIGH_CONTRAST,
+    UIPlot, UIStream,
 )
+from .gradient import LinearGradient, RadialGradient, PointGradient, GradientType
 
 # Backward-compat alias
 Pivots = Pivot
@@ -947,6 +951,14 @@ class RootEnv:
                 self._fps_counter = 0
                 self._ups_counter = 0
                 self._fps_timer = 0.0
+            # Push live stats to the UI stats overlay (F2 panel)
+            self.ui.update_stats(
+                fps=self._fps_display,
+                delta=self.delta,
+                ups=self._ups_display,
+                fixed_dt=self._fixed_dt,
+                elapsed=self.runtime,
+            )
             
             if self.keyboard.get_key(Keys.X, KeyState.JUST_PRESSED):
                 glfw.set_window_should_close(self.window, True)
@@ -1063,6 +1075,23 @@ class RootEnv:
                                      corner_radius=corner_radius, border_color=border_color,
                                      border_width=border_width, antialiasing=antialiasing,
                                      layer=layer)
+
+    def draw_rect_gradient(self, position: Vector2D, size: Vector2D,
+                           gradient: 'GradientType',
+                           rotation: float = 0.0,
+                           corner_radius: float = 0.0,
+                           border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+                           border_width: float = 0.0,
+                           antialiasing: float = 1.0,
+                           opacity: float = 1.0,
+                           layer: int = 0) -> None:
+        """Queue a gradient rectangle.  See ShapeRenderer.draw_rect_gradient for parameters."""
+        self.shape_renderer.draw_rect_gradient(
+            position, size, gradient=gradient, rotation=rotation,
+            corner_radius=corner_radius, border_color=border_color,
+            border_width=border_width, antialiasing=antialiasing,
+            opacity=opacity, layer=layer,
+        )
 
     def draw_line(self, start: Vector2D, end: Vector2D,
                  width: float = 1.0,
@@ -1218,6 +1247,20 @@ __all__ = [
     'RangeSlider',
     'InputField',
     'MultiLineInput',
+    # Phase 4 — containers
+    'UIContainer',
+    'VBox',
+    'HBox',
+    'Grid',
+    'FreeContainer',
+    'ScrollContainer',
+    'SizeMode',
+    'Anchor',
+    # Phase 5 — gradients
+    'LinearGradient',
+    'RadialGradient',
+    'PointGradient',
+    'GradientType',
     # Input devices
     'Keyboard',
     'Mouse',

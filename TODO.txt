@@ -1,0 +1,3 @@
+example container last page top left?
+example gradients errors
+example stats +- not working, move menu, implement all menu in cycling as default

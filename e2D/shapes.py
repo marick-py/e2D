@@ -1,4 +1,5 @@
 from __future__ import annotations
+import struct as _struct
 import moderngl
 import numpy as np
 from .utils import get_pattr, get_pattr_value, set_pattr_value
@@ -6,8 +7,11 @@ from ._types import VAOType, ColorType, ContextType, ProgramType, BufferType
 from .colors import normalize_color
 from .palette import WHITE, BLACK, TRANSPARENT
 from .vectors import Vector2D
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union, TYPE_CHECKING
 from enum import Enum
+
+if TYPE_CHECKING:
+    from .gradient import LinearGradient, RadialGradient, PointGradient, GradientType
 
 
 class FillMode(Enum):
@@ -736,7 +740,238 @@ class ShapeRenderer:
         # (layer: int, type_char: str, *shape_data_floats)
         self._queue: list = []
 
-    # ========== CIRCLE ==========
+        # ===== Gradient Rectangle Shader =====
+        # Each gradient draw is a separate GL call (non-batched), queued as 'g'.
+        self._gradient_rect_prog = self.ctx.program(
+            vertex_shader="""
+            #version 430
+
+            uniform vec2 resolution;
+            uniform vec2 u_pos;       // top-left in screen coords (y-down)
+            uniform vec2 u_size;      // width, height in pixels
+            uniform float u_rotation; // radians
+
+            in vec2 in_vertex;  // -1..1 unit quad
+
+            out vec2 v_local_uv;  // 0..1 within element
+            out vec2 v_local_px;  // local offset in pixels from element centre
+
+            void main() {
+                v_local_uv = in_vertex * 0.5 + 0.5;
+
+                float hw = u_size.x * 0.5;
+                float hh = u_size.y * 0.5;
+                float cos_a = cos(u_rotation);
+                float sin_a = sin(u_rotation);
+                vec2 local = in_vertex * vec2(hw, hh);
+                vec2 rot = vec2(local.x * cos_a - local.y * sin_a,
+                                local.x * sin_a + local.y * cos_a);
+                v_local_px = rot;
+
+                vec2 centre = u_pos + u_size * 0.5;
+                vec2 world_pos = centre + rot;
+                vec2 ndc = (world_pos / resolution) * 2.0 - 1.0;
+                ndc.y = -ndc.y;
+                gl_Position = vec4(ndc, 0.0, 1.0);
+            }
+            """,
+            fragment_shader="""
+            #version 430
+
+            uniform vec2 u_size;
+            uniform float u_corner_r;
+            uniform vec4 u_border_color;
+            uniform float u_border_width;
+            uniform float u_aa;
+            uniform float u_opacity;
+
+            // Gradient  (0 = linear, 1 = radial)
+            uniform int   u_grad_type;
+            uniform float u_angle;         // linear: direction angle (radians)
+            uniform vec2  u_grad_center;   // radial: normalised center (0-1)
+            uniform float u_grad_radius;   // radial: radius fraction
+
+            // Colour stops — max 8
+            uniform int   u_num_stops;
+            uniform vec4  u_stop_colors[8];
+            uniform float u_stop_positions[8];
+
+            in vec2 v_local_uv;
+            in vec2 v_local_px;
+
+            out vec4 f_color;
+
+            float roundedBoxSDF(vec2 center, vec2 half_size, float radius) {
+                vec2 q = abs(center) - half_size + radius;
+                return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+            }
+
+            vec4 sample_gradient(float t) {
+                t = clamp(t, 0.0, 1.0);
+                if (t <= u_stop_positions[0])              return u_stop_colors[0];
+                if (t >= u_stop_positions[u_num_stops - 1]) return u_stop_colors[u_num_stops - 1];
+                for (int i = 0; i < u_num_stops - 1; i++) {
+                    if (t >= u_stop_positions[i] && t <= u_stop_positions[i + 1]) {
+                        float local_t = (t - u_stop_positions[i]) /
+                                        (u_stop_positions[i + 1] - u_stop_positions[i]);
+                        return mix(u_stop_colors[i], u_stop_colors[i + 1], local_t);
+                    }
+                }
+                return u_stop_colors[u_num_stops - 1];
+            }
+
+            void main() {
+                float dist = roundedBoxSDF(v_local_px, u_size * 0.5, u_corner_r);
+
+                float t;
+                if (u_grad_type == 0) {
+                    // Linear: project normalised UV onto direction vector
+                    vec2 dir = vec2(cos(u_angle), sin(u_angle));
+                    t = dot(v_local_uv - 0.5, dir) + 0.5;
+                } else {
+                    // Radial: distance from center, account for aspect ratio
+                    float smaller_dim = min(u_size.x, u_size.y);
+                    if (smaller_dim < 0.0001) smaller_dim = 0.0001;
+                    vec2 scaled = (v_local_uv - u_grad_center) * (u_size / smaller_dim);
+                    t = length(scaled) / max(u_grad_radius, 0.0001);
+                }
+
+                vec4 grad_c = sample_gradient(t);
+
+                if (u_border_width > 0.0) {
+                    float outer_d = abs(dist);
+                    float inner_d = abs(dist + u_border_width);
+                    float ao = 1.0 - smoothstep(0.0, u_aa, outer_d);
+                    float ai = 1.0 - smoothstep(0.0, u_aa, inner_d);
+                    float ba = ao * (1.0 - ai);
+                    float fa = 1.0 - smoothstep(-u_aa, u_aa, dist);
+                    vec4 fc  = vec4(grad_c.rgb, grad_c.a * fa * u_opacity);
+                    vec4 bc  = vec4(u_border_color.rgb, u_border_color.a * ba * u_opacity);
+                    f_color  = mix(fc, bc, ba / max(ba + fa * grad_c.a, 0.001));
+                } else {
+                    float alpha = 1.0 - smoothstep(-u_aa, u_aa, dist);
+                    f_color = vec4(grad_c.rgb, grad_c.a * alpha * u_opacity);
+                }
+            }
+            """
+        )
+
+        # Shared 6-vertex quad for gradient draws
+        _gq = np.array([
+            -1.0, -1.0,   1.0, -1.0,  -1.0,  1.0,
+             1.0, -1.0,  -1.0,  1.0,   1.0,  1.0,
+        ], dtype='f4')
+        self._grad_quad_vbo = self.ctx.buffer(_gq.tobytes())
+        self._grad_quad_vao = self.ctx.vertex_array(
+            self._gradient_rect_prog,
+            [(self._grad_quad_vbo, '2f', 'in_vertex')],
+        )
+
+        # ===== Point Gradient (IDW) Shader =====
+        # Inverse-distance weighting across up to 16 scattered colour points.
+        self._point_gradient_prog = self.ctx.program(
+            vertex_shader="""
+            #version 430
+
+            uniform vec2 resolution;
+            uniform vec2 u_pos;
+            uniform vec2 u_size;
+            uniform float u_rotation;
+
+            in vec2 in_vertex;
+
+            out vec2 v_local_uv;
+            out vec2 v_local_px;
+
+            void main() {
+                v_local_uv = in_vertex * 0.5 + 0.5;
+
+                float hw = u_size.x * 0.5;
+                float hh = u_size.y * 0.5;
+                float cos_a = cos(u_rotation);
+                float sin_a = sin(u_rotation);
+                vec2 local = in_vertex * vec2(hw, hh);
+                vec2 rot   = vec2(local.x * cos_a - local.y * sin_a,
+                                  local.x * sin_a + local.y * cos_a);
+                v_local_px = rot;
+
+                vec2 centre    = u_pos + u_size * 0.5;
+                vec2 world_pos = centre + rot;
+                vec2 ndc       = (world_pos / resolution) * 2.0 - 1.0;
+                ndc.y = -ndc.y;
+                gl_Position = vec4(ndc, 0.0, 1.0);
+            }
+            """,
+            fragment_shader="""
+            #version 430
+
+            uniform vec2  u_size;
+            uniform float u_corner_r;
+            uniform vec4  u_border_color;
+            uniform float u_border_width;
+            uniform float u_aa;
+            uniform float u_opacity;
+
+            // IDW point gradient — max 16 points
+            uniform int   u_num_points;
+            uniform vec2  u_pt_pos[16];     // UV space (0..1)
+            uniform vec4  u_pt_color[16];
+            uniform float u_power;           // IDW exponent
+
+            in vec2 v_local_uv;
+            in vec2 v_local_px;
+
+            out vec4 f_color;
+
+            float roundedBoxSDF(vec2 center, vec2 half_size, float radius) {
+                vec2 q = abs(center) - half_size + radius;
+                return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+            }
+
+            vec4 idw_color(vec2 uv) {
+                vec4  color_sum = vec4(0.0);
+                float weight_sum = 0.0;
+                float min_dist   = 1e9;
+                int   min_idx    = 0;
+
+                for (int i = 0; i < u_num_points; i++) {
+                    float d = distance(uv, u_pt_pos[i]);
+                    if (d < min_dist) { min_dist = d; min_idx = i; }
+                    float w = 1.0 / pow(max(d, 1e-6), u_power);
+                    color_sum  += u_pt_color[i] * w;
+                    weight_sum += w;
+                }
+                // Exact hit: avoid division near zero producing wrong colour
+                if (min_dist < 1e-4) return u_pt_color[min_idx];
+                return color_sum / max(weight_sum, 1e-9);
+            }
+
+            void main() {
+                float dist  = roundedBoxSDF(v_local_px, u_size * 0.5, u_corner_r);
+                vec4  grad_c = idw_color(v_local_uv);
+
+                if (u_border_width > 0.0) {
+                    float outer_d = abs(dist);
+                    float inner_d = abs(dist + u_border_width);
+                    float ao = 1.0 - smoothstep(0.0, u_aa, outer_d);
+                    float ai = 1.0 - smoothstep(0.0, u_aa, inner_d);
+                    float ba = ao * (1.0 - ai);
+                    float fa = 1.0 - smoothstep(-u_aa, u_aa, dist);
+                    vec4 fc  = vec4(grad_c.rgb, grad_c.a * fa * u_opacity);
+                    vec4 bc  = vec4(u_border_color.rgb, u_border_color.a * ba * u_opacity);
+                    f_color  = mix(fc, bc, ba / max(ba + fa * grad_c.a, 0.001));
+                } else {
+                    float alpha = 1.0 - smoothstep(-u_aa, u_aa, dist);
+                    f_color = vec4(grad_c.rgb, grad_c.a * alpha * u_opacity);
+                }
+            }
+            """
+        )
+        self._point_grad_vao = self.ctx.vertex_array(
+            self._point_gradient_prog,
+            [(self._grad_quad_vbo, '2f', 'in_vertex')],
+        )
+
     
     def _generate_circle_vertices(self, center: Vector2D, radius: float, 
                                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
@@ -927,6 +1162,176 @@ class ShapeRenderer:
         vbo = self.ctx.buffer(data.tobytes())
         
         return ShapeLabel(self.ctx, self.rect_prog, vbo, 6, 'rect')
+
+    def draw_rect_gradient(
+        self,
+        position: Vector2D,
+        size: Vector2D,
+        gradient: 'GradientType',
+        rotation: float = 0.0,
+        corner_radius: float = 0.0,
+        border_color: ColorType = (0.0, 0.0, 0.0, 0.0),
+        border_width: float = 0.0,
+        antialiasing: float = 1.0,
+        opacity: float = 1.0,
+        layer: int = 0,
+    ) -> None:
+        """Queue a gradient-filled rectangle for deferred, layer-sorted rendering.
+
+        Unlike :meth:`draw_rect`, each gradient rect is a *separate GL draw
+        call* (gradient data is passed as per-call shader uniforms and cannot
+        be batched).  This overhead is negligible for typical UI element counts.
+
+        Args:
+            position:      Top-left corner in screen coordinates.
+            size:          ``(width, height)`` in pixels.
+            gradient:      :class:`~e2D.gradient.LinearGradient` or
+                           :class:`~e2D.gradient.RadialGradient` instance.
+            rotation:      Rotation angle in radians around the element centre.
+            corner_radius: Rounded-corner radius in pixels.
+            border_color:  ``(r, g, b, a)`` border colour.
+            border_width:  Border width in pixels (``0`` = no border).
+            antialiasing:  Antialiasing smoothness in pixels.
+            opacity:       Overall opacity multiplier (0.0 – 1.0).
+            layer:         Draw order.  Lower values render first (behind higher).
+        """
+        # Capture all args in a closure so the lambda is fully self-contained.
+        _pos = (float(position[0]), float(position[1]))
+        _sz  = (float(size[0]),     float(size[1]))
+        _bc  = (float(border_color[0]), float(border_color[1]),
+                float(border_color[2]), float(border_color[3]))
+        _cr  = float(corner_radius)
+        _bw  = float(border_width)
+        _aa  = float(antialiasing)
+        _rot = float(rotation)
+        _op  = float(opacity)
+        _grad = gradient
+
+        self._queue.append((layer, 'g',
+            lambda: self._exec_gradient_draw(_pos, _sz, _grad, _rot, _cr, _bc, _bw, _aa, _op)
+        ))
+
+    def _exec_gradient_draw(
+        self,
+        pos:          tuple[float, float],
+        size:         tuple[float, float],
+        gradient:     'GradientType',
+        rotation:     float,
+        corner_r:     float,
+        border_color: tuple[float, float, float, float],
+        border_width: float,
+        aa:           float,
+        opacity:      float,
+    ) -> None:
+        """Execute a single gradient rect draw call immediately."""
+        from .gradient import LinearGradient, PointGradient
+
+        # Dispatch point-gradient to its own program
+        if isinstance(gradient, PointGradient):
+            self._exec_point_gradient_draw(
+                pos, size, gradient, rotation, corner_r,
+                border_color, border_width, aa, opacity,
+            )
+            return
+
+        prog = self._gradient_rect_prog
+        vp   = self.ctx.viewport
+        prog['resolution']    = (float(vp[2]), float(vp[3]))
+        prog['u_pos']         = pos
+        prog['u_size']        = size
+        prog['u_corner_r']    = corner_r
+        prog['u_border_color']= border_color
+        prog['u_border_width']= border_width
+        prog['u_aa']          = aa
+        prog['u_rotation']    = rotation
+        prog['u_opacity']     = opacity
+
+        if isinstance(gradient, LinearGradient):
+            prog['u_grad_type']   = 0
+            prog['u_angle']       = float(gradient.angle)
+        else:                            # RadialGradient
+            prog['u_grad_type']   = 1
+            c = gradient.center
+            prog['u_grad_center'] = (float(c[0]), float(c[1]))
+            prog['u_grad_radius'] = float(gradient.radius)
+
+        stops = gradient.stops[:8]
+        n     = len(stops)
+        prog['u_num_stops'] = n
+        colors_flat:    list[float] = []
+        positions_flat: list[float] = []
+        for i in range(8):
+            if i < n:
+                clr, spos = stops[i]
+                if hasattr(clr, 'r'):
+                    colors_flat += [clr.r, clr.g, clr.b, clr.a]
+                else:
+                    v = [float(x) for x in clr]
+                    colors_flat += (v + [1.0, 1.0, 1.0, 1.0])[:4]
+                positions_flat.append(float(spos))
+            else:
+                colors_flat += [0.0, 0.0, 0.0, 0.0]
+                positions_flat.append(0.0)
+        prog['u_stop_colors'].write(_struct.pack('32f', *colors_flat))
+        prog['u_stop_positions'].write(_struct.pack('8f', *positions_flat))
+
+        self.ctx.enable(moderngl.BLEND)
+        self._grad_quad_vao.render(moderngl.TRIANGLES)
+
+    def _exec_point_gradient_draw(
+        self,
+        pos:          tuple[float, float],
+        size:         tuple[float, float],
+        gradient:     'PointGradient',
+        rotation:     float,
+        corner_r:     float,
+        border_color: tuple[float, float, float, float],
+        border_width: float,
+        aa:           float,
+        opacity:      float,
+    ) -> None:
+        """Execute a single IDW point-gradient rect draw call immediately."""
+        prog = self._point_gradient_prog
+        vp   = self.ctx.viewport
+        prog['resolution']    = (float(vp[2]), float(vp[3]))
+        prog['u_pos']         = pos
+        prog['u_size']        = size
+        prog['u_corner_r']    = corner_r
+        prog['u_border_color']= border_color
+        prog['u_border_width']= border_width
+        prog['u_aa']          = aa
+        prog['u_rotation']    = rotation
+        prog['u_opacity']     = opacity
+        prog['u_power']       = float(gradient.power)
+
+        pts = gradient.points[:16]
+        n   = len(pts)
+        prog['u_num_points'] = n
+        sw, sh = float(size[0]), float(size[1])
+        pos_flat:   list[float] = []
+        color_flat: list[float] = []
+        for i in range(16):
+            if i < n:
+                pt, clr = pts[i]
+                px, py = float(pt[0]), float(pt[1])
+                if not gradient.normalized:
+                    px = px / sw if sw > 0 else 0.0
+                    py = py / sh if sh > 0 else 0.0
+                pos_flat += [px, py]
+                if hasattr(clr, 'r'):
+                    color_flat += [clr.r, clr.g, clr.b, clr.a]
+                else:
+                    v = [float(x) for x in clr]
+                    color_flat += (v + [1.0, 1.0, 1.0, 1.0])[:4]
+            else:
+                pos_flat   += [0.0, 0.0]
+                color_flat += [0.0, 0.0, 0.0, 0.0]
+        prog['u_pt_pos'].write(_struct.pack('32f', *pos_flat))
+        prog['u_pt_color'].write(_struct.pack('64f', *color_flat))
+
+        self.ctx.enable(moderngl.BLEND)
+        self._point_grad_vao.render(moderngl.TRIANGLES)
+
     
     # ========== LINES ==========
     
@@ -1112,32 +1517,41 @@ class ShapeRenderer:
     def flush_queue(self) -> None:
         """Flush all queued draw_circle / draw_rect / draw_line calls.
 
-        Sorts by (layer, type) so shapes at lower layer values are drawn first.
-        Within the same layer, all circles are batched together, then lines,
-        then rects — minimising GPU draw call count regardless of how many
-        shapes were queued.
+        Sorts by layer so shapes at lower layer values are drawn first.
+        Within the same layer the original insertion order is preserved
+        (Python's sort is stable) so that draw-call sequence matches the
+        order the user issued them in ``draw()``.
+
+        Consecutive same-type items are still batched into a single GPU
+        draw call for performance; a batch is flushed whenever the type
+        **or** the layer changes.
 
         Called automatically by RootEnv at the end of every frame.
         """
         if not self._queue:
             return
 
-        # Sort by (layer, type_char): groups same-type shapes within each layer
-        self._queue.sort(key=lambda x: (x[0], x[1]))
+        # Stable sort by layer only — preserves insertion order within
+        # each layer so backgrounds are drawn before foreground shapes.
+        self._queue.sort(key=lambda x: x[0])
 
         current_type: str | None = None
+        current_layer: int | None = None
         for cmd in self._queue:
-            typ = cmd[1]
-            if typ != current_type:
-                # Flush the previously accumulated batch before switching type
+            layer = cmd[0]
+            typ   = cmd[1]
+            if typ != current_type or layer != current_layer:
+                # Flush the previously accumulated batch before switching
+                # type or layer to maintain correct draw ordering.
                 if current_type == 'c':
                     self._q_circle.flush()
                 elif current_type == 'r':
                     self._q_rect.flush()
                 elif current_type == 'l':
                     self._q_line.flush()
-                # 't' (text callables) have no batch to flush
-                current_type = typ
+                # 't' / 'g' (callables) have no batch to flush
+                current_type  = typ
+                current_layer = layer
 
             if typ == 'c':
                 self._q_circle.instance_data.extend(cmd[2:])
@@ -1151,6 +1565,9 @@ class ShapeRenderer:
             elif typ == 't':
                 # Each 't' entry is a deferred text-draw callable — execute immediately
                 cmd[2]()
+            elif typ == 'g':
+                # Each 'g' entry is a deferred gradient-draw callable — execute immediately
+                cmd[2]()
 
         # Flush the last active batch
         if current_type == 'c':
@@ -1159,7 +1576,6 @@ class ShapeRenderer:
             self._q_rect.flush()
         elif current_type == 'l':
             self._q_line.flush()
-        # 't' has no batch to flush
 
         self._queue.clear()
 

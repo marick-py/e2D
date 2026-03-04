@@ -435,6 +435,21 @@ class Slider(UIElement):
                 self._on_change(v)
 
     # ---------------------------------------------------------------------------
+    # Debug info
+    # ---------------------------------------------------------------------------
+
+    def _debug_info(self) -> list[tuple[str, str]]:
+        rows = super()._debug_info()
+        rows += [
+            ("value",  self._fmt(self._value)),
+            ("range",  f"{self._fmt(self.start)} -> {self._fmt(self.end)}"),
+            ("step",   str(self.step) if self.step is not None else "continuous"),
+            ("orient", self.orientation),
+            ("drag",   "yes" if self._dragging else "no"),
+        ]
+        return rows
+
+    # ---------------------------------------------------------------------------
     # Cleanup
     # ---------------------------------------------------------------------------
 
@@ -875,6 +890,24 @@ class RangeSlider(UIElement):
                 self._high_frac = self._to_frac(v)
                 if self._on_change:
                     self._on_change(self._low, self._high)
+
+    # ---------------------------------------------------------------------------
+    # Debug info
+    # ---------------------------------------------------------------------------
+
+    def _debug_info(self) -> list[tuple[str, str]]:
+        def _fmt(v: float) -> str:
+            return str(int(v)) if (self.step is not None and self.step >= 1) else f"{v:.2f}"
+        rows = super()._debug_info()
+        rows += [
+            ("low",    _fmt(self._low)),
+            ("high",   _fmt(self._high)),
+            ("range",  f"{_fmt(self.start)} -> {_fmt(self.end)}"),
+            ("step",   str(self.step) if self.step is not None else "continuous"),
+            ("orient", self.orientation),
+            ("drag",   str(self._drag_handle)),
+        ]
+        return rows
 
     # ---------------------------------------------------------------------------
     # Cleanup

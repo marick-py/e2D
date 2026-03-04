@@ -8,6 +8,7 @@ layout(std140, binding=0) uniform View {
 
 uniform vec4 grid_color;
 uniform vec4 axis_color;
+uniform vec4 bg_color;
 uniform float spacing;
 uniform bool show_grid;
 uniform bool show_axis;
@@ -42,6 +43,10 @@ void main() {
         }
     }
     
-    if (final_color.a <= 0.0) discard;
+    if (final_color.a <= 0.0) {
+        // No grid/axis here — output background color (supports transparency)
+        color = bg_color;
+        return;
+    }
     color = final_color;
 }
