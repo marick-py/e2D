@@ -1116,6 +1116,15 @@ class UIManager:
         separable Gaussian blur (horizontal + vertical) into _blur_pong_fbo.
 
         The blurred texture can then be sampled via ``_blur_pong_tex``."""
+        if  self._blur_capture_fbo is None or \
+            self._blur_capture_tex is None or\
+            self._blur_ping_fbo is None or\
+            self._blur_prog is None or \
+            self._blur_quad_vao is None or \
+            self._blur_pong_fbo is None or \
+            self._blur_ping_tex is None:
+            raise RuntimeError("One or more required blur FBOs or textures not initialized")
+        
         vp = self.ctx.viewport
         w, h = float(vp[2]), float(vp[3])
 
@@ -1128,9 +1137,13 @@ class UIManager:
         except Exception:
             # Fallback: CPU readback (slower ~1-3 ms but always works)
             data = self.ctx.screen.read(components=4)
-            self._blur_capture_tex.write(data)
+            if self._blur_capture_tex is not None:
+                self._blur_capture_tex.write(data)
+            else:
+                raise RuntimeError("Blur capture texture not initialized")
 
         # Horizontal pass:  capture → ping
+
         self._blur_ping_fbo.use()
         self.ctx.clear(0.0, 0.0, 0.0, 0.0)
         self._blur_capture_tex.use(0)
@@ -1157,6 +1170,11 @@ class UIManager:
         Call this immediately before ``elem.draw()`` when ``elem.blur`` is
         True.
         """
+        if self._blur_pong_tex is None or\
+            self._blur_blit_prog is None or\
+            self._blur_blit_vao is None:
+            raise RuntimeError("Blur FBOs, shader, or VAO not initialized")
+
         vp      = self.ctx.viewport
         w, h    = float(vp[2]), float(vp[3])
         rx, ry, rw, rh = elem.get_screen_rect()

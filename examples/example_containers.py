@@ -45,8 +45,8 @@ from e2D._pivot import Pivot
 # Constants
 # ─────────────────────────────────────────────────────────────────────────────
 
-WIN_W   = 1100
-WIN_H   = 700
+WIN_W   = 1920
+WIN_H   = 1080
 SIDE_W  = 220       # sidebar width
 HEADER  = 50        # top bar height
 PANEL_X = SIDE_W

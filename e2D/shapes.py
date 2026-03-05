@@ -2,7 +2,7 @@ from __future__ import annotations
 import struct as _struct
 import moderngl
 import numpy as np
-from .utils import get_pattr, get_pattr_value, set_pattr_value
+from .utils import get_pattr, get_pattr_value, set_pattr_value, set_pattr_value_packed
 from ._types import VAOType, ColorType, ContextType, ProgramType, BufferType, FloatVec2
 from .colors import normalize_color
 from .palette import WHITE, BLACK, TRANSPARENT
@@ -1272,8 +1272,9 @@ class ShapeRenderer:
             else:
                 colors_flat += [0.0, 0.0, 0.0, 0.0]
                 positions_flat.append(0.0)
-        prog['u_stop_colors'].write(_struct.pack('32f', *colors_flat))
-        prog['u_stop_positions'].write(_struct.pack('8f', *positions_flat))
+        
+        set_pattr_value_packed(prog, 'u_stop_colors', '32f', colors_flat)
+        set_pattr_value_packed(prog, 'u_stop_positions', '8f', positions_flat)
 
         self.ctx.enable(moderngl.BLEND)
         self._grad_quad_vao.render(moderngl.TRIANGLES)
@@ -1326,8 +1327,8 @@ class ShapeRenderer:
             else:
                 pos_flat   += [0.0, 0.0]
                 color_flat += [0.0, 0.0, 0.0, 0.0]
-        prog['u_pt_pos'].write(_struct.pack('32f', *pos_flat))
-        prog['u_pt_color'].write(_struct.pack('64f', *color_flat))
+        set_pattr_value_packed(prog, 'u_pt_pos', '32f', pos_flat)
+        set_pattr_value_packed(prog, 'u_pt_color', '64f', color_flat)
 
         self.ctx.enable(moderngl.BLEND)
         self._point_grad_vao.render(moderngl.TRIANGLES)
