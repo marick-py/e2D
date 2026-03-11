@@ -28,6 +28,7 @@ from ._types import (
 # Import original e2D modules
 from .text import DEFAULT_16_TEXT_STYLE, MONO_16_TEXT_STYLE, DEFAULT_32_TEXT_STYLE, MONO_32_TEXT_STYLE, TextRenderer, TextLabel, TextStyle
 from .shapes import ShapeRenderer, ShapeLabel, InstancedShapeBatch, FillMode
+from .image import ImageLabel, ImageRenderer, ScaleMode
 from .input import Keyboard, Mouse, KeyState, Keys, MouseButtons
 from .utils import get_pattr, get_pattr_value, set_pattr_value, get_uniform, PI, PI_HALF, PI_QUARTER, TAU
 
@@ -279,6 +280,10 @@ class WindowConfig:
     alpha_bits: int
     depth_bits: int
     stencil_bits: int
+
+    # Transparent / overlay window
+    transparent: bool
+    click_through: bool
     
     def __init__(
         self,
@@ -321,6 +326,10 @@ class WindowConfig:
         alpha_bits: int = 8,
         depth_bits: int = 24,
         stencil_bits: int = 8,
+
+        # Transparent / overlay window
+        transparent: bool = False,
+        click_through: bool = False,
     ) -> None:
         """Initialize window configuration with all GLFW settings.
         
@@ -347,6 +356,12 @@ class WindowConfig:
             red_bits, green_bits, blue_bits, alpha_bits: Color channel bit depths
             depth_bits: Depth buffer bit depth
             stencil_bits: Stencil buffer bit depth
+            transparent: Use a transparent framebuffer — the OS compositor uses the alpha
+                channel so areas cleared to alpha=0 show as fully transparent.  Combine
+                with ``decorated=False`` and ``floating=True`` for an overlay window.
+            click_through: (Windows only) Mouse events pass through the window to
+                whatever is beneath it.  Can be toggled at runtime via
+                :meth:`RootEnv.set_click_through`.
         """
         # Convert size to Vector2D if needed
         if isinstance(size, tuple):
@@ -385,6 +400,9 @@ class WindowConfig:
         self.alpha_bits = alpha_bits
         self.depth_bits = depth_bits
         self.stencil_bits = stencil_bits
+
+        self.transparent = transparent
+        self.click_through = click_through
     
     def get_monitor(self) -> Optional[glfw._GLFWmonitor]:
         """Get the monitor object for this configuration.
@@ -430,6 +448,10 @@ class WindowConfig:
         # MSAA
         if self.samples > 0:
             glfw.window_hint(glfw.SAMPLES, self.samples)
+
+        # Transparent framebuffer: OS compositor blends using the alpha channel
+        if self.transparent:
+            glfw.window_hint(glfw.TRANSPARENT_FRAMEBUFFER, glfw.TRUE)
 
 
 class RootEnv:
@@ -537,6 +559,12 @@ class RootEnv:
         
         # VSync control - must be set AFTER context creation
         glfw.swap_interval(1 if config.vsync else 0)
+
+        # Transparent window state
+        self._transparent = config.transparent
+        self._click_through = False
+        if config.transparent and config.click_through:
+            self._apply_click_through(True)
 
         print(f"OpenGL Context: {self.ctx.version_code} / {self.ctx.info['GL_RENDERER']}")
         
@@ -685,7 +713,48 @@ class RootEnv:
     def restore_window(self) -> None:
         """Restore the window from maximized or minimized state."""
         glfw.restore_window(self.window)
-    
+
+    @property
+    def transparent(self) -> bool:
+        """Whether the window uses a transparent framebuffer."""
+        return self._transparent
+
+    def set_click_through(self, enabled: bool) -> None:
+        """Enable or disable click-through so mouse events pass through the window.
+
+        Only works on Windows.  Requires the window to have been created with
+        ``transparent=True`` in :class:`WindowConfig` (the LAYERED style flag
+        depends on the transparent framebuffer being active).
+
+        Can be called at any time after the window is created, allowing you to
+        temporarily re-enable input (e.g. while hovering over a UI widget) then
+        re-enable pass-through afterwards.
+
+        Args:
+            enabled: ``True`` to make mouse events pass through, ``False`` to
+                     restore normal window input handling.
+        """
+        self._apply_click_through(enabled)
+
+    def _apply_click_through(self, enabled: bool) -> None:
+        """Internal: toggle WS_EX_TRANSPARENT on the Win32 HWND."""
+        if sys.platform != 'win32':
+            return
+        try:
+            hwnd = glfw.get_win32_window(self.window)
+            GWL_EXSTYLE     = -20
+            WS_EX_LAYERED   = 0x00080000
+            WS_EX_TRANSPARENT = 0x00000020
+            style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+            if enabled:
+                style |= WS_EX_LAYERED | WS_EX_TRANSPARENT
+            else:
+                style &= ~WS_EX_TRANSPARENT
+            ctypes.windll.user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+            self._click_through = enabled
+        except Exception as e:
+            print(f"Warning: set_click_through failed: {e}")
+
     def _on_resize(self, window: WindowType, width: int, height: int) -> None:
         self.window_size.set(width, height)
         fb_size = glfw.get_framebuffer_size(window)
@@ -739,7 +808,7 @@ class RootEnv:
         return self.programs.get(id, None)
     
     def __draw__(self) -> None:
-        self.ctx.clear(0.0, 0.0, 0.0, 1.0)
+        self.ctx.clear(0.0, 0.0, 0.0, 0.0 if self._transparent else 1.0)
         self.env.draw()
         # Flush all queued draw_circle / draw_rect / draw_line calls now that
         # the user's draw() has finished enqueuing everything for this frame.
@@ -1161,6 +1230,183 @@ class RootEnv:
         """Create a batch for drawing multiple lines using GPU instancing."""
         return self.shape_renderer.create_line_batch(max_shapes)
 
+    # ========== Image Methods ==========
+
+    def create_image(self, array: 'np.ndarray') -> ImageLabel:
+        """Upload a numpy array as a cached GPU image (ImageLabel).
+
+        Args:
+            array: Image data — ``(H, W, 4)`` RGBA, ``(H, W, 3)`` RGB, or
+                   ``(H, W)`` grayscale.  uint8 or float32 (0..1) accepted.
+
+        Returns:
+            An :class:`ImageLabel` ready to be passed to
+            :meth:`draw_image` or :meth:`draw_image_centered`.
+        """
+        return self.shape_renderer.create_image(array)
+
+    def load_image(self, path: str) -> ImageLabel:
+        """Load an image file and return a cached GPU ImageLabel.  Requires Pillow.
+
+        Args:
+            path: Absolute or relative path to the image file
+                  (PNG, JPG, BMP, WEBP, ...).
+
+        Returns:
+            An :class:`ImageLabel` ready to be passed to
+            :meth:`draw_image` or :meth:`draw_image_centered`.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ImportError: If Pillow is not installed.
+        """
+        return self.shape_renderer.load_image(path)
+
+    def draw_image(
+        self,
+        label: ImageLabel,
+        top_left: Vector2D,
+        bottom_right: Vector2D,
+        scale_mode: ScaleMode = ScaleMode.STRETCH,
+        rotation: float = 0.0,
+        tint: ColorType = (1.0, 1.0, 1.0, 1.0),
+        opacity: float = 1.0,
+        pivot_uv: FloatVec2 = (0.5, 0.5),
+        corner_radius: float = 0.0,
+        antialiasing: float = 1.0,
+        flip_x: bool = False,
+        flip_y: bool = False,
+        layer: int = 0,
+    ) -> None:
+        """Queue an image for deferred, layer-sorted rendering (corners mode).
+
+        The image fills the axis-aligned rectangle defined by *top_left* and
+        *bottom_right*.  Use *scale_mode* to control how the image is scaled
+        or cropped inside that rectangle.
+
+        Args:
+            label:         :class:`ImageLabel` from :meth:`create_image` or :meth:`load_image`.
+            top_left:      Screen-space top-left corner.
+            bottom_right:  Screen-space bottom-right corner.
+            scale_mode:    :class:`ScaleMode` — STRETCH, FIT, FIT_WIDTH,
+                           FIT_HEIGHT, FILL, or PIXEL_PERFECT.
+            rotation:      Rotation in radians around the *pivot_uv* point.
+            tint:          ``(r, g, b, a)`` colour multiply (white = no tint).
+            opacity:       Global alpha multiplier (0.0 – 1.0).
+            pivot_uv:      Rotation pivot in 0..1 UV space; default ``(0.5, 0.5)``
+                           is the image centre.
+            corner_radius: Rounded-corner clip radius in pixels.
+            antialiasing:  Corner edge softness in pixels.
+            flip_x:        Mirror image horizontally.
+            flip_y:        Mirror image vertically.
+            layer:         Draw order — lower values render first.
+        """
+        self.shape_renderer.draw_image(
+            label,
+            top_left=(top_left[0], top_left[1]),
+            bottom_right=(bottom_right[0], bottom_right[1]),
+            scale_mode=scale_mode, rotation=rotation, tint=tint, opacity=opacity,
+            pivot_uv=pivot_uv, corner_radius=corner_radius, antialiasing=antialiasing,
+            flip_x=flip_x, flip_y=flip_y, layer=layer,
+        )
+
+    def draw_image_centered(
+        self,
+        label: ImageLabel,
+        center: Vector2D,
+        display_width: Optional[float] = None,
+        display_height: Optional[float] = None,
+        scale: float = 1.0,
+        scale_mode: ScaleMode = ScaleMode.STRETCH,
+        rotation: float = 0.0,
+        tint: ColorType = (1.0, 1.0, 1.0, 1.0),
+        opacity: float = 1.0,
+        pivot_uv: FloatVec2 = (0.5, 0.5),
+        corner_radius: float = 0.0,
+        antialiasing: float = 1.0,
+        flip_x: bool = False,
+        flip_y: bool = False,
+        layer: int = 0,
+    ) -> None:
+        """Queue an image for deferred, layer-sorted rendering (center + scale mode).
+
+        The image is positioned so its *pivot_uv* point coincides with *center*.
+        If *display_width* / *display_height* are omitted the image is shown at
+        its natural pixel size, then multiplied by *scale*.
+
+        Args:
+            label:          :class:`ImageLabel` from :meth:`create_image` or :meth:`load_image`.
+            center:         Screen-space centre position.
+            display_width:  Destination width in pixels (``None`` = natural width).
+            display_height: Destination height in pixels (``None`` = natural height).
+            scale:          Uniform scale multiplier (applied after display_width/height).
+            scale_mode:     :class:`ScaleMode` — STRETCH, FIT, FIT_WIDTH,
+                            FIT_HEIGHT, FILL, or PIXEL_PERFECT.
+            rotation:       Rotation in radians around *pivot_uv*.
+            tint:           ``(r, g, b, a)`` colour multiply (white = no tint).
+            opacity:        Global alpha multiplier (0.0 – 1.0).
+            pivot_uv:       Rotation pivot in 0..1 UV space; default ``(0.5, 0.5)``.
+            corner_radius:  Rounded-corner clip radius in pixels.
+            antialiasing:   Corner edge softness in pixels.
+            flip_x:         Mirror image horizontally.
+            flip_y:         Mirror image vertically.
+            layer:          Draw order — lower values render first.
+        """
+        self.shape_renderer.draw_image_centered(
+            label,
+            center=(center[0], center[1]),
+            display_width=display_width, display_height=display_height,
+            scale=scale, scale_mode=scale_mode, rotation=rotation, tint=tint,
+            opacity=opacity, pivot_uv=pivot_uv, corner_radius=corner_radius,
+            antialiasing=antialiasing, flip_x=flip_x, flip_y=flip_y, layer=layer,
+        )
+
+    def create_streaming_image(self, width: int, height: int, channels: int = 3) -> ImageLabel:
+        """Pre-allocate a GPU texture for streaming / video-feed use.
+
+        The texture is allocated once with uninitialised pixel data.
+        Call :meth:`update_image` every frame to push new pixel data without
+        any GPU memory allocation overhead.
+
+        Args:
+            width:    Texture width in pixels.
+            height:   Texture height in pixels.
+            channels: Channel count — 1 (R), 2 (RG), 3 (RGB) or 4 (RGBA).
+                      Use 3 for typical RGB camera/screen-capture feeds.
+
+        Returns:
+            :class:`ImageLabel` ready to be passed to :meth:`draw_image` or
+            :meth:`draw_image_centered`.
+
+        Example::
+
+            # Setup (once)
+            stream = env.create_streaming_image(1920, 1080, channels=3)
+
+            # Every frame
+            frame = cam.get_latest_frame()
+            if frame is not None:
+                env.update_image(stream, frame)
+            env.draw_image(stream, (0, 0), env.window_size)
+        """
+        return self.shape_renderer.create_streaming_image(width, height, channels)
+
+    def update_image(self, label: ImageLabel, array: 'np.ndarray') -> None:
+        """Push new pixel data into a pre-allocated ImageLabel (zero GPU allocation).
+
+        Uses ``texture.write()`` on the existing texture buffer — no allocation
+        occurs on either CPU or GPU.  Designed for streaming / video-feed use.
+
+        The array spatial dimensions must match those used when the
+        ``ImageLabel`` was created.  Channel counts are coerced automatically.
+
+        Args:
+            label: :class:`ImageLabel` to update.
+            array: New pixel data.  Typically ``(H, W, 3)`` uint8 from a
+                   camera or screen capture.
+        """
+        self.shape_renderer.update_image(label, array)
+
 
 # Export all public symbols for easy access
 __all__ = [
@@ -1279,4 +1525,8 @@ __all__ = [
     'PI_HALF',
     'PI_QUARTER',
     'TAU',
+    # Image rendering
+    'ImageLabel',
+    'ImageRenderer',
+    'ScaleMode',
 ]

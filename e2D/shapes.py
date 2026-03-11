@@ -9,6 +9,7 @@ from .palette import WHITE, BLACK, TRANSPARENT
 from .vectors import Vector2D
 from typing import Optional, Sequence, Union, TYPE_CHECKING
 from enum import Enum
+from .image import ImageRenderer, ImageLabel, ScaleMode
 
 if TYPE_CHECKING:
     from .gradient import LinearGradient, RadialGradient, PointGradient, GradientType
@@ -972,6 +973,9 @@ class ShapeRenderer:
             [(self._grad_quad_vbo, '2f', 'in_vertex')],
         )
 
+        # ===== Image renderer =====
+        self.image_renderer = ImageRenderer(ctx)
+
     
     def _generate_circle_vertices(self, center: Vector2D, radius: float, 
                                   color: ColorType = (1.0, 1.0, 1.0, 1.0),
@@ -1569,6 +1573,9 @@ class ShapeRenderer:
             elif typ == 'g':
                 # Each 'g' entry is a deferred gradient-draw callable — execute immediately
                 cmd[2]()
+            elif typ == 'i':
+                # Each 'i' entry is a deferred image-draw callable — execute immediately
+                cmd[2]()
 
         # Flush the last active batch
         if current_type == 'c':
@@ -1579,6 +1586,18 @@ class ShapeRenderer:
             self._q_line.flush()
 
         self._queue.clear()
+
+    def queue_image_call(self, layer: int, fn) -> None:
+        """Enqueue a deferred image-draw callable at the given layer.
+
+        The callable ``fn`` will be invoked during ``flush_queue()`` in
+        layer-sorted order, interleaved with shape and text batches.
+
+        Args:
+            layer: Render layer (higher = drawn later / on top).
+            fn:    Zero-argument callable that performs the image draw.
+        """
+        self._queue.append((layer, 'i', fn))
 
     def queue_text_call(self, layer: int, fn) -> None:
         """Enqueue a deferred text-draw callable at the given layer.
@@ -1616,3 +1635,146 @@ class ShapeRenderer:
             max_shapes: Maximum number of lines in the batch
         """
         return InstancedShapeBatch(self.ctx, self.line_instanced_prog, 'line', max_shapes)
+
+    # ========== IMAGE DRAWING ==========
+
+    def create_image(self, array: 'np.ndarray') -> ImageLabel:
+        """Upload a numpy array as an ImageLabel (GPU texture).
+
+        Args:
+            array: ``(H, W, 4)`` RGBA, ``(H, W, 3)`` RGB, or ``(H, W)`` grayscale.
+                   uint8 or float32 (0..1) are both accepted.
+
+        Returns:
+            ImageLabel ready to be passed to draw_image / draw_image_centered.
+        """
+        return self.image_renderer.create_image(array)
+
+    def load_image(self, path: str) -> ImageLabel:
+        """Load an image file and return a cached ImageLabel.  Requires Pillow.
+
+        Args:
+            path: File path (PNG, JPG, BMP, WEBP, …).
+
+        Returns:
+            ImageLabel ready to be passed to draw_image / draw_image_centered.
+        """
+        return self.image_renderer.load_image(path)
+
+    def draw_image(
+        self,
+        label: ImageLabel,
+        top_left: 'FloatVec2',
+        bottom_right: 'FloatVec2',
+        scale_mode: ScaleMode = ScaleMode.STRETCH,
+        rotation: float = 0.0,
+        tint: ColorType = (1.0, 1.0, 1.0, 1.0),
+        opacity: float = 1.0,
+        pivot_uv: 'FloatVec2' = (0.5, 0.5),
+        corner_radius: float = 0.0,
+        antialiasing: float = 1.0,
+        flip_x: bool = False,
+        flip_y: bool = False,
+        layer: int = 0,
+    ) -> None:
+        """Queue an image for deferred, layer-sorted rendering (corners mode).
+
+        Args:
+            label:         ImageLabel created by create_image() or load_image().
+            top_left:      Screen-space top-left corner (x, y).
+            bottom_right:  Screen-space bottom-right corner (x, y).
+            scale_mode:    How to scale/crop the image inside the rect.
+            rotation:      Rotation in radians, around the pivot point.
+            tint:          (r, g, b, a) colour multiplier.
+            opacity:       Global opacity (0.0 – 1.0).
+            pivot_uv:      Rotation pivot in 0..1 UV space (default centre).
+            corner_radius: Rounded-corner clip radius in pixels.
+            antialiasing:  Corner edge softness in pixels.
+            flip_x:        Mirror image horizontally.
+            flip_y:        Mirror image vertically.
+            layer:         Draw order (lower = behind).
+        """
+        self.image_renderer.draw_image(
+            self._queue, label,
+            top_left=top_left, bottom_right=bottom_right,
+            scale_mode=scale_mode, rotation=rotation, tint=tint, opacity=opacity,
+            pivot_uv=pivot_uv, corner_radius=corner_radius, antialiasing=antialiasing,
+            flip_x=flip_x, flip_y=flip_y, layer=layer,
+        )
+
+    def draw_image_centered(
+        self,
+        label: ImageLabel,
+        center: 'FloatVec2',
+        display_width: Optional[float] = None,
+        display_height: Optional[float] = None,
+        scale: float = 1.0,
+        scale_mode: ScaleMode = ScaleMode.STRETCH,
+        rotation: float = 0.0,
+        tint: ColorType = (1.0, 1.0, 1.0, 1.0),
+        opacity: float = 1.0,
+        pivot_uv: 'FloatVec2' = (0.5, 0.5),
+        corner_radius: float = 0.0,
+        antialiasing: float = 1.0,
+        flip_x: bool = False,
+        flip_y: bool = False,
+        layer: int = 0,
+    ) -> None:
+        """Queue an image for deferred, layer-sorted rendering (center + scale mode).
+
+        If display_width / display_height are not given, the image's natural pixel
+        dimensions are used, then multiplied by ``scale``.
+
+        Args:
+            label:          ImageLabel created by create_image() or load_image().
+            center:         Screen-space centre position (x, y).
+            display_width:  Destination width in pixels (None = natural width).
+            display_height: Destination height in pixels (None = natural height).
+            scale:          Uniform scale multiplier applied after display_width/height.
+            scale_mode:     How to scale/crop the image inside the rect.
+            rotation:       Rotation in radians, around the pivot point.
+            tint:           (r, g, b, a) colour multiplier.
+            opacity:        Global opacity (0.0 – 1.0).
+            pivot_uv:       Rotation pivot in 0..1 UV space (default centre).
+            corner_radius:  Rounded-corner clip radius in pixels.
+            antialiasing:   Corner edge softness in pixels.
+            flip_x:         Mirror image horizontally.
+            flip_y:         Mirror image vertically.
+            layer:          Draw order (lower = behind).
+        """
+        self.image_renderer.draw_image_centered(
+            self._queue, label,
+            center=center, display_width=display_width, display_height=display_height,
+            scale=scale, scale_mode=scale_mode, rotation=rotation, tint=tint, opacity=opacity,
+            pivot_uv=pivot_uv, corner_radius=corner_radius, antialiasing=antialiasing,
+            flip_x=flip_x, flip_y=flip_y, layer=layer,
+        )
+
+    def create_streaming_image(self, width: int, height: int, channels: int = 3) -> ImageLabel:
+        """Pre-allocate a GPU texture for streaming / video-feed use.
+
+        Allocates the GPU texture once so that :meth:`update_image` can push
+        new pixel data every frame without any allocation overhead.
+
+        Args:
+            width:    Texture width in pixels.
+            height:   Texture height in pixels.
+            channels: 1, 2, 3 (RGB) or 4 (RGBA).
+
+        Returns:
+            ImageLabel ready for drawing.
+        """
+        return self.image_renderer.create_streaming_image(width, height, channels)
+
+    def update_image(self, label: ImageLabel, array: 'np.ndarray') -> None:
+        """Push new pixel data into an existing ImageLabel (zero GPU allocation).
+
+        Intended for streaming / video-feed use cases.  Use
+        :meth:`create_streaming_image` to pre-allocate the texture, then call
+        this method every frame with the latest frame data.
+
+        Args:
+            label: ImageLabel to update.
+            array: New pixel data.  Spatial dimensions must match the texture.
+        """
+        self.image_renderer.update_image(label, array)
