@@ -1,5 +1,4 @@
-from setuptools import setup, Extension, find_packages
-from setuptools.command.build_ext import build_ext
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 import numpy as np
 import sys
@@ -30,6 +29,8 @@ else:
         "-funroll-loops",   # Unroll loops
     ]
 
+# The Cython extensions are required: compilation errors must fail the build.
+# In particular, e2D.vectors imports e2D.cvectors unconditionally.
 # Define extensions
 extensions = [
     Extension(
@@ -70,26 +71,6 @@ ext_modules = cythonize(
     annotate=False,
 )
 
-# Custom build_ext to handle compilation failures gracefully
-class BuildExtWithFallback(build_ext):
-    def run(self) -> None:
-        try:
-            super().run()
-        except Exception as e:
-            print(f"\n{'='*60}")
-            print("WARNING: Cython extension compilation failed!")
-            print(f"Error: {e}")
-            print("\ne2D will still work but with reduced performance.")
-            print("Vector2D will use pure Python fallback.")
-            print(f"{'='*60}\n")
-    
-    def build_extension(self, ext) -> None:
-        try:
-            super().build_extension(ext)
-        except Exception as e:
-            print(f"\nFailed to build {ext.name}: {e}")
-            print("Continuing with installation...")
-
 # Read README for long description
 try:
     with open("README.md", "r", encoding="utf-8") as f:
@@ -100,6 +81,5 @@ except FileNotFoundError:
 setup(
     # Use setup.cfg for most metadata
     ext_modules=ext_modules,
-    cmdclass={'build_ext': BuildExtWithFallback},
     zip_safe=False,
 )
